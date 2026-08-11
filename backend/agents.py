@@ -69,6 +69,7 @@ LANGUAGE_PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
 # [2] shared state: update_language
 # [!code highlight]
 @tool
+
 def update_language(
     language: Annotated[str, Field(description="Preferred language: 'english' or 'spanish'")],
 ) -> str:
