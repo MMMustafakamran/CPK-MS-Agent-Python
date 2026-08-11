@@ -30,10 +30,14 @@ export default function Page() {
   const nextLanguage = () =>
     state?.language === "english" ? "spanish" : "english";
 
+  // Docs: docs/4-app control/shared-state-writing-agent-state.md - update state.
+  // [!code highlight]
   const toggleLanguage = () => {
     agent.setState({ language: nextLanguage() });
   };
 
+  // Docs: docs/4-app control/shared-state-writing-agent-state.md - re-run with a hint.
+  // [!code highlight]
   const toggleAndRerun = async () => {
     const newLanguage = nextLanguage();
     agent.setState({ language: newLanguage });
@@ -42,6 +46,7 @@ export default function Page() {
       role: "user",
       content: `the language has been updated to ${newLanguage}`,
     });
+    // [!code highlight]
     await copilotkit.runAgent({ agent });
   };
 

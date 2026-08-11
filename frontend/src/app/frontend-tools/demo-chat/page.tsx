@@ -17,6 +17,8 @@ import { DemoFrame } from "@/components/demo-frame";
  * checking whether browser execution actually happened.
  */
 export default function Page() {
+  // Docs: docs/4-app control/frontend-tools.md - "Implementation".
+  // [!code highlight]
   useFrontendTool({
     name: "sayHello",
     description: "Say hello to the user",

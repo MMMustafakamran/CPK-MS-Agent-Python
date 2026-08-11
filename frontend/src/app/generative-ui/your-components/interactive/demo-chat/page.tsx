@@ -20,6 +20,8 @@ export default function Page() {
   // not infer its arg type from `parameters` — it defaults to
   // `Record<string, unknown>`, which makes `args.command` unknown and unusable
   // in JSX.
+  // Docs: docs/3-generative ui/your-components-interactive.md - interactive component registration.
+  // [!code highlight]
   useHumanInTheLoop<{ command: string }>({
     name: "humanApprovedCommand",
     description: "Ask human for approval to run a command.",
@@ -37,6 +39,7 @@ export default function Page() {
             {args.command}
           </pre>
           <div className="mt-3 flex flex-wrap gap-2">
+            {/* [!code highlight] */}
             <button
               type="button"
               onClick={() => respond?.(`Tell the user the command ran`)}
@@ -44,6 +47,7 @@ export default function Page() {
             >
               Approve
             </button>
+            {/* [!code highlight] */}
             <button
               type="button"
               onClick={() => respond?.(`Tell the user the command wasn't run`)}

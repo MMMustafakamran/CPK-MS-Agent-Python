@@ -19,6 +19,9 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 //    the other two exist because Shared State and State Rendering each define
 //    their own `state_schema`, which is a property of the agent it is attached
 //    to and cannot be shared.
+// Docs: docs/1-get started/quickstart.md and docs/6-backend/copilot-runtime.md
+// - "Setup Copilot Runtime" / "Setting Up the Runtime".
+// [!code highlight]
 const runtime = new CopilotRuntime({
   agents: {
     my_agent: new HttpAgent({ url: `${AGENT_URL}/` }),
@@ -28,6 +31,8 @@ const runtime = new CopilotRuntime({
 });
 
 // 3. A Next.js route handler for the CopilotKit runtime requests.
+// Docs: docs/6-backend/copilot-runtime.md - runtime request handler.
+// [!code highlight]
 export const POST = async (req: NextRequest) => {
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
     runtime,

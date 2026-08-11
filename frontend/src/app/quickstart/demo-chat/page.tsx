@@ -25,6 +25,8 @@ export default function Page() {
         </p>
       </main>
 
+      {/* Docs: docs/1-get started/quickstart.md - "Add the chat interface". */}
+      {/* [!code highlight] */}
       <CopilotSidebar
         agentId="my_agent"
         labels={{

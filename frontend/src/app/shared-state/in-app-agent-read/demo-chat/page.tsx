@@ -22,6 +22,8 @@ type AgentState = {
 };
 
 export default function Page() {
+  // Docs: docs/4-app control/shared-state-reading-agent-state.md - read agent.state.
+  // [!code highlight]
   const { agent } = useAgent({ agentId: "sample_agent" });
   const state = agent.state as AgentState | undefined;
 
@@ -45,6 +47,7 @@ export default function Page() {
           <h2 className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Raw agent.state
           </h2>
+          {/* [!code highlight] */}
           <pre className="mt-2 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
             {JSON.stringify(agent.state ?? {}, null, 2)}
           </pre>

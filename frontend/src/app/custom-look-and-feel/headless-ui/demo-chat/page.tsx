@@ -25,6 +25,9 @@ export default function Page() {
   const { copilotkit } = useCopilotKit();
   const [input, setInput] = useState("");
 
+  // Docs: docs/2-basics/custom-look-and-feel-fully-headless-ui.md -
+  // "Send messages and run the agent".
+  // [!code highlight]
   const sendMessage = useCallback(async () => {
     if (!input.trim()) return;
     agent.addMessage({
@@ -42,6 +45,8 @@ export default function Page() {
       subtitle="hand-built chat over useAgent + useCopilotKit"
     >
       <div className="mx-auto flex h-full max-w-3xl flex-col">
+        {/* Docs: docs/2-basics/custom-look-and-feel-fully-headless-ui.md - "Display messages". */}
+        {/* [!code highlight] */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {agent.messages.length === 0 && (
             <p className="text-sm text-slate-500">
@@ -73,6 +78,8 @@ export default function Page() {
           {agent.isRunning && <div className="text-gray-400">Thinking...</div>}
         </div>
 
+        {/* Docs: docs/2-basics/custom-look-and-feel-fully-headless-ui.md - input form. */}
+        {/* [!code highlight] */}
         <form
           className="flex gap-2 border-t border-slate-200 p-4 dark:border-slate-800"
           onSubmit={(e) => {
@@ -94,6 +101,7 @@ export default function Page() {
             Send
           </button>
           {agent.isRunning && (
+            /* Docs: docs/2-basics/custom-look-and-feel-fully-headless-ui.md - "Stop the agent". */
             <button
               type="button"
               onClick={() => copilotkit.stopAgent({ agent })}

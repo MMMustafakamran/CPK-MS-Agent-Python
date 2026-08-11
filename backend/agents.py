@@ -28,6 +28,8 @@ from pydantic import BaseModel, Field
 # --------------------------------------------------------------------------
 
 
+# Docs: docs/3-generative ui/tool-rendering.md - the server-side get_weather tool.
+# [!code highlight]
 # region get-weather
 @tool
 def get_weather(
@@ -65,6 +67,9 @@ LANGUAGE_PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
 }
 
 
+# Docs: docs/4-app control/shared-state-reading-agent-state.md and
+# docs/4-app control/shared-state-writing-agent-state.md - update_language tool.
+# [!code highlight]
 # region update-language
 @tool
 def update_language(
@@ -128,6 +133,8 @@ SEARCHES_PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
 }
 
 
+# Docs: docs/3-generative ui/state-rendering.md - update_searches tool.
+# [!code highlight]
 # region update-searches
 @tool
 def update_searches(
