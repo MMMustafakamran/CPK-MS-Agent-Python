@@ -20,7 +20,7 @@ export default function Page() {
   // not infer its arg type from `parameters` — it defaults to
   // `Record<string, unknown>`, which makes `args.command` unknown and unusable
   // in JSX.
-  // Docs: docs/3-generative ui/your-components-interactive.md - interactive component registration.
+  // interactive components page
   // [!code highlight]
   useHumanInTheLoop<{ command: string }>({
     name: "humanApprovedCommand",

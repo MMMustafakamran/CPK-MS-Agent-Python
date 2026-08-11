@@ -20,7 +20,7 @@ from agent_framework.openai import OpenAIChatClient
 
 
 def build_chat_client() -> SupportsChatGetResponse:
-    # Docs: docs/1-get started/quickstart.md - configure the Python chat client.
+    # quickstart page
     # [!code highlight]
     if os.getenv("AZURE_OPENAI_ENDPOINT"):
         return OpenAIChatClient(

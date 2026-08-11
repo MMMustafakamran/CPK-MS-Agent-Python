@@ -63,7 +63,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Docs: docs/5-microsoft agent framework/authentication.md - bearer-token middleware.
+# authentication page
 # [!code highlight]
 # region auth-middleware
 REQUIRED_BEARER_TOKEN = os.getenv("AUTH_BEARER_TOKEN")
@@ -97,7 +97,7 @@ async def health() -> dict[str, object]:
 
 chat_client = build_chat_client()
 
-# Docs: docs/1-get started/quickstart.md - Python AG-UI endpoint.
+# quickstart page
 # [!code highlight]
 # Quickstart / Tool Rendering / everything with no state schema.
 add_agent_framework_fastapi_endpoint(app=app, agent=create_main_agent(chat_client), path="/")
@@ -108,8 +108,7 @@ add_agent_framework_fastapi_endpoint(app=app, agent=create_main_agent(chat_clien
 # the frontend with `useAgent({ initialState })`, but that prop does not exist on
 # `useAgent` in @copilotkit/react-core 1.66.2 — `default_state` here is the
 # shipped equivalent.
-# Docs: docs/4-app control/shared-state-reading-agent-state.md and
-# docs/4-app control/shared-state-writing-agent-state.md - shared-state endpoint.
+# shared-state pages
 # [!code highlight]
 add_agent_framework_fastapi_endpoint(
     app=app,
@@ -118,7 +117,7 @@ add_agent_framework_fastapi_endpoint(
     default_state={"language": "english"},
 )
 
-# Docs: docs/3-generative ui/state-rendering.md - state-rendering endpoint.
+# state-rendering page
 # [!code highlight]
 # State Rendering.
 add_agent_framework_fastapi_endpoint(

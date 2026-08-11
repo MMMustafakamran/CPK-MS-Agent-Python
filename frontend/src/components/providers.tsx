@@ -27,9 +27,7 @@ const LICENSE_KEY = process.env.NEXT_PUBLIC_COPILOTKIT_LICENSE_KEY;
 const AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_BEARER_TOKEN;
 
 export function Providers({ children }: { children: ReactNode }) {
-  // Docs: docs/1-get started/quickstart.md - "Configure CopilotKit Provider".
-  // Docs: docs/2-basics/inspector.md - "Disabling the Inspector".
-  // Docs: docs/5-microsoft agent framework/authentication.md - bearer token forwarding.
+  // quickstart / inspector / authentication pages
   return (
     // [!code highlight]
     <CopilotKitProvider

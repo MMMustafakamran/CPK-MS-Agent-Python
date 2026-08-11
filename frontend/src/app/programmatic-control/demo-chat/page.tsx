@@ -25,7 +25,7 @@ import { DemoFrame } from "@/components/demo-frame";
  *     and the doc's `agent.state.user_theme` throws on the initial render.
  */
 function ThemeSelector() {
-  // Docs: docs/2-basics/programmatic-control.md - "Updating State".
+  // programmatic-control page
   // [!code highlight]
   const { agent } = useAgent({ agentId: "my_agent" });
   const state = agent.state as { user_theme?: string } | undefined;
@@ -79,7 +79,7 @@ function ThemeSelector() {
 }
 
 export default function Page() {
-  // Docs: docs/2-basics/programmatic-control.md - "Access your agent" / "Run the agent".
+  // programmatic-control page
   // [!code highlight]
   const { agent } = useAgent({ agentId: "my_agent" });
   const { copilotkit } = useCopilotKit();
@@ -92,7 +92,7 @@ export default function Page() {
       role: "user",
       content: draft,
     });
-    // Docs: docs/2-basics/programmatic-control.md - "Run the agent".
+    // programmatic-control page
     // [!code highlight]
     await copilotkit.runAgent({ agent });
   };
@@ -136,7 +136,7 @@ export default function Page() {
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
             agent.state
           </p>
-          {/* Docs: docs/2-basics/programmatic-control.md - "Reading State". */}
+          {/* programmatic-control page */}
           {/* [!code highlight] */}
           <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
             {JSON.stringify(agent.state ?? {}, null, 2)}

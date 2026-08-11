@@ -24,8 +24,7 @@ export function AuthDemoChat({
   authRequired: boolean;
   tokenConfigured: boolean;
 }) {
-  // Docs: docs/5-microsoft agent framework/authentication.md - frontend chat
-  // remains an ordinary Copilot chat; the provider supplies the Authorization header.
+  // authentication page
   // [!code highlight]
   // The four combinations of "server demands a token" and "provider sends one".
   const verdict = authRequired

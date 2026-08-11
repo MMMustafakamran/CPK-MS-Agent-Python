@@ -21,7 +21,7 @@ import { DemoFrame } from "@/components/demo-frame";
  * to CopilotKit's built-in rendering everywhere else in the app.
  */
 export default function Page() {
-  // Docs: docs/3-generative ui/tool-rendering.md - "Render the tool call in your frontend".
+  // tool-rendering page
   // [!code highlight]
   useRenderTool(
     {
@@ -43,7 +43,7 @@ export default function Page() {
     [],
   );
 
-  // Docs: docs/3-generative ui/tool-rendering.md - default tool rendering.
+  // tool-rendering page
   // [!code highlight]
   // Catch-all for tools without a dedicated renderer.
   useDefaultRenderTool({

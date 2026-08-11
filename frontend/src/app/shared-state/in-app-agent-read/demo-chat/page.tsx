@@ -22,7 +22,7 @@ type AgentState = {
 };
 
 export default function Page() {
-  // Docs: docs/4-app control/shared-state-reading-agent-state.md - read agent.state.
+  // shared-state read page
   // [!code highlight]
   const { agent } = useAgent({ agentId: "sample_agent" });
   const state = agent.state as AgentState | undefined;

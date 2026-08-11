@@ -16,7 +16,7 @@ import { DemoFrame } from "@/components/demo-frame";
  * The colleagues list is the doc's sample data.
  */
 export default function Page() {
-  // Docs: docs/4-app control/readable.md - application context values.
+  // readable page
   // [!code highlight]
   const [colleagues] = useState([
     { id: 1, name: "John Doe", role: "Developer" },

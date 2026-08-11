@@ -56,7 +56,7 @@ export default function Page() {
         </div>
 
         <div className="min-h-0 flex-1">
-          {/* Docs: docs/2-basics/prebuilt-components.md - CopilotChat. */}
+          {/* prebuilt-components page */}
           {/* [!code highlight] */}
           {variant === "chat" && (
             <CopilotChat
@@ -65,7 +65,7 @@ export default function Page() {
             />
           )}
 
-          {/* Docs: docs/2-basics/prebuilt-components.md - CopilotSidebar. */}
+          {/* prebuilt-components page */}
           {/* [!code highlight] */}
           {variant === "sidebar" && (
             <>
@@ -83,7 +83,7 @@ export default function Page() {
             </>
           )}
 
-          {/* Docs: docs/2-basics/prebuilt-components.md - CopilotPopup. */}
+          {/* prebuilt-components page */}
           {/* [!code highlight] */}
           {variant === "popup" && (
             <>

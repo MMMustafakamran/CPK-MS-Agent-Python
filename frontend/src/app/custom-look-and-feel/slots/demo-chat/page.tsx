@@ -64,7 +64,7 @@ export default function Page() {
         </div>
 
         <div className="min-h-0 flex-1">
-          {/* Docs: docs/2-basics/custom-look-and-feel-slots.md - Tailwind Classes. */}
+          {/* slots page */}
           {/* [!code highlight] */}
           {level === "classes" && (
             <CopilotChat
@@ -82,7 +82,7 @@ export default function Page() {
             />
           )}
 
-          {/* Docs: docs/2-basics/custom-look-and-feel-slots.md - Props Override. */}
+          {/* slots page */}
           {/* [!code highlight] */}
           {level === "props" && (
             <CopilotChat
@@ -99,7 +99,7 @@ export default function Page() {
             />
           )}
 
-          {/* Docs: docs/2-basics/custom-look-and-feel-slots.md - Custom Components. */}
+          {/* slots page */}
           {/* [!code highlight] */}
           {level === "component" && (
             <CopilotChat

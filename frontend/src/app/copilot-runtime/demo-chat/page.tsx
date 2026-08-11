@@ -22,7 +22,7 @@ const AGENTS = [
 type AgentId = (typeof AGENTS)[number]["id"];
 
 export default function Page() {
-  // Docs: docs/6-backend/copilot-runtime.md - agent routing by id.
+  // copilot-runtime page
   // [!code highlight]
   const [agentId, setAgentId] = useState<AgentId>("my_agent");
   const active = AGENTS.find((a) => a.id === agentId)!;

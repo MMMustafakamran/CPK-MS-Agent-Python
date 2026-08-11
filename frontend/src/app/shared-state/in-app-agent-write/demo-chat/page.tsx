@@ -30,13 +30,13 @@ export default function Page() {
   const nextLanguage = () =>
     state?.language === "english" ? "spanish" : "english";
 
-  // Docs: docs/4-app control/shared-state-writing-agent-state.md - update state.
+  // shared-state write page
   // [!code highlight]
   const toggleLanguage = () => {
     agent.setState({ language: nextLanguage() });
   };
 
-  // Docs: docs/4-app control/shared-state-writing-agent-state.md - re-run with a hint.
+  // shared-state write page
   // [!code highlight]
   const toggleAndRerun = async () => {
     const newLanguage = nextLanguage();

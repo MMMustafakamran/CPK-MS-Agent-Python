@@ -41,7 +41,7 @@ function WeatherCard({
 }
 
 export default function Page() {
-  // Docs: docs/3-generative ui/your-components-display-only.md - "Register a component".
+  // display-only page
   // [!code highlight]
   useComponent(
     {
