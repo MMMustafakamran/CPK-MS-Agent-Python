@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 # --------------------------------------------------------------------------
 
 
-# tool-rendering  get-weather
+# [1] tool rendering: get_weather
 # [!code highlight]
 @tool
 def get_weather(
@@ -66,7 +66,7 @@ LANGUAGE_PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
 }
 
 
-# shared-state region update-language
+# [2] shared state: update_language
 # [!code highlight]
 @tool
 def update_language(
@@ -130,7 +130,7 @@ SEARCHES_PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
 }
 
 
-# state-rendering page
+# [3] state rendering: update_searches
 # [!code highlight]
 # region update-searches
 @tool

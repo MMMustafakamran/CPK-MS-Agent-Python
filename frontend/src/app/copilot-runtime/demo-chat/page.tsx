@@ -22,7 +22,7 @@ const AGENTS = [
 type AgentId = (typeof AGENTS)[number]["id"];
 
 export default function Page() {
-  // copilot-runtime page
+  // [1] copilot runtime: agent routing
   // [!code highlight]
   const [agentId, setAgentId] = useState<AgentId>("my_agent");
   const active = AGENTS.find((a) => a.id === agentId)!;
@@ -49,6 +49,7 @@ export default function Page() {
         </div>
 
         <div className="min-h-0 flex-1">
+          {/* [2] copilot runtime: chat agent */}
           {/* [!code highlight] */}
           <CopilotChat key={agentId} agentId={agentId} />
         </div>

@@ -19,7 +19,7 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 //    the other two exist because Shared State and State Rendering each define
 //    their own `state_schema`, which is a property of the agent it is attached
 //    to and cannot be shared.
-// quickstart / copilot-runtime pages
+// [1] quickstart: runtime config
 // [!code highlight]
 const runtime = new CopilotRuntime({
   agents: {
@@ -30,7 +30,7 @@ const runtime = new CopilotRuntime({
 });
 
 // 3. A Next.js route handler for the CopilotKit runtime requests.
-// copilot-runtime page
+// [2] copilot-runtime: request handler
 // [!code highlight]
 export const POST = async (req: NextRequest) => {
   const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({

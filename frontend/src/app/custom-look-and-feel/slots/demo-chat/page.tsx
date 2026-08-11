@@ -64,7 +64,7 @@ export default function Page() {
         </div>
 
         <div className="min-h-0 flex-1">
-          {/* slots page */}
+          {/* [1] slots: class overrides */}
           {/* [!code highlight] */}
           {level === "classes" && (
             <CopilotChat
@@ -82,7 +82,7 @@ export default function Page() {
             />
           )}
 
-          {/* slots page */}
+          {/* [2] slots: prop overrides */}
           {/* [!code highlight] */}
           {level === "props" && (
             <CopilotChat
@@ -99,7 +99,7 @@ export default function Page() {
             />
           )}
 
-          {/* slots page */}
+          {/* [3] slots: custom component */}
           {/* [!code highlight] */}
           {level === "component" && (
             <CopilotChat

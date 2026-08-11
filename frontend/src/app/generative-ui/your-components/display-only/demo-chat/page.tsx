@@ -41,7 +41,7 @@ function WeatherCard({
 }
 
 export default function Page() {
-  // display-only page
+  // [1] display-only: register component
   // [!code highlight]
   useComponent(
     {
@@ -58,6 +58,7 @@ export default function Page() {
       parentPath="/generative-ui/your-components/display-only"
       subtitle="useComponent — agent-rendered React components"
     >
+      {/* [2] display-only: render chat */}
       {/* [!code highlight] */}
       <CopilotChat
         agentId="my_agent"

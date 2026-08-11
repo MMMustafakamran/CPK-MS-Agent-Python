@@ -17,7 +17,7 @@ import { DemoFrame } from "@/components/demo-frame";
  * checking whether browser execution actually happened.
  */
 export default function Page() {
-  // frontend-tools page
+  // [1] frontend tools: browser handler
   // [!code highlight]
   useFrontendTool({
     name: "sayHello",

@@ -16,7 +16,7 @@ import { DemoFrame } from "@/components/demo-frame";
  * The colleagues list is the doc's sample data.
  */
 export default function Page() {
-  // readable page
+  // [1] readable: context values
   // [!code highlight]
   const [colleagues] = useState([
     { id: 1, name: "John Doe", role: "Developer" },
@@ -24,6 +24,7 @@ export default function Page() {
     { id: 3, name: "Bob Wilson", role: "Product Manager" },
   ]);
 
+  // [2] readable: register context
   // [!code highlight]
   useAgentContext({
     description: "The current user's colleagues",
