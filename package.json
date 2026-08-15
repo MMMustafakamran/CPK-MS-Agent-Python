@@ -1,0 +1,14 @@
+{
+  "name": "cpk-ms-agent-python",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "record": "tsx scripts/record-all-pages.ts"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.0.0"
+  }
+}
