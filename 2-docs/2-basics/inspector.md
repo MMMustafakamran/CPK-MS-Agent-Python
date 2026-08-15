@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/inspector
+
 # Inspector
 
 > Inspector for debugging actions, readables, agent status, messages, and context.

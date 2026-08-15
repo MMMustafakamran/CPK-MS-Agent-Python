@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write
+
 # Writing agent state
 
 > Write to agent's state from your application.

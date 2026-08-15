@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/cli
+
 # CopilotKit CLI
 
 > Use the CopilotKit CLI to create apps, sign in to Cloud-Hosted Enterprise Intelligence, select projects, provision runtime API keys, import historical conversations, and install agent skills.

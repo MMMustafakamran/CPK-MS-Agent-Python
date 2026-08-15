@@ -1,164 +1,238 @@
-# Frontend Tools
+https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read
 
-> Create frontend tools and use them within your Microsoft Agent Framework agent.
-> {/_ TODO: Swap these links for Microsoft Agent Framework links once Microsoft Agent Framework is officially added to the feature viewer _/}
-> <IframeSwitcher
->   id="frontend-actions-example"
->   exampleUrl="https://feature-viewer.copilotkit.ai/microsoft-agent-framework-dotnet/feature/agentic_chat?sidebar=false&chatDefaultOpen=false"
->   codeUrl="https://feature-viewer.copilotkit.ai/microsoft-agent-framework-dotnet/feature/agentic_chat?view=code&sidebar=false&codeLayout=tabs"
->   exampleLabel="Demo"
->   codeLabel="Code"
->   height="700px"
-> />
+# Reading agent state
+
+> Read the realtime agent state in your native application.
+
+{/_ TODO: Swap these links for Microsoft Agent Framework links once Microsoft Agent Framework is officially added to the feature viewer _/}
+
+<IframeSwitcher
+  id="shared-state-example"
+  exampleUrl="https://feature-viewer.copilotkit.ai/microsoft-agent-framework-dotnet/feature/shared_state?sidebar=false&chatDefaultOpen=false"
+  codeUrl="https://feature-viewer.copilotkit.ai/microsoft-agent-framework-dotnet/feature/shared_state?view=code&sidebar=false&codeLayout=tabs"
+  exampleLabel="Demo"
+  codeLabel="Code"
+  height="700px"
+/>
+
+<Callout type="info">
+  This example demonstrates reading from shared state in the [CopilotKit Feature
+  Viewer](https://feature-viewer.copilotkit.ai/microsoft-agent-framework-dotnet/feature/shared_state).
+</Callout>
 
 ## What is this?
 
-Frontend tools enable you to define client-side functions that your agent can invoke, with execution happening entirely in the user's browser. When your agent calls a frontend tool,
-the logic runs on the client side, giving you direct access to the frontend environment.
-
-This can be utilized to let your agent control the UI, power generative UI, or support Human-in-the-loop interactions.
-
-In this guide, we cover the use of frontend tools driving and interacting with the UI.
+You can easily use the realtime agent state not only in the chat UI, but also in the native application UX.
 
 ## When should I use this?
 
-Use frontend tools when you need your agent to interact with client-side primitives such as:
-
-- Reading or modifying React component state
-- Accessing browser APIs like localStorage, sessionStorage, or cookies
-- Triggering UI updates or animations
-- Interacting with third-party frontend libraries
-- Performing actions that require the user's immediate browser context
+You can use this when you want to provide the user with feedback about your agent's state. As your agent's
+state updates, you can reflect these updates natively in your application.
 
 ## Implementation
 
 <Steps>
-    <Step>
-        ### Run and connect your agent
-        You'll need to run your agent and connect it to CopilotKit before proceeding. If you haven't done so already,
+  <Step>
+    ### Run and connect your agent
+    You'll need to run your agent and connect it to CopilotKit before proceeding. If you haven't done so already,
 you can follow the instructions in the [Getting Started](/langgraph/quickstart) guide.
 
 If you don't already have an agent, you can use the [coagent starter](https://github.com/copilotkit/copilotkit/tree/main/examples/coagents-starter) as a starting point
 as this guide uses it as a starting point.
 
-    </Step>
+  </Step>
+  <Step>
+   ### Define the Agent State
+    Decide which parts of agent state you want to reflect in the UI and allow updating from the UI.
 
-    <Step>
-        ### Create a frontend tool
-
-        First, you'll need to create a frontend tool using the [useFrontendTool](/reference/v2/hooks/useFrontendTool) hook. Here's a simple one to get you started
-        that says hello to the user.
-
-        ```tsx title="page.tsx"
-        import { z } from "zod";
-        import { useFrontendTool } from "@copilotkit/react-core/v2" // [!code highlight]
-
-        export function Page() {
-          // ...
-
-          // [!code highlight:12]
-          useFrontendTool({
-            name: "sayHello",
-            description: "Say hello to the user",
-            parameters: z.object({
-              name: z.string().describe("The name of the user to say hello to"),
-            }),
-            handler: async ({ name }) => {
-              alert(`Hello, ${name}!`);
-              return `Said hello to ${name}!`;
-            },
-          });
-
-          // ...
+    <Tabs groupId="language_microsoft-agent-framework_agent" items={['.NET', 'Python']} persist>
+      <Tab value=".NET">
+        ```csharp title="agent/Program.cs (excerpt)"
+        public class AgentStateSnapshot
+        {
+            public string Language { get; set; } = "english";
         }
         ```
-    </Step>
-    <Step>
-        ### Modify your server
-        Now, we'll ensure your AG-UI server can receive and pass these frontend actions to your agent logic.
-    </Step>
-    <Step>
-        ### Create your AG-UI server
+      </Tab>
+      <Tab value="Python">
+        ```python title="main.py"
+        from __future__ import annotations
+        import os
+        import uvicorn
+        from agent_framework import Agent, tool, SupportsChatGetResponse
+        from agent_framework.openai import OpenAIChatClient
+        from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
+        from agent_framework.ag_ui import AgentFrameworkAgent
+        from dotenv import load_dotenv
+        from fastapi import FastAPI
+        from typing import Annotated
+        from pydantic import BaseModel, Field
 
-        Set up your AG-UI server to serve your agent. Frontend tools registered with `useFrontendTool` are automatically
-        made available to your agent through the AG-UI protocol.
+        load_dotenv()
 
-        <Tabs groupId="language_microsoft-agent-framework_agent" items={['.NET', 'Python']} persist>
-          <Tab value=".NET">
-            ```csharp title="Program.cs"
-            using Azure.AI.OpenAI;
-            using Azure.Identity;
-            using Microsoft.Agents.AI;
-            using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
+        class SearchItem(BaseModel):
+            query: str
+            done: bool
 
-            var builder = WebApplication.CreateBuilder(args);
-            builder.Services.AddAGUI();
-            var app = builder.Build();
+        STATE_SCHEMA: dict[str, object] = {
+            "language": {
+                "type": "string",
+                "enum": ["english", "spanish"],
+                "description": "Preferred language.",
+            }
+        }
+        PREDICT_STATE_CONFIG: dict[str, dict[str, str]] = {
+            "language": {"tool": "update_language", "tool_argument": "language"}
+        }
 
-            string endpoint = builder.Configuration["AZURE_OPENAI_ENDPOINT"]!;
-            string deployment = builder.Configuration["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"]!;
+        @tool
+        def update_language(
+            language: Annotated[str, Field(description="Preferred language: 'english' or 'spanish'")],
+        ) -> str:
+            normalized = (language or "").strip().lower()
+            if normalized not in ("english", "spanish"):
+                return "Language unchanged. Use 'english' or 'spanish'."
+            return f"Language updated to {normalized}."
 
-            // Create the agent
-            var agent = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
-                .GetChatClient(deployment)
-                .CreateAIAgent(name: "AGUIAssistant", instructions: "You are a helpful assistant.");
 
-            // Map the AG-UI endpoint
-            app.MapAGUI("/", agent);
-            await app.RunAsync();
-            ```
-          </Tab>
-          <Tab value="Python">
-            ```python title="agent/src/byo_agent.py"
-            from __future__ import annotations
-            import os
-            from fastapi import FastAPI
-            from dotenv import load_dotenv
-            from agent_framework import Agent
-            from agent_framework import SupportsChatGetResponse
-            from agent_framework.azure import AzureOpenAIChatClient
-            from agent_framework.openai import OpenAIChatClient
-            from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
-            from azure.identity import DefaultAzureCredential
-
-            load_dotenv()
-
-            def _build_chat_client() -> SupportsChatGetResponse:
-                if bool(os.getenv("AZURE_OPENAI_ENDPOINT")):
-                    return AzureOpenAIChatClient(
-                        credential=DefaultAzureCredential(),
-                        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-5.4-mini"),
-                        endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-                    )
-                if bool(os.getenv("OPENAI_API_KEY")):
-                    return OpenAIChatClient(
-                        model=os.getenv("OPENAI_CHAT_MODEL_ID", "gpt-5.4-mini"),
-                        api_key=os.getenv("OPENAI_API_KEY"),
-                    )
-                raise RuntimeError("Set AZURE_OPENAI_* or OPENAI_API_KEY in agent/.env")
-
-            chat_client = _build_chat_client()
-            agent = Agent(
-                name="AGUIAssistant",
-                instructions="You are a helpful assistant.",
-                client=chat_client,
+        def _build_chat_client():
+            if os.getenv("AZURE_OPENAI_ENDPOINT"):
+                return OpenAIChatClient(
+                    model=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-4o-mini"),
+                    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                )
+            if os.getenv("OPENAI_API_KEY"):
+                return OpenAIChatClient(
+                    model=os.getenv("OPENAI_CHAT_MODEL_ID", "gpt-4o-mini"),
+                    api_key=os.getenv("OPENAI_API_KEY"),
+                )
+            raise RuntimeError(
+                "Set either AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY, or OPENAI_API_KEY."
             )
 
-            app = FastAPI(title="AG-UI Server (Python)")
-            add_agent_framework_fastapi_endpoint(app=app, agent=agent, path="/")
-            ```
-          </Tab>
-        </Tabs>
 
-        <Callout type="info">
-          Frontend tools registered with `useFrontendTool` are automatically forwarded to your agent by the AG-UI protocol. The agent can invoke them just like backend tools, but execution happens on the frontend.
-        </Callout>
-    </Step>
-    <Step>
-        ### Give it a try!
-        You've now given your agent the ability to directly call any frontend tools you've defined. These tools will be available to the agent where they can be used as needed.
 
-        <video src="https://cdn.copilotkit.ai/docs/copilotkit/images/frontend-actions-demo.mp4" className="rounded-lg shadow-xl" loop playsInline controls autoPlay muted />
-    </Step>
+        def create_agent(chat_client: SupportsChatGetResponse) -> AgentFrameworkAgent:
+            base_agent = Agent(
+                name="sample_agent",
+                instructions="You are a helpful assistant.",
+                client=chat_client,
+                tools=[update_language],
+            )
+            return AgentFrameworkAgent(
+                agent=base_agent,
+                name="CopilotKitMicrosoftAgentFrameworkAgent",
+                description="Assistant that tracks a simple language state.",
+                state_schema=STATE_SCHEMA,
+                predict_state_config=PREDICT_STATE_CONFIG,
+                require_confirmation=False,
+            )
 
+
+        chat_client = _build_chat_client()
+
+        agent = create_agent(chat_client)
+
+        app = FastAPI(title="Microsoft Agent Framework - Quickstart")
+        add_agent_framework_fastapi_endpoint(app=app, agent=agent, path="/")
+
+        if __name__ == "__main__":
+            uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+        ```
+      </Tab>
+    </Tabs>
+
+    ```ts title="ui/app/page.tsx"
+    type AgentState = {
+      language: "english" | "spanish";
+    }
+    ```
+
+  </Step>
+  <Step>
+    ### Use the `useAgent` Hook
+    With your agent connected and running all that is left is to call the `useAgent` hook, pass the agent's name, and
+    optionally provide an initial state.
+
+    ```tsx title="ui/app/page.tsx"
+
+    // Define the agent state type, should match the actual state of your agent
+    type AgentState = {
+      language: "english" | "spanish";
+    }
+
+    function YourMainContent() {
+      // [!code highlight:4]
+      const { agent } = useAgent({
+        agentId: "sample_agent",
+        initialState: { language: "english" }  // optionally provide an initial state
+      });
+
+      // ...
+
+      return (
+        // style excluded for brevity
+        <div>
+          <h1>Your main content</h1>
+          {/* [!code highlight:1] */}
+          <p>Language: {agent.state?.language}</p>
+        </div>
+      );
+    }
+    ```
+    <Callout type="info">
+      The `agent.state` in `useAgent` is reactive and will automatically update when the agent's state changes.
+    </Callout>
+
+  </Step>
+  <Step>
+    ### Give it a try!
+    As the agent state updates, your `state` variable will automatically update with it! In this case, you'll see the
+    language set to "english" as that's the initial state we set.
+
+    <Frame>
+      <ImageZoom src="https://cdn.copilotkit.ai/docs/copilotkit/images/microsoft-agent-framework/read-agent-state.png" alt="read agent state" width={1000} height={1000} className="my-0"/>
+    </Frame>
+
+    <Callout type="info">
+      Pictured above is the [agent starter](https://github.com/copilotkit/copilotkit/tree/main/examples/agents-starter) with
+      the implementation section applied!
+    </Callout>
+
+  </Step>
 </Steps>
+
+## Rendering agent state in the chat
+
+You can also render the agent's state in the chat UI. This is useful for informing the user about the agent's state in a
+more in-context way. To do this, you can use the `useAgent` hook with a `render` function.
+
+```tsx title="ui/app/page.tsx"
+// Define the agent state type, should match the actual state of your agent
+type AgentState = {
+  language: "english" | "spanish";
+};
+
+function YourMainContent() {
+  // ...
+  // [!code highlight:7]
+  useAgent({
+    agentId: "sample_agent",
+    render: ({ state }) => {
+      if (!state.language) return null;
+      return <div>Language: {state.language}</div>;
+    },
+  });
+  // ...
+}
+```
+
+<Callout type="info">
+  The `agent.state` in `useAgent` is reactive and will automatically update when
+  the agent's state changes.
+</Callout>
+
+## Advanced: Emitting Intermediate State
+
+By default, agent state updates arrive at natural checkpoints during agent execution. For more granular, real-time updates during long-running operations, you can emit state snapshots from within your agent logic. Consult the [Microsoft Agent Framework documentation](https://learn.microsoft.com/en-us/agent-framework/user-guide/overview) for patterns on streaming custom state events during execution.

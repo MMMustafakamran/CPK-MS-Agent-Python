@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/display-only
+
 # Display-only
 
 > Register React components that your agent can render in the chat.

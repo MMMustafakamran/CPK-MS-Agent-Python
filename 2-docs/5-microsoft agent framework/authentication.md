@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/auth
+
 # Authentication
 
 > Secure your Microsoft Agent Framework agents with user authentication
@@ -30,7 +32,8 @@ Configure authentication in your AG-UI server:
 
 <Tabs groupId="language_microsoft-agent-framework_agent" items={['.NET', 'Python']} persist>
 <Tab value=".NET">
-```csharp title="Program.cs"
+
+````csharp title="Program.cs"
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -178,7 +181,7 @@ builder.Services.AddCors(options =>
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-```
+````
 
 ## Security Best Practices
 

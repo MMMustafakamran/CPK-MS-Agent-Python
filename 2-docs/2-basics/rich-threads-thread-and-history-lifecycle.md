@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/threads-lifecycle
+
 # Thread & History Lifecycle
 
 > How a threadId is created, how conversation history is restored, how to switch or start threads, and how CopilotKit threads relate to your agent framework's own persistence.

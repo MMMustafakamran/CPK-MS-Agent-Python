@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/slots
+
 # Slots
 
 > Customize any part of the chat UI by overriding individual sub-components via slots.

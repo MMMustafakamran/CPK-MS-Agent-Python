@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/generative-ui/state-rendering
+
 # State Rendering
 
 > Render the state of your agent with custom UI components.

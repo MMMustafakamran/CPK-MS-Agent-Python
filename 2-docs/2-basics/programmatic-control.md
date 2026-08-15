@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/programmatic-control
+
 # Programmatic Control
 
 > Chat with an agent using CopilotKit's UI components.

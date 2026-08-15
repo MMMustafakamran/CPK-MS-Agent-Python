@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/generative-ui/tool-rendering
+
 # Tool Rendering
 
 > Render your agent's tool calls with custom UI components.
@@ -45,7 +47,8 @@ Define a tool function that your agent can call. Microsoft Agent Framework will 
 
 <Tabs groupId="language_microsoft-agent-framework_agent" items={['.NET', 'Python']} persist>
 <Tab value=".NET">
-```csharp title="Program.cs"
+
+````csharp title="Program.cs"
 using System.ComponentModel;
 using Azure.AI.OpenAI;
 using Azure.Identity;
@@ -173,7 +176,7 @@ const YourMainContent = () => {
   });
   // ...
 };
-```
+````
 
 </Step>
 <Step>

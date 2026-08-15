@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer
+
 # Threads Drawer
 
 > Drop-in threads drawer that lists, switches, and manages conversations next to your chat.

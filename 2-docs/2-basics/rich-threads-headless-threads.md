@@ -1,3 +1,5 @@
+https://docs.copilotkit.ai/ms-agent-python/headless-threads
+
 # Headless Threads
 
 > Build a custom thread UI with useThreads while CopilotKit handles persistence, replay, synchronization, and lifecycle infrastructure.
