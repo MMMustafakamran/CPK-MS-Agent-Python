@@ -105,7 +105,7 @@ export class RecordingEngine {
       try {
         await page.goto(ideUrl, {
           waitUntil: 'commit',
-          timeout: 30000,
+          timeout: 60000,
         });
         await ensureOverlays(page, 'vscode');
         await sleep(1200);
@@ -139,7 +139,7 @@ export class RecordingEngine {
       try {
         await page.goto(config.demoUrl, {
           waitUntil: 'commit',
-          timeout: 30000,
+          timeout: 60000,
         });
         await ensureOverlays(page, 'chrome');
         await sleep(1500);
