@@ -123,7 +123,7 @@ export async function checkServicesHealth(): Promise<{
 
 - `id`: Unique CLI identifier (used with `--page=<id>`).
 - `name`: Clean feature title.
-- `filename`: Exported video filename (e.g. `01-MSPY-react-Quickstart`).
+- `filename`: Exported video filename (e.g. `MSPY-react-01-Quickstart`).
 - `docUrl`: Official documentation link for Step 1.
 - `demoUrl`: Local demo URL for Step 3 (`http://localhost:3000/...`).
 - `ideFile`: Target source code file to highlight in Step 2.
@@ -139,7 +139,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'quickstart',
     name: 'Quickstart',
-    filename: '01-MSPY-react-Quickstart',
+    filename: 'MSPY-react-01-Quickstart',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/quickstart?agent=bring-your-own',
     ideFile: 'frontend/src/app/quickstart/demo-chat/page.tsx',
     startLine: 28,
@@ -151,7 +151,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'interactive',
     name: 'Generative UI - Interactive Component',
-    filename: '08-MSPY-react-Interactive',
+    filename: 'MSPY-react-08-Interactive',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/interactive',
     ideFile: 'frontend/src/app/generative-ui/your-components/interactive/demo-chat/page.tsx',
     startLine: 23,

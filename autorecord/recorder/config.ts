@@ -4,7 +4,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'quickstart',
     name: 'Quickstart',
-    filename: '01-MSPY-react-Quickstart',
+    filename: 'MSPY-react-01-Quickstart',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/quickstart?agent=bring-your-own',
     ideFile: 'frontend/src/app/quickstart/demo-chat/page.tsx',
     startLine: 28,
@@ -16,7 +16,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'prebuilt-components',
     name: 'Prebuilt Components',
-    filename: '02-MSPY-react-PrebuiltComponents',
+    filename: 'MSPY-react-02-PrebuiltComponents',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/prebuilt-components',
     ideFile: 'frontend/src/app/prebuilt-components/demo-chat/page.tsx',
     startLine: 58,
@@ -28,7 +28,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'slots',
     name: 'Custom Look and Feel - Slots',
-    filename: '03-MSPY-react-Slots',
+    filename: 'MSPY-react-03-Slots',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/slots',
     ideFile: 'frontend/src/app/custom-look-and-feel/slots/demo-chat/page.tsx',
     startLine: 66,
@@ -40,7 +40,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'headless-ui',
     name: 'Custom Look and Feel - Headless UI',
-    filename: '04-MSPY-react-HeadlessUI',
+    filename: 'MSPY-react-04-HeadlessUI',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/headless-ui',
     ideFile: 'frontend/src/app/custom-look-and-feel/headless-ui/demo-chat/page.tsx',
     startLine: 28,
@@ -52,7 +52,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'programmatic-control',
     name: 'Custom Look and Feel - Programmatic Control',
-    filename: '05-MSPY-react-ProgrammaticControl',
+    filename: 'MSPY-react-05-ProgrammaticControl',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/programmatic-control',
     ideFile: 'frontend/src/app/programmatic-control/demo-chat/page.tsx',
     startLine: 28,
@@ -64,7 +64,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'inspector',
     name: 'Custom Look and Feel - Inspector',
-    filename: '06-MSPY-react-Inspector',
+    filename: 'MSPY-react-06-Inspector',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/inspector',
     ideFile: 'frontend/src/components/providers.tsx',
     startLine: 30,
@@ -76,7 +76,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'display-only',
     name: 'Generative UI - Display Only Component',
-    filename: '07-MSPY-react-DisplayOnly',
+    filename: 'MSPY-react-07-DisplayOnly',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/display-only',
     ideFile: 'frontend/src/app/generative-ui/your-components/display-only/demo-chat/page.tsx',
     startLine: 27,
@@ -88,7 +88,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'interactive',
     name: 'Generative UI - Interactive Component (Approval Gate)',
-    filename: '08-MSPY-react-Interactive',
+    filename: 'MSPY-react-08-Interactive',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/interactive',
     ideFile: 'frontend/src/app/generative-ui/your-components/interactive/demo-chat/page.tsx',
     startLine: 23,
@@ -100,7 +100,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'tool-rendering',
     name: 'Generative UI - Tool Rendering',
-    filename: '09-MSPY-react-ToolRendering',
+    filename: 'MSPY-react-09-ToolRendering',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/generative-ui/tool-rendering',
     ideFile: 'frontend/src/app/generative-ui/tool-rendering/demo-chat/page.tsx',
     startLine: 23,
@@ -112,7 +112,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'state-rendering',
     name: 'Generative UI - State Rendering',
-    filename: '10-MSPY-react-StateRendering',
+    filename: 'MSPY-react-10-StateRendering',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/generative-ui/state-rendering',
     ideFile: 'frontend/src/app/generative-ui/state-rendering/demo-chat/page.tsx',
     startLine: 28,
@@ -124,7 +124,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'frontend-tools',
     name: 'App Control - Frontend Tools',
-    filename: '11-MSPY-react-FrontendTools',
+    filename: 'MSPY-react-11-FrontendTools',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/frontend-tools',
     ideFile: 'frontend/src/app/frontend-tools/demo-chat/page.tsx',
     startLine: 20,
@@ -136,7 +136,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'in-app-agent-read',
     name: 'Shared State - In-App Agent Read',
-    filename: '12-MSPY-react-SharedStateRead',
+    filename: 'MSPY-react-12-SharedStateRead',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read',
     ideFile: 'frontend/src/app/shared-state/in-app-agent-read/demo-chat/page.tsx',
     startLine: 20,
@@ -148,7 +148,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'in-app-agent-write',
     name: 'Shared State - In-App Agent Write',
-    filename: '13-MSPY-react-SharedStateWrite',
+    filename: 'MSPY-react-13-SharedStateWrite',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write',
     ideFile: 'frontend/src/app/shared-state/in-app-agent-write/demo-chat/page.tsx',
     startLine: 30,
@@ -160,7 +160,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'agent-app-context',
     name: 'Readables - Agent App Context',
-    filename: '14-MSPY-react-AgentAppContext',
+    filename: 'MSPY-react-14-AgentAppContext',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/agent-app-context',
     ideFile: 'frontend/src/app/agent-app-context/demo-chat/page.tsx',
     startLine: 18,
@@ -172,7 +172,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'auth',
     name: 'Authentication - Bearer Token',
-    filename: '15-MSPY-react-Auth',
+    filename: 'MSPY-react-15-Auth',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/auth',
     ideFile: 'backend/main.py',
     startLine: 66,
@@ -184,7 +184,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'copilot-runtime',
     name: 'Backend - Copilot Runtime',
-    filename: '16-MSPY-react-CopilotRuntime',
+    filename: 'MSPY-react-16-CopilotRuntime',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/copilot-runtime',
     ideFile: 'frontend/src/app/api/copilotkit/route.ts',
     startLine: 20,
@@ -196,7 +196,7 @@ export const PAGES: PageRecordConfig[] = [
   {
     id: 'ag-ui',
     name: 'Backend - AG-UI Protocol Stream',
-    filename: '17-MSPY-react-AgUi',
+    filename: 'MSPY-react-17-AgUi',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/ag-ui',
     ideFile: 'frontend/src/app/ag-ui/demo-chat/page.tsx',
     startLine: 70,

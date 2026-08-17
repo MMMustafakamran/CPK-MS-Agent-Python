@@ -89,7 +89,7 @@ autorecord/
 ├── package.json               # Node.js dependencies (Playwright, TSX)
 ├── tsconfig.json              # TypeScript compilation configuration
 ├── videos/                    # Output directory for exported WebM videos
-│   ├── 01-MSPY-react-Quickstart.webm
+│   ├── MSPY-react-01-Quickstart.webm
 │   └── ...
 └── recorder/
     ├── README.md              # Recorder module architecture reference
@@ -230,23 +230,23 @@ All 17 active demo routes in `frontend/src/lib/nav-config.ts` are mapped with ac
 
 | Page ID | Video Output Filename | Route URL | Target Source File | Highlighted Lines |
 |---|---|---|---|---|
-| `quickstart` | `01-MSPY-react-Quickstart.webm` | `/quickstart/demo-chat` | `frontend/src/app/quickstart/demo-chat/page.tsx` | 28–38 |
-| `prebuilt-components` | `02-MSPY-react-PrebuiltComponents.webm` | `/prebuilt-components/demo-chat` | `frontend/src/app/prebuilt-components/demo-chat/page.tsx` | 58–104 |
-| `slots` | `03-MSPY-react-Slots.webm` | `/custom-look-and-feel/slots/demo-chat` | `frontend/src/app/custom-look-and-feel/slots/demo-chat/page.tsx` | 66–116 |
-| `headless-ui` | `04-MSPY-react-HeadlessUI.webm` | `/custom-look-and-feel/headless-ui/demo-chat` | `frontend/src/app/custom-look-and-feel/headless-ui/demo-chat/page.tsx` | 28–78 |
-| `programmatic-control` | `05-MSPY-react-ProgrammaticControl.webm` | `/programmatic-control/demo-chat` | `frontend/src/app/programmatic-control/demo-chat/page.tsx` | 28–102 |
-| `inspector` | `06-MSPY-react-Inspector.webm` | `/inspector/demo-chat` | `frontend/src/components/providers.tsx` | 30–47 |
-| `display-only` | `07-MSPY-react-DisplayOnly.webm` | `/generative-ui/your-components/display-only/demo-chat` | `frontend/src/app/generative-ui/your-components/display-only/demo-chat/page.tsx` | 27–55 |
-| `interactive` | `08-MSPY-react-Interactive.webm` | `/generative-ui/your-components/interactive/demo-chat` | `frontend/src/app/generative-ui/your-components/interactive/demo-chat/page.tsx` | 23–64 |
-| `tool-rendering` | `09-MSPY-react-ToolRendering.webm` | `/generative-ui/tool-rendering/demo-chat` | `frontend/src/app/generative-ui/tool-rendering/demo-chat/page.tsx` | 23–63 |
-| `state-rendering` | `10-MSPY-react-StateRendering.webm` | `/generative-ui/state-rendering/demo-chat` | `frontend/src/app/generative-ui/state-rendering/demo-chat/page.tsx` | 28–53 |
-| `frontend-tools` | `11-MSPY-react-FrontendTools.webm` | `/frontend-tools/demo-chat` | `frontend/src/app/frontend-tools/demo-chat/page.tsx` | 20–33 |
-| `in-app-agent-read` | `12-MSPY-react-SharedStateRead.webm` | `/shared-state/in-app-agent-read/demo-chat` | `frontend/src/app/shared-state/in-app-agent-read/demo-chat/page.tsx` | 20–55 |
-| `in-app-agent-write` | `13-MSPY-react-SharedStateWrite.webm` | `/shared-state/in-app-agent-write/demo-chat` | `frontend/src/app/shared-state/in-app-agent-write/demo-chat/page.tsx` | 30–54 |
-| `agent-app-context` | `14-MSPY-react-AgentAppContext.webm` | `/agent-app-context/demo-chat` | `frontend/src/app/agent-app-context/demo-chat/page.tsx` | 18–34 |
-| `auth` | `15-MSPY-react-Auth.webm` | `/auth/demo-chat` | `backend/main.py` | 66–90 |
-| `copilot-runtime` | `16-MSPY-react-CopilotRuntime.webm` | `/copilot-runtime/demo-chat` | `frontend/src/app/api/copilotkit/route.ts` | 20–43 |
-| `ag-ui` | `17-MSPY-react-AgUi.webm` | `/ag-ui/demo-chat` | `frontend/src/app/ag-ui/demo-chat/page.tsx` | 70–102 |
+| `quickstart` | `MSPY-react-01-Quickstart.webm` | `/quickstart/demo-chat` | `frontend/src/app/quickstart/demo-chat/page.tsx` | 28–38 |
+| `prebuilt-components` | `MSPY-react-02-PrebuiltComponents.webm` | `/prebuilt-components/demo-chat` | `frontend/src/app/prebuilt-components/demo-chat/page.tsx` | 58–104 |
+| `slots` | `MSPY-react-03-Slots.webm` | `/custom-look-and-feel/slots/demo-chat` | `frontend/src/app/custom-look-and-feel/slots/demo-chat/page.tsx` | 66–116 |
+| `headless-ui` | `MSPY-react-04-HeadlessUI.webm` | `/custom-look-and-feel/headless-ui/demo-chat` | `frontend/src/app/custom-look-and-feel/headless-ui/demo-chat/page.tsx` | 28–78 |
+| `programmatic-control` | `MSPY-react-05-ProgrammaticControl.webm` | `/programmatic-control/demo-chat` | `frontend/src/app/programmatic-control/demo-chat/page.tsx` | 28–102 |
+| `inspector` | `MSPY-react-06-Inspector.webm` | `/inspector/demo-chat` | `frontend/src/components/providers.tsx` | 30–47 |
+| `display-only` | `MSPY-react-07-DisplayOnly.webm` | `/generative-ui/your-components/display-only/demo-chat` | `frontend/src/app/generative-ui/your-components/display-only/demo-chat/page.tsx` | 27–55 |
+| `interactive` | `MSPY-react-08-Interactive.webm` | `/generative-ui/your-components/interactive/demo-chat` | `frontend/src/app/generative-ui/your-components/interactive/demo-chat/page.tsx` | 23–64 |
+| `tool-rendering` | `MSPY-react-09-ToolRendering.webm` | `/generative-ui/tool-rendering/demo-chat` | `frontend/src/app/generative-ui/tool-rendering/demo-chat/page.tsx` | 23–63 |
+| `state-rendering` | `MSPY-react-10-StateRendering.webm` | `/generative-ui/state-rendering/demo-chat` | `frontend/src/app/generative-ui/state-rendering/demo-chat/page.tsx` | 28–53 |
+| `frontend-tools` | `MSPY-react-11-FrontendTools.webm` | `/frontend-tools/demo-chat` | `frontend/src/app/frontend-tools/demo-chat/page.tsx` | 20–33 |
+| `in-app-agent-read` | `MSPY-react-12-SharedStateRead.webm` | `/shared-state/in-app-agent-read/demo-chat` | `frontend/src/app/shared-state/in-app-agent-read/demo-chat/page.tsx` | 20–55 |
+| `in-app-agent-write` | `MSPY-react-13-SharedStateWrite.webm` | `/shared-state/in-app-agent-write/demo-chat` | `frontend/src/app/shared-state/in-app-agent-write/demo-chat/page.tsx` | 30–54 |
+| `agent-app-context` | `MSPY-react-14-AgentAppContext.webm` | `/agent-app-context/demo-chat` | `frontend/src/app/agent-app-context/demo-chat/page.tsx` | 18–34 |
+| `auth` | `MSPY-react-15-Auth.webm` | `/auth/demo-chat` | `backend/main.py` | 66–90 |
+| `copilot-runtime` | `MSPY-react-16-CopilotRuntime.webm` | `/copilot-runtime/demo-chat` | `frontend/src/app/api/copilotkit/route.ts` | 20–43 |
+| `ag-ui` | `MSPY-react-17-AgUi.webm` | `/ag-ui/demo-chat` | `frontend/src/app/ag-ui/demo-chat/page.tsx` | 70–102 |
 
 ---
 
