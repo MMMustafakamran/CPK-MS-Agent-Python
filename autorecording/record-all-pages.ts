@@ -37,7 +37,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `\n🎉 ALL RECORDINGS FINISHED! Output files in: ${join(ROOT, 'recordings')}`,
+    `\n🎉 ALL RECORDINGS FINISHED! Output files in: ${join(ROOT, 'autorecording', 'recordings')}`,
   );
 }
 

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "record": "tsx ../scripts/record-all-pages.ts"
+    "record": "tsx ../autorecording/record-all-pages.ts"
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.57",

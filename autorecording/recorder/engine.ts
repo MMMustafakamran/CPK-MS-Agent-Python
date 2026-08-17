@@ -14,7 +14,7 @@ export class RecordingEngine {
 
   constructor(rootDir: string) {
     this.rootDir = rootDir;
-    this.recordingsDir = join(rootDir, 'recordings');
+    this.recordingsDir = join(rootDir, 'autorecording', 'recordings');
     this.tempVideoDir = join(this.recordingsDir, '.temp_chunks');
     if (!existsSync(this.recordingsDir)) {
       mkdirSync(this.recordingsDir, { recursive: true });
