@@ -166,8 +166,30 @@ export class RecordingEngine {
 
       // ----------------------------------------------------
       // STEP 2: SHOW PROJECT CODE IN VS CODE IDE WITH SNIPPET SELECTION
-      // (Pure standalone HTML simulation — zero Next.js/React dependencies)
       // ----------------------------------------------------
+      if (config.id === 'quickstart') {
+        console.log(
+          `\n💻 Step 2a: Displaying CopilotKit & AG-UI Versions in package.json (lines 12-22)...`,
+        );
+        try {
+          const pkgHtml = generateIdeHtml(
+            this.rootDir,
+            'frontend/package.json',
+            12,
+            22,
+          );
+          await page.setContent(pkgHtml, { waitUntil: 'domcontentloaded' });
+          await ensureOverlays(page, 'vscode');
+          await sleep(400);
+          await humanGlide(page, 520, 380, 22);
+          await sleep(200);
+          await humanGlide(page, 720, 480, 25);
+          await sleep(2500);
+        } catch (e) {
+          console.warn(`⚠️ Package.json IDE view notice: ${diagnoseError(e, 'ide-simulation')}`);
+        }
+      }
+
       console.log(
         `\n💻 Step 2: Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
       );
@@ -214,21 +236,21 @@ export class RecordingEngine {
       console.log(`\n🚀 Step 3: Opening Demo (${config.demoUrl})...`);
       try {
         await page.goto(config.demoUrl, {
-          waitUntil: 'load',
-          timeout: 60000,
+          waitUntil: 'commit',
+          timeout: 45000,
         });
         await ensureOverlays(page, 'chrome');
 
-        // Wait for Next.js hydration, React tree stability, and input element readiness
+        // Wait for page body and chat element readiness
         console.log(`   ⏳ Waiting for Next.js compilation & React hydration to settle...`);
-        await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+        await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
         await page
           .waitForSelector(
             'textarea, input[type="text"], input, [contenteditable="true"], .copilotKitChat, [class*="copilotKit"]',
-            { state: 'visible', timeout: 12000 },
+            { state: 'visible', timeout: 15000 },
           )
           .catch(() => {});
-        await sleep(1800);
+        await sleep(1500);
 
         // Dispatch specific demo actions
         await executePageAction(page, config, this.rootDir);

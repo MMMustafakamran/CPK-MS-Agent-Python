@@ -20,14 +20,118 @@ import { runSlotsAction } from './slots.action';
 import { runStateRenderingAction } from './state-rendering.action';
 import { runToolRenderingAction } from './tool-rendering.action';
 
+/**
+ * Actively waits until:
+ * 1. An assistant response message appears with text content.
+ * 2. Streaming finishes (text content stops changing for 2+ seconds).
+ * 3. Glides the mouse over the response and waits postWaitMs (default 6000ms) for reading.
+ */
+export async function waitForAgentResponseCompletion(
+  page: Page,
+  postWaitMs = 6000,
+): Promise<void> {
+  console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
+
+  // Step 1: Wait until assistant message starts receiving content (up to 30s)
+  let hasStarted = false;
+  const startTime = Date.now();
+  while (Date.now() - startTime < 30000) {
+    const text = await page
+      .evaluate(() => {
+        const msgs = document.querySelectorAll(
+          '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
+        );
+        if (msgs.length === 0) return '';
+        const lastMsg = msgs[msgs.length - 1];
+        return (lastMsg.textContent || '').trim();
+      })
+      .catch(() => '');
+
+    if (text.length > 2) {
+      hasStarted = true;
+      break;
+    }
+    await sleep(400);
+  }
+
+  // Step 2: Stream completion detection — poll until text length stabilizes
+  if (hasStarted) {
+    console.log(`   🌊 AI agent is streaming response tokens...`);
+    let previousText = '';
+    let stableCount = 0;
+    const streamStart = Date.now();
+
+    while (Date.now() - streamStart < 45000) {
+      const currentText = await page
+        .evaluate(() => {
+          const msgs = document.querySelectorAll(
+            '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
+          );
+          if (msgs.length === 0) return '';
+          const lastMsg = msgs[msgs.length - 1];
+          return (lastMsg.textContent || '').trim();
+        })
+        .catch(() => '');
+
+      if (currentText.length > 0 && currentText === previousText) {
+        stableCount++;
+        // If text is stable for 4 consecutive checks (2 full seconds), streaming has finished
+        if (stableCount >= 4) {
+          console.log(
+            `   ✅ AI agent response completed (${currentText.length} characters).`,
+          );
+          break;
+        }
+      } else {
+        stableCount = 0;
+        previousText = currentText;
+      }
+      await sleep(500);
+    }
+  } else {
+    console.warn(`   ⚠️ AI agent response timeout (waiting fallback)...`);
+    await sleep(4000);
+  }
+
+  // Step 3: Glide cursor smoothly to the finished response message
+  const assistantLocator = page
+    .locator(
+      '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child)',
+    )
+    .last();
+
+  if (await assistantLocator.isVisible({ timeout: 3000 }).catch(() => false)) {
+    const abBox = await assistantLocator.boundingBox();
+    if (abBox) {
+      console.log(
+        `   🎯 Focusing cursor on response at (${Math.round(abBox.x)}, ${Math.round(abBox.y)})`,
+      );
+      await humanGlide(
+        page,
+        abBox.x + Math.min(abBox.width / 2, 220),
+        abBox.y + Math.min(abBox.height / 2, 60),
+        25,
+      );
+    }
+  } else {
+    await humanGlide(page, 960, 500, 25);
+  }
+
+  // Step 4: Generous reading pause after response completes
+  console.log(`   📖 Reading completed response (pausing ${postWaitMs / 1000}s)...`);
+  await sleep(postWaitMs);
+}
+
 export const runStandardAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
+  // 1. Detect that the demo page & chat interface are fully rendered
+  console.log(`   🔍 Detecting demo page & chat component rendering...`);
   const inputLocator = page
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
+  await inputLocator.waitFor({ state: 'visible', timeout: 15000 });
   await sleep(600);
 
   const inputBox = await inputLocator.boundingBox();
@@ -87,43 +191,8 @@ export const runStandardAction: PageActionHandler = async (
     await page.keyboard.press('Enter');
   }
 
-  console.log(`⏳ Actively detecting AI agent response...`);
-  // Dynamic response detection: wait until assistant message appears
-  await page
-    .waitForFunction(
-      () => {
-        const assistantMsgs = document.querySelectorAll(
-          '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
-        );
-        return assistantMsgs.length > 0;
-      },
-      { timeout: 18000 },
-    )
-    .catch(() => {});
-
-  await sleep(4000);
-
-  const assistantLocator = page
-    .locator('.copilotKitAssistantMessage, [data-message-role="assistant"]')
-    .first();
-  if (await assistantLocator.isVisible({ timeout: 4000 }).catch(() => false)) {
-    const abBox = await assistantLocator.boundingBox();
-    if (abBox) {
-      console.log(
-        `   🎯 Detected AI assistant response at (${Math.round(abBox.x)}, ${Math.round(abBox.y)})`,
-      );
-      await humanGlide(
-        page,
-        abBox.x + Math.min(abBox.width / 2, 200),
-        abBox.y + 30,
-        25,
-      );
-    }
-  } else {
-    await humanGlide(page, 960, 500, 30);
-  }
-
-  await sleep(config.waitAfterPromptMs ?? 6000);
+  // 2. Actively wait for the response to stream completely and pause for reading
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6500);
 };
 
 const ACTION_MAP: Record<string, PageActionHandler> = {

@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler } from '../types';
+import { waitForAgentResponseCompletion } from './index';
 
 export const runPrebuiltAction: PageActionHandler = async (page: Page) => {
   // 1/3: CopilotChat tab
@@ -19,7 +20,7 @@ export const runPrebuiltAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for CopilotChat response...`);
-  await sleep(7500);
+  await waitForAgentResponseCompletion(page, 4000);
 
   // 2/3: CopilotSidebar tab
   console.log(`   [Prebuilt] 2/3: Switching to CopilotSidebar tab...`);
