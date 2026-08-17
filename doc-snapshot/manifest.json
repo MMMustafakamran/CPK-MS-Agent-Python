@@ -1,0 +1,345 @@
+{
+  "schema": 1,
+  "docsRoot": "https://docs.copilotkit.ai/ms-agent-python",
+  "syncedAt": "2026-08-17T13:46:40.286Z",
+  "pages": {
+    "/ms-agent-python": {
+      "file": "ms-agent-python.md",
+      "sha256": "4d0070113d294d9370d32213f01fb0dbfbb85f46b756b732954fb42b939983ed",
+      "bytes": 3192,
+      "lines": 62,
+      "routes": [
+        "/",
+        "/doc-sync"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:40 GMT"
+    },
+    "/ms-agent-python/ag-ui": {
+      "file": "ms-agent-python__ag-ui.md",
+      "sha256": "9c8f469f548ced938c0ba775467717120dddbe45e319f9eb8efef11cc3f3d554",
+      "bytes": 3931,
+      "lines": 124,
+      "routes": [
+        "/ag-ui"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:40 GMT"
+    },
+    "/ms-agent-python/agent-app-context": {
+      "file": "ms-agent-python__agent-app-context.md",
+      "sha256": "ad05c6573505a2225f850295f9281275cd8d8affd4550a366c81f7827324ce34",
+      "bytes": 7644,
+      "lines": 173,
+      "routes": [
+        "/agent-app-context"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:40 GMT"
+    },
+    "/ms-agent-python/auth": {
+      "file": "ms-agent-python__auth.md",
+      "sha256": "637c57b6e36f47d6d30ecfa6047b35287a227fecd4a62616736842d76c831268",
+      "bytes": 7077,
+      "lines": 203,
+      "routes": [
+        "/auth"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:40 GMT"
+    },
+    "/ms-agent-python/copilot-runtime": {
+      "file": "ms-agent-python__copilot-runtime.md",
+      "sha256": "909618119acf451dbec0b2139c23d1a4a72df9ae24623a36950d6b556f7bbb02",
+      "bytes": 6714,
+      "lines": 181,
+      "routes": [
+        "/copilot-runtime"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:40 GMT"
+    },
+    "/ms-agent-python/custom-look-and-feel/headless-ui": {
+      "file": "ms-agent-python__custom-look-and-feel__headless-ui.md",
+      "sha256": "6aa3b255585c177e46d6b865fe87b8b07789b8af666d1878673ae820d30cb808",
+      "bytes": 5594,
+      "lines": 207,
+      "routes": [
+        "/custom-look-and-feel/headless-ui"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:40 GMT"
+    },
+    "/ms-agent-python/custom-look-and-feel/slots": {
+      "file": "ms-agent-python__custom-look-and-feel__slots.md",
+      "sha256": "b03880eee02e91ff61fa3a8e6531a5ad5cae7faad6e67187fec0d464cf5d374a",
+      "bytes": 10397,
+      "lines": 315,
+      "routes": [
+        "/custom-look-and-feel/slots"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/frontend-tools": {
+      "file": "ms-agent-python__frontend-tools.md",
+      "sha256": "6d544779a7fa8bf2080be56ec12646e874beb309a223bb885d68e705d2ee0edd",
+      "bytes": 6979,
+      "lines": 161,
+      "routes": [
+        "/frontend-tools"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/generative-ui/state-rendering": {
+      "file": "ms-agent-python__generative-ui__state-rendering.md",
+      "sha256": "011a2ce6e5a8ead90aac01c8b0b95193d185209409254103128a746e586464c4",
+      "bytes": 16140,
+      "lines": 424,
+      "routes": [
+        "/generative-ui/state-rendering"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/generative-ui/tool-rendering": {
+      "file": "ms-agent-python__generative-ui__tool-rendering.md",
+      "sha256": "95e7ae8883248970489b65eb5f047a789875afacf38580dd6584fb930b487164",
+      "bytes": 7469,
+      "lines": 234,
+      "routes": [
+        "/generative-ui/tool-rendering"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/generative-ui/your-components/display-only": {
+      "file": "ms-agent-python__generative-ui__your-components__display-only.md",
+      "sha256": "880fe95dbf752b2d60a87769957d91ab4e77a06a115161029175df3dd3618487",
+      "bytes": 2475,
+      "lines": 90,
+      "routes": [
+        "/generative-ui/your-components/display-only"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/generative-ui/your-components/interactive": {
+      "file": "ms-agent-python__generative-ui__your-components__interactive.md",
+      "sha256": "766e2df4dc0bb3c5d438f0efa7b2e9be57e5f54d6b40f0dff78442a9e5cdff67",
+      "bytes": 178,
+      "lines": 6,
+      "routes": [
+        "/generative-ui/your-components/interactive"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/inspector": {
+      "file": "ms-agent-python__inspector.md",
+      "sha256": "9402936383a73adf7d2b381071891796c2b51bd74e3b6822c174590fa950dedc",
+      "bytes": 5148,
+      "lines": 111,
+      "routes": [
+        "/inspector"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/prebuilt-components": {
+      "file": "ms-agent-python__prebuilt-components.md",
+      "sha256": "329b5413f52910141ef63db629694881c576e0824c0aa3d92b58c9b004226f57",
+      "bytes": 191,
+      "lines": 7,
+      "routes": [
+        "/prebuilt-components"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/programmatic-control": {
+      "file": "ms-agent-python__programmatic-control.md",
+      "sha256": "72bda00a749f215f30de4271e7cffe699105955cc187707641c6d2a5c5b2d689",
+      "bytes": 13316,
+      "lines": 475,
+      "routes": [
+        "/programmatic-control"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/quickstart": {
+      "file": "ms-agent-python__quickstart.md",
+      "sha256": "b35b54e9e2abf50a99a92bf20a3842b9aad9cc08851121eb4f957c3890bad9a6",
+      "bytes": 21177,
+      "lines": 533,
+      "routes": [
+        "/quickstart"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/shared-state/in-app-agent-read": {
+      "file": "ms-agent-python__shared-state__in-app-agent-read.md",
+      "sha256": "4fdff309048bf125ea8cb5bc69c870c7bdc172abe41c0dafc715ec327271f9c0",
+      "bytes": 8530,
+      "lines": 237,
+      "routes": [
+        "/shared-state/in-app-agent-read"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/shared-state/in-app-agent-write": {
+      "file": "ms-agent-python__shared-state__in-app-agent-write.md",
+      "sha256": "8566ca39d862c272babf99590766c67b709d8a9c23fd83a866b74d38e706b9ad",
+      "bytes": 8826,
+      "lines": 241,
+      "routes": [
+        "/shared-state/in-app-agent-write"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    }
+  },
+  "sitemap": {
+    "fetchedAt": "2026-08-17T13:46:40.286Z",
+    "urlsUnderRoot": 132,
+    "knownUnmapped": [
+      "https://docs.copilotkit.ai/ms-agent-python/agent-config",
+      "https://docs.copilotkit.ai/ms-agent-python/agent-spec",
+      "https://docs.copilotkit.ai/ms-agent-python/agent-spec/human-in-the-loop",
+      "https://docs.copilotkit.ai/ms-agent-python/agent-spec/langgraph",
+      "https://docs.copilotkit.ai/ms-agent-python/agent-spec/quickstart",
+      "https://docs.copilotkit.ai/ms-agent-python/agent-spec/wayflow",
+      "https://docs.copilotkit.ai/ms-agent-python/agentic-chat-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/agentic-protocols",
+      "https://docs.copilotkit.ai/ms-agent-python/agentic-protocols/a2a",
+      "https://docs.copilotkit.ai/ms-agent-python/agentic-protocols/ag-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/agentic-protocols/ag-ui-middleware",
+      "https://docs.copilotkit.ai/ms-agent-python/agentic-protocols/mcp",
+      "https://docs.copilotkit.ai/ms-agent-python/backend/ag-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/backend/agent-runner",
+      "https://docs.copilotkit.ai/ms-agent-python/backend/copilot-runtime",
+      "https://docs.copilotkit.ai/ms-agent-python/backend/custom-agent",
+      "https://docs.copilotkit.ai/ms-agent-python/backend/runtime-endpoints",
+      "https://docs.copilotkit.ai/ms-agent-python/backend/self-managed-agents",
+      "https://docs.copilotkit.ai/ms-agent-python/build-with-agents",
+      "https://docs.copilotkit.ai/ms-agent-python/built-in-agent",
+      "https://docs.copilotkit.ai/ms-agent-python/cli",
+      "https://docs.copilotkit.ai/ms-agent-python/concepts/architecture",
+      "https://docs.copilotkit.ai/ms-agent-python/concepts/generative-ui-overview",
+      "https://docs.copilotkit.ai/ms-agent-python/concepts/oss-vs-enterprise",
+      "https://docs.copilotkit.ai/ms-agent-python/concepts/which-hook",
+      "https://docs.copilotkit.ai/ms-agent-python/contributing/code-contributions",
+      "https://docs.copilotkit.ai/ms-agent-python/contributing/code-contributions/package-linking",
+      "https://docs.copilotkit.ai/ms-agent-python/contributing/docs-contributions",
+      "https://docs.copilotkit.ai/ms-agent-python/cookbook",
+      "https://docs.copilotkit.ai/ms-agent-python/cookbook/angular-adk-agentic-app",
+      "https://docs.copilotkit.ai/ms-agent-python/cookbook/arcade",
+      "https://docs.copilotkit.ai/ms-agent-python/cookbook/daytona",
+      "https://docs.copilotkit.ai/ms-agent-python/cookbook/openbox-governed-copilotkit",
+      "https://docs.copilotkit.ai/ms-agent-python/cookbook/oracle-agent-spec-memory",
+      "https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/css",
+      "https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/reasoning-messages",
+      "https://docs.copilotkit.ai/ms-agent-python/deepagents",
+      "https://docs.copilotkit.ai/ms-agent-python/deploy/agentcore",
+      "https://docs.copilotkit.ai/ms-agent-python/examples",
+      "https://docs.copilotkit.ai/ms-agent-python/faq",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/dynamic-schema",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/fixed-schema",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/display",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/hashbrown",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/interactive",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/json-render",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/mcp-apps",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/open-generative-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/open-json-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/reasoning",
+      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/tool-based",
+      "https://docs.copilotkit.ai/ms-agent-python/headless",
+      "https://docs.copilotkit.ai/ms-agent-python/headless-threads",
+      "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop",
+      "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop/headless",
+      "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop/useInterrupt",
+      "https://docs.copilotkit.ai/ms-agent-python/migrate/1.10.X",
+      "https://docs.copilotkit.ai/ms-agent-python/migrate/1.8.2",
+      "https://docs.copilotkit.ai/ms-agent-python/migrate/v2",
+      "https://docs.copilotkit.ai/ms-agent-python/multi-agent/subagents",
+      "https://docs.copilotkit.ai/ms-agent-python/multimodal-attachments",
+      "https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/chat",
+      "https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/chat-controls",
+      "https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer",
+      "https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/popup",
+      "https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/sidebar",
+      "https://docs.copilotkit.ai/ms-agent-python/premium/headless-ui",
+      "https://docs.copilotkit.ai/ms-agent-python/premium/intelligence-platform",
+      "https://docs.copilotkit.ai/ms-agent-python/premium/managed-intelligence-platform",
+      "https://docs.copilotkit.ai/ms-agent-python/premium/overview",
+      "https://docs.copilotkit.ai/ms-agent-python/premium/self-hosting",
+      "https://docs.copilotkit.ai/ms-agent-python/premium/threads-explained",
+      "https://docs.copilotkit.ai/ms-agent-python/reference/v2/hooks/useCapabilities",
+      "https://docs.copilotkit.ai/ms-agent-python/runtime-server-adapter",
+      "https://docs.copilotkit.ai/ms-agent-python/shared-state",
+      "https://docs.copilotkit.ai/ms-agent-python/shared-state/agent-readonly",
+      "https://docs.copilotkit.ai/ms-agent-python/shared-state/predictive-state-updates",
+      "https://docs.copilotkit.ai/ms-agent-python/shared-state/rendering-in-app",
+      "https://docs.copilotkit.ai/ms-agent-python/shared-state/streaming",
+      "https://docs.copilotkit.ai/ms-agent-python/telemetry",
+      "https://docs.copilotkit.ai/ms-agent-python/threads",
+      "https://docs.copilotkit.ai/ms-agent-python/threads-import",
+      "https://docs.copilotkit.ai/ms-agent-python/threads-lifecycle",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/common-issues",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/debug-mode",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/error-debugging",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/error-reference",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/event-inspector",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/hook-explorer",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/inspector-dev-console",
+      "https://docs.copilotkit.ai/ms-agent-python/troubleshooting/migrate-to-v2",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-powered-textarea/next-steps",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-powered-textarea/overview",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-powered-textarea/step-1-checkout-repo",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-powered-textarea/step-2-setup-copilotkit",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-powered-textarea/step-3-copilot-textarea",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-powered-textarea/step-4-copilot-readable-state",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-todo-app/next-steps",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-todo-app/overview",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-todo-app/step-1-checkout-repo",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-todo-app/step-2-setup-copilotkit",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-todo-app/step-3-copilot-readable-state",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/ai-todo-app/step-4-frontend-tools",
+      "https://docs.copilotkit.ai/ms-agent-python/tutorials/multi-conversation-chat",
+      "https://docs.copilotkit.ai/ms-agent-python/voice",
+      "https://docs.copilotkit.ai/ms-agent-python/vs-code-extension",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new/a2a-mcp-handshake",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new/a2ui-launch",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new/generative-ui-spec-support",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new/langgraph-deep-agents",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new/mcp-apps-support",
+      "https://docs.copilotkit.ai/ms-agent-python/whats-new/v1-50"
+    ]
+  }
+}
