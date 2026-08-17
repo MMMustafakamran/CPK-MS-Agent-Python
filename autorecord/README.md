@@ -56,15 +56,17 @@ graph LR
    - Glides cursor down to the simulated Windows 11 Taskbar, clicks the **VS Code** icon, and illuminates the blue active glow bar (`#60a5fa`).
 
 2. **Step 2 — Visual Studio Code IDE View**:
-   - Renders a standalone VS Code Dark+ interface (`vs-dark`) directly from project source files on disk.
-   - Highlights the exact snippet lines (`startLine` to `endLine`) with `#264f78` background and `#007acc` accent border.
-   - Smoothly glides the virtual cursor down across the highlighted lines.
+   - For quickstart, renders **Step 2a** displaying `frontend/package.json` (lines 12–22) highlighting `@copilotkit/react-core`, `@copilotkit/runtime`, and `@ag-ui/client` versions.
+   - Renders **Step 2b** displaying the component implementation (e.g. `page.tsx`) with highlighted line ranges (`startLine` to `endLine`) in VS Code Dark+ theme (`vs-dark`).
+   - Smoothly glides the virtual cursor across the code snippet.
    - Glides cursor down to the Taskbar and clicks the **Chrome** icon (illuminating its blue glow bar).
 
 3. **Step 3 — Live Interactive Demo**:
    - Navigates directly to the isolated demo endpoint (`http://localhost:3000/<route>/demo-chat`).
    - Injects the simulated Windows 11 Taskbar with live clock, start menu, and active app indicators.
-   - Types test prompts with natural keystrokes and executes custom action handlers (e.g., clicking options, toggling state, waiting for streaming AI tokens or tool execution).
+   - Detects page and chat component rendering before sending prompts.
+   - Types test prompts with natural keystrokes and actively detects AI response token stream completion.
+   - Pauses for 8 seconds after completion so the viewer can read the generated response.
 
 ---
 
@@ -87,7 +89,7 @@ autorecord/
 ├── package.json               # Node.js dependencies (Playwright, TSX)
 ├── tsconfig.json              # TypeScript compilation configuration
 ├── videos/                    # Output directory for exported WebM videos
-│   ├── MSAgentReact-Quickstart.webm
+│   ├── MSPY-react-Quickstart.webm
 │   └── ...
 └── recorder/
     ├── README.md              # Recorder module architecture reference
