@@ -38,6 +38,6 @@ export const runToolRenderingAction: PageActionHandler = async (
     }
   }
 
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 

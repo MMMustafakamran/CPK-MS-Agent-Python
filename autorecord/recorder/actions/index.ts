@@ -23,12 +23,12 @@ import { runToolRenderingAction } from './tool-rendering.action';
 /**
  * Actively waits until:
  * 1. An assistant response message appears with text content.
- * 2. Streaming finishes (text content stops changing for 2+ seconds).
- * 3. Glides the mouse over the response and waits postWaitMs (default 7000ms) for reading.
+ * 2. Streaming finishes (text content stops changing for 1.6+ seconds).
+ * 3. Glides the mouse over the response and waits postWaitMs (default 4000ms) for reading.
  */
 export async function waitForAgentResponseCompletion(
   page: Page,
-  postWaitMs = 7000,
+  postWaitMs = 4000,
 ): Promise<void> {
   console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
 
@@ -192,7 +192,7 @@ export const runStandardAction: PageActionHandler = async (
   }
 
   // 2. Actively wait for the response to stream completely and pause for reading
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 7000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 
 const ACTION_MAP: Record<string, PageActionHandler> = {

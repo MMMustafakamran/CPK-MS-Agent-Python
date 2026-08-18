@@ -34,6 +34,6 @@ export const runAgentAppContextAction: PageActionHandler = async (
   }
 
   // Actively wait for assistant response citing colleagues context
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 

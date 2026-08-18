@@ -51,22 +51,22 @@ graph LR
 ```
 
 1. **Step 1 — Official Documentation View**:
-   - Opens the official CopilotKit Microsoft Agent Framework doc URL (`https://docs.copilotkit.ai/ms-agent-python/...`).
-   - Glides mouse to reading position, smoothly scrolls down at human reading cadence, and hovers over the code snippet.
-   - Glides cursor down to the simulated Windows 11 Taskbar, clicks the **VS Code** icon, and illuminates the blue active glow bar (`#60a5fa`).
+   - Opens the official documentation URL (`config.docUrl`).
+   - Pauses for 1.5s on the header, smoothly scrolls down Phase 1 (800px) through overview/setup, and continues Phase 2 (950px) down to the primary code block (`main.py` / component).
+   - Dynamically identifies the visible code snippet in the viewport, glides the virtual cursor over it, and pauses for a 2.0s reading window.
+   - Glides cursor down to the simulated Windows 11 Taskbar, clicks the **VS Code** icon, and illuminates the blue active indicator (`#60a5fa`).
 
 2. **Step 2 — Visual Studio Code IDE View**:
-   - For quickstart, renders **Step 2a** displaying `frontend/package.json` (lines 12–22) highlighting `@copilotkit/react-core`, `@copilotkit/runtime`, and `@ag-ui/client` versions.
-   - Renders **Step 2b** displaying the component implementation (e.g. `page.tsx`) with highlighted line ranges (`startLine` to `endLine`) in VS Code Dark+ theme (`vs-dark`).
-   - Smoothly glides the virtual cursor across the code snippet.
-   - Glides cursor down to the Taskbar and clicks the **Chrome** icon (illuminating its blue glow bar).
+   - Renders an authentic simulated VS Code Dark+ IDE with Command Palette (`Ctrl + P`), Seti SVG file icons, blinking line caret, and minimap.
+   - Supports in-place **multi-tab rendering**: For quickstart, displays `package.json` (lines 12–22), smoothly glides cursor to the `page.tsx` tab in the tab bar, clicks it, and switches to `page.tsx` (lines 28–38).
+   - Automatically centers `.code-viewport` on the active snippet lines regardless of line depth.
+   - Glides cursor down to the Taskbar and clicks the **Chrome** icon (illuminating its blue indicator).
 
 3. **Step 3 — Live Interactive Demo**:
-   - Navigates directly to the isolated demo endpoint (`http://localhost:3000/<route>/demo-chat`).
-   - Injects the simulated Windows 11 Taskbar with live clock, start menu, and active app indicators.
-   - Detects page and chat component rendering before sending prompts.
-   - Types test prompts with natural keystrokes and actively detects AI response token stream completion.
-   - Pauses for 8 seconds after completion so the viewer can read the generated response.
+   - Navigates directly to the demo endpoint (`http://localhost:3000/<route>/demo-chat`) with zero transition flicker (dark background shield).
+   - Injects the simulated Windows 11 Taskbar with live clock and active app indicators.
+   - Types test prompts with snappy human keystrokes (30ms) and actively tracks token streaming in real-time until completion.
+   - Pauses for **4 seconds** after completion so the viewer can comfortably read the generated reply.
 
 ---
 

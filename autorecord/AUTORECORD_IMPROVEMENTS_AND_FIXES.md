@@ -38,14 +38,14 @@ flowchart TD
    - Navigates to the official documentation link (`config.docUrl`).
    - Waits for full client-side rendering (`waitForSelector('h1, article, main, pre')`).
    - Pauses for **1.5s** so the viewer sees the page title and header.
-   - Smoothly scrolls down to the code section (`humanScrollDown`).
-   - Glides cursor over the code block with a **1.8s** reading pause.
+   - Smoothly scrolls down Phase 1 (800px) and continues Phase 2 (950px) down to the primary code block (`main.py` / component).
+   - Dynamically identifies the visible code block on screen, glides the virtual cursor over it, and pauses for **2.0s**.
    - Glides cursor to the Windows 11 Taskbar, clicks the VS Code icon, and illuminates the taskbar indicator.
 
 2. **Step 2 — High-Fidelity Standalone Simulated VS Code IDE:**
    - Renders a pure HTML/CSS VS Code Dark+ simulator with Windows 11 window launch animation.
    - Supports multi-tab rendering (e.g. `package.json` $\rightarrow$ `page.tsx`).
-   - Glides cursor across active snippet lines with a **1.5s–1.8s** reading pause.
+   - Automatically centers `.code-viewport` on the active snippet lines.
    - For multi-tab files: Virtual cursor glides up to the tab bar, clicks the next tab, switches the editor view in place, and highlights project code.
    - Glides cursor down to the Windows 11 Taskbar, clicks the Chrome icon, and illuminates the taskbar indicator.
 
@@ -55,7 +55,7 @@ flowchart TD
    - Dispatches the tailored action handler (`recorder/actions/*.action.ts`).
    - Types user prompt with snappy 30ms human keystrokes.
    - Actively detects token streaming in real-time until generation stabilizes.
-   - Focuses cursor on the completed response and holds for a **7.0s reading pause**.
+   - Focuses cursor on the completed response and holds for a **4.0s reading pause**.
    - Finalizes and saves the WebM video.
 
 ---
@@ -136,29 +136,39 @@ export function generateIdeHtml(
 
 ---
 
-### Fix 5: Real-Time Token Stream Completion Detection
-* **Problem:** Actions relied on arbitrary static sleeps (`sleep(4000)`, `sleep(6500)`), causing recordings to either cut off streaming responses prematurely or waste seconds waiting on short answers.
+### Fix 5: Real-Time Token Stream Completion Detection & 4s Reading Pause
+* **Problem:** Actions previously relied on arbitrary static sleeps (`sleep(4000)`, `sleep(6500)`), causing recordings to either cut off streaming responses prematurely or wait too long.
 * **Solution in [`recorder/actions/index.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/actions/index.ts):**
   - `waitForAgentResponseCompletion(page, postWaitMs)` actively polls the assistant message bubble content.
   - Detects stream completion when text length remains constant for 4 consecutive checks (1.6s).
   - Smoothly glides cursor to focus on the assistant response.
-  - Holds for a standardized **7.0s reading pause** (`postWaitMs = 7000`).
+  - Standardized **4.0s post-response reading pause** (`postWaitMs = 4000`).
 
 ```typescript
 export async function waitForAgentResponseCompletion(
   page: Page,
-  postWaitMs = 7000,
+  postWaitMs = 4000,
 ): Promise<void> {
   // 1. Wait for first token to appear (up to 30s)
   // 2. Poll until text content stabilizes for 4 checks (1.6s)
   // 3. Glide cursor to focus on response bubble
-  // 4. Pause for full reading duration (7.0s)
+  // 4. Pause for optimal reading duration (4.0s)
 }
 ```
 
 ---
 
-### Fix 6: Dynamic Viewport-Relative Taskbar & Notepad Coordinates
+### Fix 6: Deep Doc Scrolling & In-Viewport IDE Code Centering
+* **Problem:** 
+  1. Documentation pages previously only scrolled 500px, cutting off lower sections.
+  2. In VS Code, when code snippets were below line 25, they were obscured by the bottom taskbar or out of view.
+* **Solution in [`recorder/engine.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/engine.ts):**
+  - **Doc Page Deep Scroll:** Increased scroll distance to 950px with automatic `scrollIntoViewIfNeeded` on the code snippet.
+  - **IDE Viewport Centering:** `engine.ts` executes `scrollIntoView({ behavior: 'smooth', block: 'center' })` on `.code-line.highlighted` inside `.code-viewport` and dynamically tracks its bounding box for the virtual mouse glide.
+
+---
+
+### Fix 7: Dynamic Viewport-Relative Taskbar & Notepad Coordinates
 * **Problem:** Hardcoded coordinates (`1029, 1056`) failed on custom screen resolutions, and Notepad overlay clicks missed their target.
 * **Solution in [`recorder/overlays/taskbar.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/taskbar.ts) & [`notepad.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/notepad.ts):**
   - Fallback coordinates are dynamically computed from `window.innerWidth / 2 + offset` and `window.innerHeight - 24`.

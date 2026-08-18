@@ -148,7 +148,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 38,
     demoUrl: 'http://localhost:3000/quickstart/demo-chat',
     prompt: 'Can you tell me a joke?',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'interactive',
@@ -160,7 +160,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 64,
     demoUrl: 'http://localhost:3000/generative-ui/your-components/interactive/demo-chat',
     prompt: 'Run the command rm -rf /tmp/cache',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
 ];
 ```
@@ -171,12 +171,19 @@ export const PAGES: PageRecordConfig[] = [
 
 In development mode (Next.js App Router / Turbopack / Webpack), pages compile chunks on demand upon first navigation. If an automated script types immediately, React hydration can re-render and swallow input.
 
-The engine handles this with fast `commit` navigation followed by explicit DOM readiness checks in [`recorder/engine.ts`](./recorder/engine.ts):
+The engine handles this with dark shield protection and explicit DOM readiness checks in [`recorder/engine.ts`](./recorder/engine.ts):
 
 ```typescript
 // Step 3 Navigation in recorder/engine.ts
+await page.evaluate(`
+  (function() {
+    document.body.style.backgroundColor = '#0f172a';
+    document.body.style.transition = 'none';
+  })()
+`).catch(() => {});
+
 await page.goto(config.demoUrl, {
-  waitUntil: 'commit',
+  waitUntil: 'domcontentloaded',
   timeout: 45000,
 });
 await ensureOverlays(page, 'chrome');
@@ -188,18 +195,7 @@ await page.waitForSelector(
   'textarea, input[type="text"], input, [contenteditable="true"], .copilotKitChat, [class*="copilotKit"]',
   { state: 'visible', timeout: 15000 },
 ).catch(() => {});
-await sleep(1500);
-```
-
-And in action handlers, verify typed values and re-trigger submission if a re-render swallowed the enter key:
-
-```typescript
-// Verify input is populated; refill if React hydration wiped it during typing
-const currentVal = await inputLocator.inputValue().catch(() => '');
-if (!currentVal && config.prompt) {
-  await inputLocator.fill(config.prompt);
-  await sleep(300);
-}
+await sleep(1000);
 ```
 
 ---
@@ -211,7 +207,7 @@ Rather than relying on static timers or brittle spinner selectors, use text stab
 ```typescript
 export async function waitForAgentResponseCompletion(
   page: Page,
-  postWaitMs = 6000,
+  postWaitMs = 4000,
 ): Promise<void> {
   console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
 
@@ -232,7 +228,7 @@ export async function waitForAgentResponseCompletion(
       hasStarted = true;
       break;
     }
-    await sleep(400);
+    await sleep(300);
   }
 
   // 2. Poll until text length stabilizes (streaming tokens finished)
@@ -254,7 +250,6 @@ export async function waitForAgentResponseCompletion(
 
       if (currentText.length > 0 && currentText === previousText) {
         stableCount++;
-        // 4 consecutive stable checks (2 full seconds) means token streaming is 100% complete
         if (stableCount >= 4) {
           console.log(`   ✅ AI agent response completed (${currentText.length} characters).`);
           break;
@@ -263,7 +258,7 @@ export async function waitForAgentResponseCompletion(
         stableCount = 0;
         previousText = currentText;
       }
-      await sleep(500);
+      await sleep(400);
     }
   }
 

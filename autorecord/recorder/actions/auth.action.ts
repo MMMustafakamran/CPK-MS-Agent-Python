@@ -48,6 +48,6 @@ export const runAuthAction: PageActionHandler = async (
   await page.keyboard.press('Enter');
 
   // Actively wait for streaming response to stabilize and finish
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 

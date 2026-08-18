@@ -44,7 +44,7 @@ export const runSharedStateReadAction: PageActionHandler = async (
   }
 
   // Actively wait for streaming response to finish
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 5000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 
 export const runSharedStateWriteAction: PageActionHandler = async (
@@ -77,6 +77,6 @@ export const runSharedStateWriteAction: PageActionHandler = async (
   }
 
   // Actively wait for streaming response from sample_agent
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 5000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 

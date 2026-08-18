@@ -11,7 +11,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 38,
     demoUrl: 'http://localhost:3000/quickstart/demo-chat',
     prompt: 'Can you tell me a joke?',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'prebuilt-components',
@@ -23,7 +23,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 104,
     demoUrl: 'http://localhost:3000/prebuilt-components/demo-chat',
     prompt: 'What is CopilotKit?',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'slots',
@@ -35,7 +35,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 116,
     demoUrl: 'http://localhost:3000/custom-look-and-feel/slots/demo-chat',
     prompt: 'Hello from customized slots!',
-    waitAfterPromptMs: 7000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'headless-ui',
@@ -47,7 +47,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 78,
     demoUrl: 'http://localhost:3000/custom-look-and-feel/headless-ui/demo-chat',
     prompt: 'Tell me a joke',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'programmatic-control',
@@ -59,7 +59,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 102,
     demoUrl: 'http://localhost:3000/programmatic-control/demo-chat',
     prompt: "What's the weather in Tokyo?",
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'inspector',
@@ -71,7 +71,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 47,
     demoUrl: 'http://localhost:3000/inspector/demo-chat',
     prompt: 'Hello agent! Testing inspector.',
-    waitAfterPromptMs: 6000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'display-only',
@@ -83,7 +83,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 55,
     demoUrl: 'http://localhost:3000/generative-ui/your-components/display-only/demo-chat',
     prompt: 'Show the weather card for Tokyo: 77 degrees, clear',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'interactive',
@@ -95,7 +95,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 64,
     demoUrl: 'http://localhost:3000/generative-ui/your-components/interactive/demo-chat',
     prompt: 'Run the command rm -rf /tmp/cache',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'tool-rendering',
@@ -107,7 +107,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 63,
     demoUrl: 'http://localhost:3000/generative-ui/tool-rendering/demo-chat',
     prompt: "What's the weather in Tokyo?",
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'state-rendering',
@@ -119,7 +119,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 53,
     demoUrl: 'http://localhost:3000/generative-ui/state-rendering/demo-chat',
     prompt: 'Search for the tallest mountains, then search for the deepest oceans',
-    waitAfterPromptMs: 9000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'frontend-tools',
@@ -131,7 +131,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 33,
     demoUrl: 'http://localhost:3000/frontend-tools/demo-chat',
     prompt: 'Say hello to Malaika',
-    waitAfterPromptMs: 7000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'in-app-agent-read',
@@ -143,7 +143,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 55,
     demoUrl: 'http://localhost:3000/shared-state/in-app-agent-read/demo-chat',
     prompt: 'Switch to Spanish',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'in-app-agent-write',
@@ -155,7 +155,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 54,
     demoUrl: 'http://localhost:3000/shared-state/in-app-agent-write/demo-chat',
     prompt: 'What language are we using now?',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'agent-app-context',
@@ -167,7 +167,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 34,
     demoUrl: 'http://localhost:3000/agent-app-context/demo-chat',
     prompt: 'Who are my colleagues?',
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'auth',
@@ -179,7 +179,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 90,
     demoUrl: 'http://localhost:3000/auth/demo-chat',
     prompt: 'Hello agent! Can you hear me?',
-    waitAfterPromptMs: 7000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'copilot-runtime',
@@ -191,7 +191,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 43,
     demoUrl: 'http://localhost:3000/copilot-runtime/demo-chat',
     prompt: "What's the weather in Tokyo?",
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
   {
     id: 'ag-ui',
@@ -203,6 +203,6 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 102,
     demoUrl: 'http://localhost:3000/ag-ui/demo-chat',
     prompt: "What's the weather in Tokyo?",
-    waitAfterPromptMs: 8000,
+    waitAfterPromptMs: 4000,
   },
 ];

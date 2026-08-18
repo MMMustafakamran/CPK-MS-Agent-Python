@@ -159,21 +159,41 @@ export class RecordingEngine {
         // Move mouse into reading position
         await humanGlide(page, 960, 420, 18);
 
-        // Smooth practiced scrolling down the doc page
-        console.log(`   Human-like scrolling down doc page...`);
-        await humanScrollDown(page, 520, 45);
+        // Smooth continuous scrolling down the doc page (Phase 1: Intro & setup)
+        console.log(`   Human-like scrolling down doc page (Phase 1)...`);
+        await humanScrollDown(page, 800, 35);
+        await sleep(350);
+
+        // Smooth continuous scrolling further down into code examples (Phase 2: Code implementation)
+        console.log(`   Human-like scrolling down doc page (Phase 2)...`);
+        await humanScrollDown(page, 950, 35);
         await sleep(400);
 
-        // Hover mouse over the code snippet on the doc page
-        const hasCode = await page.$('pre, code, div[class*="code"]');
-        if (hasCode) {
-          const box = await hasCode.boundingBox();
-          if (box) {
-            await humanGlide(page, box.x + Math.min(box.width / 2, 400), box.y + 40, 18);
-          }
+        // Find the visible code block on screen and glide cursor over it
+        const visibleCodePos = (await page.evaluate(`
+          (function() {
+            var pres = document.querySelectorAll('pre, div[class*="code"], code');
+            for (var i = pres.length - 1; i >= 0; i--) {
+              var r = pres[i].getBoundingClientRect();
+              if (r.height > 60 && r.top >= 80 && r.top <= window.innerHeight - 100) {
+                return {
+                  x: r.left + Math.min(r.width / 2, 400),
+                  y: r.top + Math.min(r.height / 3, 70),
+                };
+              }
+            }
+            return null;
+          })()
+        `)) as { x: number; y: number } | null;
+
+        if (visibleCodePos) {
+          await humanGlide(page, visibleCodePos.x, visibleCodePos.y, 20);
+        } else {
+          await humanGlide(page, 650, 450, 18);
         }
-        // Reading pause on the doc snippet
-        await sleep(1800);
+
+        // Reading pause on the doc code snippet
+        await sleep(2000);
 
         // Switch to VS Code via Windows 11 Taskbar
         console.log(`   🖱️ Switching to VS Code via Windows 11 Taskbar...`);
@@ -213,6 +233,15 @@ export class RecordingEngine {
           console.log(
             `   Displaying CopilotKit & AG-UI Versions in package.json (lines 12-22)...`,
           );
+          await page.evaluate(`
+            (function() {
+              var highlighted = document.querySelector('.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted');
+              if (highlighted) {
+                highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            })()
+          `);
+          await sleep(300);
           await humanGlide(page, 520, 360, 18);
           await sleep(1500);
 
@@ -239,11 +268,38 @@ export class RecordingEngine {
           }
           await sleep(300);
 
-          // 3. Highlight project code in page.tsx
+          // 3. Highlight project code in page.tsx (auto-scrolling code if below viewport)
           console.log(
             `   Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
           );
-          await humanGlide(page, 520, 360, 18);
+          await page.evaluate(`
+            (function() {
+              var highlighted = document.querySelector('.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted');
+              if (highlighted) {
+                highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            })()
+          `);
+          await sleep(400);
+
+          const codeLocator = page
+            .locator(
+              '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
+            )
+            .first();
+          if (await codeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
+            const box = await codeLocator.boundingBox();
+            if (box) {
+              await humanGlide(
+                page,
+                box.x + Math.min(box.width / 2, 420),
+                box.y + Math.min(box.height / 2, 30),
+                18,
+              );
+            }
+          } else {
+            await humanGlide(page, 520, 360, 18);
+          }
           await sleep(1800);
 
           // Switch back to Chrome via Windows 11 Taskbar
@@ -268,8 +324,35 @@ export class RecordingEngine {
           await ensureOverlays(page, 'vscode');
           await sleep(300);
 
-          // Glide mouse into the code editor at the start of the snippet
-          await humanGlide(page, 520, 360, 18);
+          // Smoothly scroll code-viewport so highlighted block is centered
+          await page.evaluate(`
+            (function() {
+              var highlighted = document.querySelector('.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted');
+              if (highlighted) {
+                highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            })()
+          `);
+          await sleep(400);
+
+          const codeLocator = page
+            .locator(
+              '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
+            )
+            .first();
+          if (await codeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
+            const box = await codeLocator.boundingBox();
+            if (box) {
+              await humanGlide(
+                page,
+                box.x + Math.min(box.width / 2, 420),
+                box.y + Math.min(box.height / 2, 30),
+                18,
+              );
+            }
+          } else {
+            await humanGlide(page, 520, 360, 18);
+          }
           await sleep(1800);
 
           // Switch back to Chrome via Windows 11 Taskbar

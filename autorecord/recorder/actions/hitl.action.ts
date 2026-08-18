@@ -39,6 +39,6 @@ export const runHitlAction: PageActionHandler = async (
   }
 
   // Actively wait for final streaming response after approval
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 

@@ -44,6 +44,6 @@ export const runStateRenderingAction: PageActionHandler = async (
   }
 
   // Actively wait for search_agent response and state streaming to complete
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 

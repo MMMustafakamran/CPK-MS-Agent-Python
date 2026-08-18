@@ -22,6 +22,6 @@ export const runFrontendToolsAction: PageActionHandler = async (
   await page.keyboard.press('Enter');
 
   // Actively wait for browser tool execution and assistant confirmation
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 5000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
 
