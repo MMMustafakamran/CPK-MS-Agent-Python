@@ -74,6 +74,10 @@ export class RecordingEngine {
 
     setGlobalCursorPos(960, 540);
 
+    let recordSuccess = false;
+    let recordError: string | undefined;
+    let finalSavedFilename = '';
+
     // 0. Automatic Pre-flight Health Check (Informational only)
     const health = await checkServicesHealth();
     if (!health.frontendOk || !health.backendOk) {
@@ -237,140 +241,105 @@ export class RecordingEngine {
       }
 
       // ----------------------------------------------------
+      // ----------------------------------------------------
       // STEP 2: SHOW PROJECT CODE IN VS CODE IDE WITH SNIPPET SELECTION
       // ----------------------------------------------------
-      if (config.id === 'quickstart') {
-        console.log(
-          `\n💻 Step 2: Displaying package.json & Project Code in VS Code IDE...`,
+      const hasExtraTabs = config.extraTabs && config.extraTabs.length > 0;
+      console.log(
+        `\n💻 Step 2: Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
+      );
+      try {
+        const ideHtml = generateIdeHtml(
+          this.rootDir,
+          config.ideFile,
+          config.startLine,
+          config.endLine,
+          config.extraTabs ?? [],
+          0,
         );
-        try {
-          const ideHtml = generateIdeHtml(
-            this.rootDir,
-            'frontend/package.json',
-            12,
-            22,
-            [
-              {
-                filePath: config.ideFile,
-                startLine: config.startLine,
-                endLine: config.endLine,
-              },
-            ],
-            0,
-          );
-          await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
-          await ensureOverlays(page, 'vscode');
-          await sleep(300);
+        await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
+        await ensureOverlays(page, 'vscode');
+        await sleep(300);
 
-          // 1. Highlight dependencies in package.json
-          console.log(
-            `   Displaying CopilotKit & AG-UI Versions in package.json (lines 12-22)...`,
-          );
-          await humanScrollCodeViewport(page, 12);
+        // Highlight primary file snippet
+        await humanScrollCodeViewport(page, config.startLine);
+        const codeLocator = page
+          .locator(
+            '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
+          )
+          .first();
+        if (await codeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
+          const box = await codeLocator.boundingBox();
+          if (box) {
+            await humanGlide(
+              page,
+              box.x + Math.min(box.width / 2, 420),
+              box.y + Math.min(box.height / 2, 30),
+              18,
+            );
+          }
+        } else {
           await humanGlide(page, 520, 360, 18);
-          await sleep(1500);
+        }
+        await sleep(hasExtraTabs ? 1500 : 1800);
 
-          // 2. Smoothly glide cursor up to page.tsx tab in the tabs bar and click it
-          console.log(
-            `   🖱️ Switching tab to ${basename(config.ideFile)} in VS Code...`,
-          );
-          const tab1Locator = page.locator('#ide-tab-1');
-          if (await tab1Locator.isVisible().catch(() => false)) {
-            const tBox = await tab1Locator.boundingBox();
-            if (tBox) {
-              await humanGlide(
-                page,
-                tBox.x + tBox.width / 2,
-                tBox.y + tBox.height / 2,
-                18,
-              );
-              await humanClick(page);
+        // If extra tabs exist, smoothly switch through each extra tab
+        if (hasExtraTabs && config.extraTabs) {
+          for (let tabIdx = 0; tabIdx < config.extraTabs.length; tabIdx++) {
+            const extra = config.extraTabs[tabIdx];
+            const targetDomIdx = tabIdx + 1;
+            console.log(
+              `   🖱️ Switching tab to ${basename(extra.filePath)} in VS Code...`,
+            );
+            const tabLocator = page.locator(`#ide-tab-${targetDomIdx}`);
+            if (await tabLocator.isVisible().catch(() => false)) {
+              const tBox = await tabLocator.boundingBox();
+              if (tBox) {
+                await humanGlide(
+                  page,
+                  tBox.x + tBox.width / 2,
+                  tBox.y + tBox.height / 2,
+                  18,
+                );
+                await humanClick(page);
+              } else {
+                await page.evaluate(`window.switchIdeTab(${targetDomIdx})`);
+              }
             } else {
-              await page.evaluate(`window.switchIdeTab(1)`);
+              await page.evaluate(`window.switchIdeTab(${targetDomIdx})`);
             }
-          } else {
-            await page.evaluate(`window.switchIdeTab(1)`);
-          }
-          await sleep(300);
+            await sleep(300);
 
-          // 3. Highlight project code in page.tsx (visibly scrolls down if snippet is below initial view)
-          console.log(
-            `   Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
-          );
-          await humanScrollCodeViewport(page, config.startLine);
-
-          const codeLocator = page
-            .locator(
-              '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
-            )
-            .first();
-          if (await codeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
-            const box = await codeLocator.boundingBox();
-            if (box) {
-              await humanGlide(
-                page,
-                box.x + Math.min(box.width / 2, 420),
-                box.y + Math.min(box.height / 2, 30),
-                18,
-              );
+            // Scroll & Highlight extra tab code
+            await humanScrollCodeViewport(page, extra.startLine);
+            const extraCodeLocator = page
+              .locator(
+                '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
+              )
+              .first();
+            if (await extraCodeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
+              const box = await extraCodeLocator.boundingBox();
+              if (box) {
+                await humanGlide(
+                  page,
+                  box.x + Math.min(box.width / 2, 420),
+                  box.y + Math.min(box.height / 2, 30),
+                  18,
+                );
+              }
+            } else {
+              await humanGlide(page, 520, 360, 18);
             }
-          } else {
-            await humanGlide(page, 520, 360, 18);
+            await sleep(1800);
           }
-          await sleep(1800);
-
-          // Switch back to Chrome via Windows 11 Taskbar
-          console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
-          await clickTaskbarApp(page, 'chrome');
-        } catch (e) {
-          console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
-          await sleep(600);
         }
-      } else {
-        console.log(
-          `\n💻 Step 2: Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
-        );
-        try {
-          const ideHtml = generateIdeHtml(
-            this.rootDir,
-            config.ideFile,
-            config.startLine,
-            config.endLine,
-          );
-          await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
-          await ensureOverlays(page, 'vscode');
-          await sleep(300);
 
-          // Smoothly scroll code-viewport down to the target startLine
-          await humanScrollCodeViewport(page, config.startLine);
-
-          const codeLocator = page
-            .locator(
-              '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
-            )
-            .first();
-          if (await codeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
-            const box = await codeLocator.boundingBox();
-            if (box) {
-              await humanGlide(
-                page,
-                box.x + Math.min(box.width / 2, 420),
-                box.y + Math.min(box.height / 2, 30),
-                18,
-              );
-            }
-          } else {
-            await humanGlide(page, 520, 360, 18);
-          }
-          await sleep(1800);
-
-          // Switch back to Chrome via Windows 11 Taskbar
-          console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
-          await clickTaskbarApp(page, 'chrome');
-        } catch (e) {
-          console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
-          await sleep(600);
-        }
+        // Switch back to Chrome via Windows 11 Taskbar
+        console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
+        await clickTaskbarApp(page, 'chrome');
+      } catch (e) {
+        console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
+        await sleep(600);
       }
 
       // ----------------------------------------------------
@@ -415,12 +384,17 @@ export class RecordingEngine {
         );
         await sleep(1000);
       }
+
+      recordSuccess = true;
+    } catch (err: any) {
+      recordSuccess = false;
+      recordError = err?.message || String(err);
+      console.error(`❌ Recording error for ${config.id}:`, recordError);
     } finally {
       const video = page.video();
-      await page.close();
-      await context.close();
+      await page.close().catch(() => {});
+      await context.close().catch(() => {});
 
-      let finalSavedFilename = '';
       if (video) {
         const baseFilename = config.filename ?? config.id;
         finalSavedFilename = `${baseFilename}.webm`;
@@ -431,18 +405,21 @@ export class RecordingEngine {
           await video.saveAs(finalWebm);
           await video.delete().catch(() => {});
 
-          console.log(`\n🎥 [RECORDING SUCCESSFUL]: ${finalWebm}\n`);
+          if (recordSuccess) {
+            console.log(`\n🎥 [RECORDING SUCCESSFUL]: ${finalWebm}\n`);
+          }
         } catch (err) {
           console.warn(`Video save note: ${err}`);
         }
       }
 
-      await browser.close();
-
-      return {
-        success: true,
-        filename: finalSavedFilename,
-      };
+      await browser.close().catch(() => {});
     }
+
+    return {
+      success: recordSuccess,
+      filename: finalSavedFilename,
+      error: recordError,
+    };
   }
 }

@@ -64,7 +64,8 @@ autorecord/
    - Types tailored prompts with natural keystroke timing and executes interactions (e.g. prebuilt tabs switching, Dark Mode state toggles, HITL approval gate, live AG-UI stream monitoring, shared state updates).
 
 4. **Video Export**:
-   - Clean runs saved to `autorecord/videos/MSAgentReact-<FeatureName>.webm` (`✅ [PASS]`).
+   - Clean runs saved to `autorecord/videos/MSPY-react-*.webm` (`✅ [PASS] (22.4s)`).
+   - Unhandled runtime errors are trapped and reported with actionable diagnostics.
 
 ---
 
@@ -87,11 +88,18 @@ autorecord/
 ### 2. Run recordings:
 
 ```bash
+# Inspect all 17 registered routes
+npm run record -- --list
+
 # Record an individual page
 npm run record -- --page=quickstart
 npm run record -- --page=interactive
 npm run record -- --page=state-rendering
 npm run record -- --page=in-app-agent-read
+
+# Record a subset of pages by keyword filter
+npm run record -- --filter=generative-ui
+npm run record -- --filter=shared-state
 
 # Record all 17 configured pages sequentially
 npm run record

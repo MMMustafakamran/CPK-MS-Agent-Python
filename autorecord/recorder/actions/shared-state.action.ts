@@ -17,8 +17,8 @@ export const runSharedStateReadAction: PageActionHandler = async (
     await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
     await humanClick(page);
   }
-  for (const c of config.prompt) await page.keyboard.type(c, { delay: 45 });
-  await sleep(400);
+  await page.keyboard.type(config.prompt, { delay: 35 });
+  await sleep(300);
   await page.keyboard.press('Enter');
 
   // Move cursor over the Language panel on the left

@@ -159,12 +159,18 @@ npx playwright install chromium
 
 ## 🚀 Usage & CLI Reference
 
-### Record an Individual Feature Page
+### Inspect All Registered Routes (`--list`)
+
+```bash
+npm run record -- --list
+```
+
+### Record an Individual Feature Page (`--page=<id>`)
 
 Pass the `--page=<id>` flag to record any specific route.
 
 ```bash
-# 1. Quickstart demo
+# 1. Quickstart demo (with package.json -> page.tsx tab switching)
 npm run record -- --page=quickstart
 
 # 2. Prebuilt Components
@@ -216,6 +222,16 @@ npm run record -- --page=copilot-runtime
 npm run record -- --page=ag-ui
 ```
 
+### Record Subsets with Filtering (`--filter=<query>`)
+
+```bash
+# Record only Generative UI pages
+npm run record -- --filter=generative-ui
+
+# Record Shared State pages
+npm run record -- --filter=shared-state
+```
+
 ### Record All Pages Sequentially
 
 Run without arguments to record all 17 configured pages in batch mode:
@@ -232,7 +248,7 @@ All 17 active demo routes in `frontend/src/lib/nav-config.ts` are mapped with ac
 
 | Page ID | Video Output Filename | Route URL | Target Source File | Highlighted Lines |
 |---|---|---|---|---|
-| `quickstart` | `MSPY-react-01-Quickstart.webm` | `/quickstart/demo-chat` | `frontend/src/app/quickstart/demo-chat/page.tsx` | 28–38 |
+| `quickstart` | `MSPY-react-01-Quickstart.webm` | `/quickstart/demo-chat` | `frontend/package.json` + `quickstart/demo-chat/page.tsx` | 12–22 & 28–38 |
 | `prebuilt-components` | `MSPY-react-02-PrebuiltComponents.webm` | `/prebuilt-components/demo-chat` | `frontend/src/app/prebuilt-components/demo-chat/page.tsx` | 58–104 |
 | `slots` | `MSPY-react-03-Slots.webm` | `/custom-look-and-feel/slots/demo-chat` | `frontend/src/app/custom-look-and-feel/slots/demo-chat/page.tsx` | 66–116 |
 | `headless-ui` | `MSPY-react-04-HeadlessUI.webm` | `/custom-look-and-feel/headless-ui/demo-chat` | `frontend/src/app/custom-look-and-feel/headless-ui/demo-chat/page.tsx` | 28–78 |

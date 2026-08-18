@@ -1,4 +1,5 @@
 import { type Page } from 'playwright';
+import { type IdeTabConfig } from './ide/generator';
 
 export interface PageRecordConfig {
   id: string;
@@ -9,6 +10,7 @@ export interface PageRecordConfig {
   ideLine?: number;
   startLine: number;
   endLine: number;
+  extraTabs?: IdeTabConfig[];
   demoUrl: string;
   prompt: string;
   waitAfterPromptMs?: number;

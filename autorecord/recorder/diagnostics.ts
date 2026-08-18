@@ -5,38 +5,45 @@ export interface HealthCheckResult {
   backendError?: string;
 }
 
-/** Pre-flight check to verify if Next.js (port 3000) and Microsoft Agent Framework (port 8000) are running */
+const FRONTEND_BASE_URL =
+  process.env.FRONTEND_URL || 'http://localhost:3000';
+const BACKEND_BASE_URL =
+  process.env.BACKEND_URL || 'http://localhost:8000';
+
+/** Pre-flight check to verify if Next.js and Microsoft Agent Framework backend are running */
 export async function checkServicesHealth(): Promise<HealthCheckResult> {
   const result: HealthCheckResult = {
     frontendOk: false,
     backendOk: false,
   };
 
-  // Check Frontend (port 3000)
+  // Check Frontend
   try {
-    const res = await fetch('http://localhost:3000/', {
+    const res = await fetch(`${FRONTEND_BASE_URL}/`, {
       signal: AbortSignal.timeout(3000),
     });
     result.frontendOk = res.ok || res.status < 500;
-  } catch (err: any) {
-    result.frontendError = err.message || 'Connection refused on port 3000';
+  } catch (err: unknown) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    result.frontendError = errMessage || `Connection refused on ${FRONTEND_BASE_URL}`;
   }
 
-  // Check Backend (port 8000)
+  // Check Backend
   try {
-    const res = await fetch('http://localhost:8000/health', {
+    const res = await fetch(`${BACKEND_BASE_URL}/health`, {
       signal: AbortSignal.timeout(3000),
     });
     result.backendOk = res.ok || res.status < 500;
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Fallback check to /docs or root
     try {
-      const resDocs = await fetch('http://localhost:8000/docs', {
+      const resDocs = await fetch(`${BACKEND_BASE_URL}/docs`, {
         signal: AbortSignal.timeout(2000),
       });
       result.backendOk = resDocs.ok || resDocs.status < 500;
     } catch {
-      result.backendError = err.message || 'Connection refused on port 8000';
+      const errMessage = err instanceof Error ? err.message : String(err);
+      result.backendError = errMessage || `Connection refused on ${BACKEND_BASE_URL}`;
     }
   }
 

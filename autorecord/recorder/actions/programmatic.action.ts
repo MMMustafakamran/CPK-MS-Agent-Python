@@ -29,8 +29,8 @@ export const runProgrammaticAction: PageActionHandler = async (
     // Clear and type
     await page.keyboard.press('Control+A');
     await page.keyboard.press('Backspace');
-    for (const c of config.prompt) await page.keyboard.type(c, { delay: 45 });
-    await sleep(400);
+    await page.keyboard.type(config.prompt, { delay: 35 });
+    await sleep(300);
   }
 
   const runBtn = page.locator('button:has-text("Run agent")').first();

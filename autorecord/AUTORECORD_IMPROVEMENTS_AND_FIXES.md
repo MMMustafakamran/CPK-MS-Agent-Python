@@ -16,6 +16,13 @@
    - [Fix 6: Two-Phase Deep Doc Scrolling & In-Viewport VS Code Code Scrolling](#fix-6-two-phase-deep-doc-scrolling--in-viewport-vs-code-code-scrolling)
    - [Fix 7: Dynamic Viewport-Relative Taskbar & Notepad Coordinates](#fix-7-dynamic-viewport-relative-taskbar--notepad-coordinates)
    - [Fix 8: Browser Console, Network & Hydration Warning Filtering](#fix-8-browser-console-network--hydration-warning-filtering)
+9. [Fix 9: Guaranteed Error Propagation & Non-Swallowing Cleanup](#fix-9-guaranteed-error-propagation--non-swallowing-cleanup)
+10. [Fix 10: Multi-Turn Stream Completion Race Elimination](#fix-10-multi-turn-stream-completion-race-elimination)
+11. [Fix 11: Declarative Multi-Tab IDE Architecture](#fix-11-declarative-multi-tab-ide-architecture)
+12. [Fix 12: Single-IPC Practiced TypingCadence](#fix-12-single-ipc-practiced-typing-cadence)
+13. [Fix 13: Full TSX/HTML Syntax Highlighting & Dynamic Workspace Title](#fix-13-full-tsxhtml-syntax-highlighting--dynamic-workspace-title)
+14. [Fix 14: Extended CLI Toolkit & Elapsed Duration Metrics](#fix-14-extended-cli-toolkit--elapsed-duration-metrics)
+15. [Fix 15: Environment-Configurable Service Diagnostics](#fix-15-environment-configurable-service-diagnostics)
 3. [Repository File Map & Responsibilities](#3-repository-file-map--responsibilities)
 4. [Step-by-Step Guide for Porting to Other Repositories](#4-step-by-step-guide-for-porting-to-other-repositories)
 
@@ -44,7 +51,7 @@ flowchart TD
 
 2. **Step 2 — High-Fidelity Standalone Simulated VS Code IDE:**
    - Renders a pure HTML/CSS VS Code Dark+ simulator with Windows 11 window launch animation.
-   - Supports multi-tab rendering (e.g. `package.json` $\rightarrow$ `page.tsx`).
+   - Supports declarative multi-tab rendering (e.g. `package.json` $\rightarrow$ `page.tsx`).
    - Automatically centers `.code-viewport` on the active snippet lines.
    - For multi-tab files: Virtual cursor glides up to the tab bar, clicks the next tab, switches the editor view in place, and highlights project code.
    - Glides cursor down to the Windows 11 Taskbar, clicks the Chrome icon, and illuminates the taskbar indicator.
@@ -53,9 +60,9 @@ flowchart TD
    - Smoothly navigates to the local application demo (`config.demoUrl`) with zero flicker.
    - Waits for React/Angular hydration and chat component readiness.
    - Dispatches the tailored action handler (`recorder/actions/*.action.ts`).
-   - Types user prompt with snappy 30ms human keystrokes.
+   - Types user prompt with snappy 35ms human keystrokes in a single IPC call.
    - Actively detects token streaming in real-time until generation stabilizes.
-   - Focuses cursor on the completed response and holds for a **4.0s reading pause**.
+   - Focuses cursor on the completed response and holds for a **4.0s reading pause** (or **1.5s** between multi-turn tabs).
    - Finalizes and saves the WebM video.
 
 ---
@@ -66,38 +73,11 @@ flowchart TD
 * **Problem:** In earlier versions, `engine.ts` executed `exec('code -r -g ...')`, which launched or focused the actual desktop VS Code application on the developer's computer during recording runs.
 * **Solution:** Completely remove all `exec('code ...')` and `child_process` execution. Step 2 relies 100% on the internal standalone simulated VS Code IDE in Chromium.
 
-```typescript
-// BEFORE (Buggy):
-try {
-  exec(`code -r -g "${config.ideFile}:${config.startLine}"`);
-} catch {}
-
-// AFTER (Fixed):
-// Rely completely on pure in-browser simulation (generateIdeHtml). Zero OS commands.
-await sleep(1800);
-```
-
 ---
 
 ### Fix 2: Eliminating Doc Page / White Screen Transition Flash
 * **Problem:** Navigating from the external doc URL to `http://localhost:3000/...` causes the browser to unload the DOM and momentarily flash previous content or a white canvas while the local server renders.
 * **Solution:** Prior to `page.goto(config.demoUrl)`, apply an instant dark background shield (`document.body.style.backgroundColor = '#0f172a'`) and navigate with `waitUntil: 'domcontentloaded'`.
-
-```typescript
-// Set dark background on current page before navigating to demoUrl
-await page.evaluate(`
-  (function() {
-    document.body.style.backgroundColor = '#0f172a';
-    document.body.style.transition = 'none';
-  })()
-`).catch(() => {});
-
-await page.goto(config.demoUrl, {
-  waitUntil: 'domcontentloaded',
-  timeout: 45000,
-});
-await ensureOverlays(page, 'chrome');
-```
 
 ---
 
@@ -110,18 +90,6 @@ await ensureOverlays(page, 'chrome');
   - **Authentic UI Elements:** Added top Command Palette search pill (`Ctrl + P`), menu bar (`File`, `Edit`, etc.), Seti SVG icons, dynamic file tree, blinking line caret (`.vs-caret`), and code minimap.
   - **Multi-Tab Rendering & In-Place Tab Switching:** `generateIdeHtml` supports `extraTabs`. Both files render in the tab bar (`#ide-tab-0`, `#ide-tab-1`). The cursor moves to the tab, clicks it, and smoothly switches the editor viewport without reloading the window.
   - **Windows 11 Window Opening Animation:** Added subtle `win11Open` scale/elevation entrance keyframes.
-
-```typescript
-// Multi-tab generation pattern in generator.ts
-export function generateIdeHtml(
-  rootDir: string,
-  primaryFilePath: string,
-  startLine = 1,
-  endLine = 30,
-  extraTabs: IdeTabConfig[] = [],
-  activeTabIdx = 0,
-): string { ... }
-```
 
 ---
 
@@ -136,47 +104,19 @@ export function generateIdeHtml(
   - **Natural Cubic Bézier Arcs:** Single fluid curve with natural hand curvature ($cp1, cp2$) without robotic straight lines or artificial overshoots.
   - **Dense 60fps Event Emission:** 10ms–14ms frame delays with continuous coordinate streaming.
   - **Variable Dynamic Velocity:** Fast initial acceleration $\rightarrow$ fluid momentum $\rightarrow$ subtle target ease-out ($t = 1 - (1-t)^{2.5}$).
-  - **Snappy Mechanics:** 30ms pre-click, 55ms mouse-down depression, 40ms mouse-up release, and 30ms typing cadence.
-
-```typescript
-// Persistent cursor positioning in cursor.ts & taskbar.ts
-let globalCursorX = 960;
-let globalCursorY = 540;
-
-export function getGlobalCursorPos() {
-  return { x: globalCursorX, y: globalCursorY };
-}
-
-export function setGlobalCursorPos(x: number, y: number) {
-  globalCursorX = x;
-  globalCursorY = y;
-}
-```
+  - **Snappy Mechanics:** 30ms pre-click, 55ms mouse-down depression, 40ms mouse-up release, and 35ms typing cadence.
 
 ---
 
 ### Fix 5: Real-Time Token Stream Completion Detection & Dual Pacing Policy
 * **Problem:** Actions previously relied on arbitrary static sleeps (`sleep(4000)`, `sleep(6500)`), causing recordings to either cut off streaming responses prematurely or wait too long, especially during multi-tab demos.
 * **Solution in [`recorder/actions/index.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/actions/index.ts) & [`config.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/config.ts):**
-  - `waitForAgentResponseCompletion(page, postWaitMs)` actively polls the assistant message bubble content.
+  - `waitForAgentResponseCompletion(page, postWaitMs, initialCount)` actively polls the assistant message bubble content.
   - Detects stream completion when text length remains constant for 4 consecutive checks (1.6s).
   - Smoothly glides cursor to focus on the assistant response.
   - **Dual Pacing Policy:**
     - **Single-Prompt Pages** (e.g. `quickstart`, `headless-ui`, `display-only`): Standard **4.0-second reading pause** (`postWaitMs = 4000`).
     - **Multi-Tab / Multi-Prompt Pages** (e.g. `slots`, `prebuilt-components`, `runtime`, `programmatic-control`, `inspector`): Fast, energetic **1.5-second pause** (`postWaitMs = 1500`) between tabs/levels to keep video pacing brisk without dead air.
-
-```typescript
-export async function waitForAgentResponseCompletion(
-  page: Page,
-  postWaitMs = 4000,
-): Promise<void> {
-  // 1. Wait for first token to appear (up to 30s)
-  // 2. Poll until text content stabilizes for 4 checks (1.6s)
-  // 3. Glide cursor to focus on response bubble
-  // 4. Pause for optimal reading duration (4.0s standard / 1.5s for multi-tab steps)
-  await sleep(postWaitMs);
-}
-```
 
 ---
 
@@ -190,33 +130,64 @@ export async function waitForAgentResponseCompletion(
   - **Visible Code Detection:** Dynamically detects the code block currently in the middle of the viewport and hovers the virtual cursor over it for 2.0s.
   - **`humanScrollCodeViewport(page, startLine)`:** For VS Code snippets with `startLine > 14`, the editor viewport smoothly and visibly scrolls down line-by-line over ~700ms using cubic ease-in-out, centering the highlighted block in real-time before the cursor glides across it.
 
-```typescript
-// 60fps RAF continuous scroll in cursor.ts (calibrated at 3600ms for relaxed reading)
-export async function humanScrollDown(
-  page: Page,
-  totalPixels = 1800,
-  durationMs = 3600,
-): Promise<void> { ... }
-```
-
 ---
 
 ### Fix 7: Hyper-Realistic Windows 11 Fluent Taskbar & Dynamic Coordinate Resolution
-* **Problem:** 
-  1. The taskbar previously had generic flat styling, basic icons, and hardcoded static coordinates (`1029, 1056`) that missed targets on non-standard viewport scalings.
-* **Solution in [`recorder/overlays/taskbar.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/taskbar.ts) & [`notepad.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/notepad.ts):**
-  - **Acrylic & Mica Blur Material:** Injected taskbar with `background: rgba(28, 28, 32, 0.85)` and `backdrop-filter: blur(36px) saturate(180%)`, top border highlight (`rgba(255, 255, 255, 0.08)`), and subtle drop shadow.
-  - **Authentic Fluent Icons:** Vector SVGs for Windows 11 Start (4-square), Search, Virtual Desktops, File Explorer, Chrome (multi-color wheel), VS Code (3D layered ribbon), Terminal, and Copilot.
-  - **Active State Highlights & Indicator Pills:** Active app tile displays frosted highlight (`rgba(255, 255, 255, 0.08)`) with an extended **16px blue pill** (`#60a5fa`), while background apps display a subtle **6px dot indicator** (`rgba(255, 255, 255, 0.4)`).
-  - **System Tray & Widgets:** Live weather pill (left), hidden tray chevron, language selector (`ENG`), Action Center status pill (WiFi, Speaker, Battery), dynamic live clock (`Time + Date`), Notification Bell, and far-right "Show Desktop" sliver.
-  - **Dynamic Viewport Bounding Boxes:** Taskbar icon coordinates are computed dynamically from `getBoundingClientRect()`, ensuring accurate mouse glide targets regardless of screen resolution.
+* **Problem:** The taskbar previously had generic flat styling, basic icons, and hardcoded static coordinates (`1029, 1056`) that missed targets on non-standard viewport scalings.
+* **Solution in [`recorder/overlays/taskbar.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/taskbar.ts):**
+  - **Acrylic & Mica Blur Material:** Injected taskbar with `background: rgba(28, 28, 32, 0.85)` and `backdrop-filter: blur(36px) saturate(180%)`.
+  - **Authentic Fluent Icons:** Vector SVGs for Windows 11 Start, Search, Desktops, Explorer, Chrome, VS Code, Notepad, Terminal, and Copilot.
+  - **Active State Highlights & Indicator Pills:** Active app tile displays frosted highlight with a **16px blue pill** (`#60a5fa`).
+  - **Dynamic Viewport Bounding Boxes:** Taskbar icon coordinates are computed dynamically from `getBoundingClientRect()`.
 
 ---
 
 ### Fix 8: Browser Console, Network & Hydration Warning Filtering
-* **Problem:** Next.js App Router background prefetch chunks, `.map` source maps, favicon 404s, and React dev hydration differences (e.g. random timestamps/UUIDs) logged false alarm warning messages in terminal output.
+* **Problem:** Next.js App Router background prefetch chunks, `.map` source maps, favicon 404s, and React dev hydration differences logged false alarm warnings in the console.
 * **Solution in [`recorder/engine.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/engine.ts):**
-  - Filtered out benign 404s, `webpack-hmr`, `favicon.ico`, source-map errors, `Hydration failed`, and `server rendered text didn't match` warnings so only genuine runtime breakages are logged.
+  - Filtered benign 404s, `webpack-hmr`, `favicon.ico`, and hydration mismatch warnings so only genuine runtime breakages are logged.
+
+---
+
+### Fix 9: Guaranteed Error Propagation & Non-Swallowing Cleanup
+* **Problem:** `engine.ts` previously returned `{ success: true }` inside a `finally` block, which caused JavaScript to swallow all runtime exceptions and report false positives (`[PASS]`).
+* **Solution:** Removed `return` from `finally`, added explicit tracking variables (`recordSuccess`, `recordError`, `finalSavedFilename`), and ensured that failed recordings return `success: false` and cause `record-all-pages.ts` to exit with status code `1`.
+
+---
+
+### Fix 10: Multi-Turn Stream Completion Race Elimination
+* **Problem:** In multi-turn action sequences (like `slots` tab 2/3, `runtime` agent switching, or `prebuilt` tabs), `waitForAgentResponseCompletion()` would detect the *previous* turn's assistant message and immediately exit within 1.6s before the new response even began streaming.
+* **Solution:** Added `getAssistantMessageCount(page)` and snapshotting support in `waitForAgentResponseCompletion(page, postWaitMs, initialCount)`. The polling loop now verifies that a *new* message element or content update has arrived before entering the stream-stabilization phase.
+
+---
+
+### Fix 11: Declarative Multi-Tab IDE Architecture
+* **Problem:** Multi-tab IDE viewing was hardcoded to `if (config.id === 'quickstart')` inside `engine.ts`.
+* **Solution:** Moved `extraTabs?: IdeTabConfig[]` to `PageRecordConfig` in [`recorder/types.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/types.ts). `engine.ts` now iterates through any declared extra tabs generically.
+
+---
+
+### Fix 12: Single-IPC Practiced Typing Cadence
+* **Problem:** Prompts were typed by iterating over characters in a `for...of` loop with `page.keyboard.type(char, { delay })`, causing dozens of redundant Playwright IPC calls per prompt.
+* **Solution:** Replaced per-character loops with direct `page.keyboard.type(prompt, { delay: 35 })`, achieving smooth practiced typing with single-IPC execution.
+
+---
+
+### Fix 13: Full TSX/HTML Syntax Highlighting & Dynamic Workspace Title
+* **Problem:** Lowercase HTML tags (`<div>`, `<button>`, `<span>`, etc.) were rendered uncolored, and the IDE header had hardcoded repository names.
+* **Solution:** Added regex highlighting for standard HTML elements in `#569cd6` (blue) and made project titlebar and explorer headers dynamically match `basename(rootDir)`.
+
+---
+
+### Fix 14: Extended CLI Toolkit & Elapsed Duration Metrics
+* **Problem:** The CLI only supported `--page=<id>` and lacked listing or query filtering capabilities.
+* **Solution:** Added `--list` to inspect registered routes and `--filter=<query>` to run matching subsets. Added per-page execution duration (e.g. `(22.4s)`) and total suite runtime to summary tables.
+
+---
+
+### Fix 15: Environment-Configurable Service Diagnostics
+* **Problem:** Health check URLs were hardcoded to `localhost:3000` and `localhost:8000`.
+* **Solution:** Supported `process.env.FRONTEND_URL` and `process.env.BACKEND_URL` with sensible defaults.
 
 ---
 

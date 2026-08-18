@@ -100,6 +100,7 @@ function highlightSyntax(line: string, ext: string): string {
     const tsConstants = /\b(true|false|null|undefined|void|any|number|string|boolean|object)\b/g;
     const tsReact = /\b(useAgent|useCopilotKit|useComponent|useHumanInTheLoop|useRenderTool|useDefaultRenderTool|useFrontendTool|useAgentContext|CopilotChat|CopilotSidebar|CopilotPopup|CopilotKitProvider|CopilotKit)\b/g;
     const tsTags = /(&lt;\/?)([A-Z]\w*)/g;
+    const tsHtmlTags = /(&lt;\/?)(div|span|button|input|main|h1|h2|h3|h4|h5|h6|pre|code|p|ul|ol|li|section|article|header|footer|nav|form|label|textarea|select|option|table|tr|td|th|tbody|thead|svg|path|circle|rect|line)\b/g;
     const tsFunctions = /\b([a-zA-Z_]\w*)(?=\s*\()/g;
     const tsProps = /\b([a-zA-Z_]\w*)(?=\s*=\s*)/g;
 
@@ -108,6 +109,7 @@ function highlightSyntax(line: string, ext: string): string {
     escaped = escaped.replace(tsConstants, '<span style="color:#4ec9b0;">$1</span>');
     escaped = escaped.replace(tsReact, '<span style="color:#4ec9b0;font-weight:600;">$1</span>');
     escaped = escaped.replace(tsTags, '$1<span style="color:#4ec9b0;">$2</span>');
+    escaped = escaped.replace(tsHtmlTags, '$1<span style="color:#569cd6;">$2</span>');
     escaped = escaped.replace(tsProps, '<span style="color:#9cdcfe;">$1</span>');
     escaped = escaped.replace(tsFunctions, '<span style="color:#dcdcaa;">$1</span>');
   }
@@ -342,12 +344,13 @@ export function generateIdeHtml(
 
   const primaryExt = basename(primaryFilePath).split('.').pop() ?? '';
   const primaryLang = getLangLabel(primaryExt);
+  const projectName = basename(rootDir) || 'workspace';
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>CPK-MS-Agent-Python - Visual Studio Code</title>
+  <title>${escapeHtml(projectName)} - Visual Studio Code</title>
   <style>
     * {
       box-sizing: border-box;
@@ -773,7 +776,7 @@ export function generateIdeHtml(
       <div class="titlebar-center">
         <div class="search-left">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#858585" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <span>cpk-ms-agent-python &gt; ${escapeHtml(
+          <span>${escapeHtml(projectName.toLowerCase())} &gt; ${escapeHtml(
             primaryFilePath.replace(/\\/g, '/'),
           )}</span>
         </div>
@@ -852,7 +855,7 @@ export function generateIdeHtml(
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="m6 9 6 6 6-6" />
           </svg>
-          <span>CPK-MS-AGENT-PYTHON</span>
+          <span>${escapeHtml(projectName.toUpperCase())}</span>
         </div>
         <div class="file-tree">
           ${treeNodes.join('')}

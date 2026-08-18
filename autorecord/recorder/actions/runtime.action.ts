@@ -1,7 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { waitForAgentResponseCompletion } from './index';
+import { getAssistantMessageCount, waitForAgentResponseCompletion } from './index';
 
 export const runRuntimeAction: PageActionHandler = async (
   page: Page,
@@ -13,16 +13,17 @@ export const runRuntimeAction: PageActionHandler = async (
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();
   await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
+  const msgCount1 = await getAssistantMessageCount(page);
   const inputBox = await inputLocator.boundingBox();
   if (inputBox) {
     await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
     await humanClick(page);
   }
-  for (const c of config.prompt) await page.keyboard.type(c, { delay: 45 });
-  await sleep(400);
+  await page.keyboard.type(config.prompt, { delay: 35 });
+  await sleep(300);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for 'my_agent' response...`);
-  await waitForAgentResponseCompletion(page, 1500);
+  await waitForAgentResponseCompletion(page, 1500, msgCount1);
 
   // 2. Switch to sample_agent tab
   console.log(`   [Copilot Runtime] 2/3: Switching to 'sample_agent' tab...`);
@@ -41,15 +42,16 @@ export const runRuntimeAction: PageActionHandler = async (
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();
   if (await sampleInput.isVisible().catch(() => false)) {
+    const msgCount2 = await getAssistantMessageCount(page);
     const siBox = await sampleInput.boundingBox();
     if (siBox) {
       await humanGlide(page, siBox.x + 80, siBox.y + siBox.height / 2, 20);
       await humanClick(page);
       const prompt2 = 'Switch to Spanish';
-      for (const c of prompt2) await page.keyboard.type(c, { delay: 45 });
-      await sleep(400);
+      await page.keyboard.type(prompt2, { delay: 35 });
+      await sleep(300);
       await page.keyboard.press('Enter');
-      await waitForAgentResponseCompletion(page, 1500);
+      await waitForAgentResponseCompletion(page, 1500, msgCount2);
     }
   }
 

@@ -29,8 +29,8 @@ export const runHeadlessUiAction: PageActionHandler = async (
 
   // Type the prompt visibly
   console.log(`   [Headless UI] Typing prompt: "${config.prompt}"...`);
-  for (const c of config.prompt) await page.keyboard.type(c, { delay: 45 });
-  await sleep(500);
+  await page.keyboard.type(config.prompt, { delay: 35 });
+  await sleep(350);
 
   // Ensure input state is populated
   const val = await inputLocator.inputValue().catch(() => '');

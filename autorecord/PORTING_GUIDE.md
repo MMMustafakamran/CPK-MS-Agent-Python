@@ -81,36 +81,40 @@ graph TD
 
 Different frameworks use different ports and health check endpoints.
 
-### Update `recorder/diagnostics.ts`
+### Update `recorder/diagnostics.ts` or Set Environment Variables
 
-Modify the backend/frontend URL targets to match your new project:
+Modify the backend/frontend URL targets or provide `FRONTEND_URL` / `BACKEND_URL` in your environment:
 
 ```typescript
 // autorecord/recorder/diagnostics.ts
+const FRONTEND_BASE_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const BACKEND_BASE_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+
 export async function checkServicesHealth(): Promise<HealthCheckResult> {
   const result: HealthCheckResult = {
     frontendOk: false,
     backendOk: false,
   };
 
-  // Check Frontend (port 3000)
+  // Check Frontend
   try {
-    const res = await fetch('http://localhost:3000/', {
+    const res = await fetch(`${FRONTEND_BASE_URL}/`, {
       signal: AbortSignal.timeout(3000),
     });
     result.frontendOk = res.ok || res.status < 500;
-  } catch (err: any) {
-    result.frontendError = err.message || 'Connection refused on port 3000';
+  } catch (err: unknown) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    result.frontendError = errMessage || `Connection refused on ${FRONTEND_BASE_URL}`;
   }
 
-  // Check Backend (port 8000)
+  // Check Backend
   try {
-    const res = await fetch('http://localhost:8000/health', {
+    const res = await fetch(`${BACKEND_BASE_URL}/health`, {
       signal: AbortSignal.timeout(3000),
     });
     result.backendOk = res.ok || res.status < 500;
-  } catch (err: any) {
-    result.backendError = err.message || 'Connection refused on port 8000';
+  } catch (err: unknown) {
+    result.backendError = `Connection refused on ${BACKEND_BASE_URL}`;
   }
 
   return result;
@@ -130,8 +134,9 @@ export async function checkServicesHealth(): Promise<HealthCheckResult> {
 - `demoUrl`: Local demo URL for Step 3 (`http://localhost:3000/...`).
 - `ideFile`: Target source code file to highlight in Step 2.
 - `startLine` & `endLine`: Snippet line range highlighted in VS Code.
+- `extraTabs`: *(Optional)* Array of extra file tabs to render and switch through in VS Code.
 - `prompt`: User prompt typed in Step 3.
-- `waitAfterPromptMs`: Reading pause duration after the response finishes streaming.
+- `waitAfterPromptMs`: Reading pause duration after the response finishes streaming (e.g. `4000` standard, `1500` for multi-step sequences).
 
 ### Example Configuration:
 
@@ -143,9 +148,16 @@ export const PAGES: PageRecordConfig[] = [
     name: 'Quickstart',
     filename: 'MSPY-react-01-Quickstart',
     docUrl: 'https://docs.copilotkit.ai/ms-agent-python/quickstart?agent=bring-your-own',
-    ideFile: 'frontend/src/app/quickstart/demo-chat/page.tsx',
-    startLine: 28,
-    endLine: 38,
+    ideFile: 'frontend/package.json',
+    startLine: 12,
+    endLine: 22,
+    extraTabs: [
+      {
+        filePath: 'frontend/src/app/quickstart/demo-chat/page.tsx',
+        startLine: 28,
+        endLine: 38,
+      },
+    ],
     demoUrl: 'http://localhost:3000/quickstart/demo-chat',
     prompt: 'Can you tell me a joke?',
     waitAfterPromptMs: 4000,
@@ -335,15 +347,22 @@ This slides up an authentic Windows 11 Notepad window, clicks into the document,
 ```bash
 cd autorecord
 
+# Inspect all registered pages and file mappings without running
+npm run record -- --list
+
 # Record an individual feature
 npm run record -- --page=quickstart
 npm run record -- --page=interactive
+
+# Record a subset of matching pages
+npm run record -- --filter=generative-ui
+npm run record -- --filter=shared-state
 
 # Record all registered routes in batch
 npm run record
 ```
 
-All recorded videos are saved to `autorecord/videos/` as **1080p, 60fps WebM** files with the configured filename (e.g. `MSPY-react-*.webm`).
+All recorded videos are saved to `autorecord/videos/` as **1080p, 60fps WebM** files with the configured filename (e.g. `MSPY-react-*.webm`). Execution elapsed duration per page is reported in the final summary.
 
 ---
 

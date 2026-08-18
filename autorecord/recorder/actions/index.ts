@@ -21,6 +21,20 @@ import { runStateRenderingAction } from './state-rendering.action';
 import { runToolRenderingAction } from './tool-rendering.action';
 
 /**
+ * Returns the current count of assistant message elements in the DOM
+ */
+export async function getAssistantMessageCount(page: Page): Promise<number> {
+  return page
+    .evaluate(() => {
+      const msgs = document.querySelectorAll(
+        '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
+      );
+      return msgs.length;
+    })
+    .catch(() => 0);
+}
+
+/**
  * Actively waits until:
  * 1. An assistant response message appears with text content.
  * 2. Streaming finishes (text content stops changing for 1.6+ seconds).
@@ -29,25 +43,33 @@ import { runToolRenderingAction } from './tool-rendering.action';
 export async function waitForAgentResponseCompletion(
   page: Page,
   postWaitMs = 4000,
+  initialMessageCount?: number,
 ): Promise<void> {
   console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
 
-  // Step 1: Wait until assistant message starts receiving content (up to 30s)
+  // Step 1: Wait until a new assistant message starts receiving content (up to 30s)
   let hasStarted = false;
   const startTime = Date.now();
+  const baseCount = initialMessageCount ?? 0;
+
   while (Date.now() - startTime < 30000) {
-    const text = await page
-      .evaluate(() => {
+    const status = await page
+      .evaluate((bCount) => {
         const msgs = document.querySelectorAll(
           '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
         );
-        if (msgs.length === 0) return '';
+        if (msgs.length === 0) return { started: false, len: 0 };
+        // If initialMessageCount was given, ensure we are looking at a new message
+        if (bCount > 0 && msgs.length <= bCount) {
+          return { started: false, len: 0 };
+        }
         const lastMsg = msgs[msgs.length - 1];
-        return (lastMsg.textContent || '').trim();
-      })
-      .catch(() => '');
+        const txt = (lastMsg.textContent || '').trim();
+        return { started: txt.length > 2, len: txt.length };
+      }, baseCount)
+      .catch(() => ({ started: false, len: 0 }));
 
-    if (text.length > 2) {
+    if (status.started) {
       hasStarted = true;
       break;
     }
@@ -117,7 +139,7 @@ export async function waitForAgentResponseCompletion(
     await humanGlide(page, 960, 500, 20);
   }
 
-  // Step 4: 7-second reading pause after response completes
+  // Step 4: Reading pause after response completes
   console.log(`   📖 Reading completed response (pausing ${postWaitMs / 1000}s)...`);
   await sleep(postWaitMs);
 }
@@ -134,6 +156,8 @@ export const runStandardAction: PageActionHandler = async (
   await inputLocator.waitFor({ state: 'visible', timeout: 15000 });
   await sleep(300);
 
+  const initialMsgCount = await getAssistantMessageCount(page);
+
   const inputBox = await inputLocator.boundingBox();
   if (inputBox) {
     await humanGlide(
@@ -148,9 +172,7 @@ export const runStandardAction: PageActionHandler = async (
   }
   await sleep(200);
 
-  for (const char of config.prompt) {
-    await page.keyboard.type(char, { delay: 30 });
-  }
+  await page.keyboard.type(config.prompt, { delay: 30 });
   await sleep(300);
 
   // If text was wiped during typing by a sudden React re-render, re-fill
@@ -192,7 +214,11 @@ export const runStandardAction: PageActionHandler = async (
   }
 
   // 2. Actively wait for the response to stream completely and pause for reading
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
+  await waitForAgentResponseCompletion(
+    page,
+    config.waitAfterPromptMs ?? 4000,
+    initialMsgCount,
+  );
 };
 
 const ACTION_MAP: Record<string, PageActionHandler> = {

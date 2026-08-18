@@ -16,8 +16,8 @@ export const runPrebuiltAction: PageActionHandler = async (page: Page) => {
     await humanClick(page);
   }
   const prompt1 = 'What is CopilotKit?';
-  for (const c of prompt1) await page.keyboard.type(c, { delay: 45 });
-  await sleep(400);
+  await page.keyboard.type(prompt1, { delay: 35 });
+  await sleep(300);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for CopilotChat response...`);
   await waitForAgentResponseCompletion(page, 1500);
