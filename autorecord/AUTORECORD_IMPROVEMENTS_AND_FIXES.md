@@ -221,11 +221,15 @@ async function humanScrollCodeViewport(
 
 ---
 
-### Fix 7: Dynamic Viewport-Relative Taskbar & Notepad Coordinates
-* **Problem:** Hardcoded coordinates (`1029, 1056`) failed on custom screen resolutions, and Notepad overlay clicks missed their target.
+### Fix 7: Hyper-Realistic Windows 11 Fluent Taskbar & Dynamic Coordinate Resolution
+* **Problem:** 
+  1. The taskbar previously had generic flat styling, basic icons, and hardcoded static coordinates (`1029, 1056`) that missed targets on non-standard viewport scalings.
 * **Solution in [`recorder/overlays/taskbar.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/taskbar.ts) & [`notepad.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/notepad.ts):**
-  - Fallback coordinates are dynamically computed from `window.innerWidth / 2 + offset` and `window.innerHeight - 24`.
-  - Notepad dynamically resolves `#win11-taskbar-notepad` bounding box before clicking.
+  - **Acrylic & Mica Blur Material:** Injected taskbar with `background: rgba(28, 28, 32, 0.85)` and `backdrop-filter: blur(36px) saturate(180%)`, top border highlight (`rgba(255, 255, 255, 0.08)`), and subtle drop shadow.
+  - **Authentic Fluent Icons:** Vector SVGs for Windows 11 Start (4-square), Search, Virtual Desktops, File Explorer, Chrome (multi-color wheel), VS Code (3D layered ribbon), Terminal, and Copilot.
+  - **Active State Highlights & Indicator Pills:** Active app tile displays frosted highlight (`rgba(255, 255, 255, 0.08)`) with an extended **16px blue pill** (`#60a5fa`), while background apps display a subtle **6px dot indicator** (`rgba(255, 255, 255, 0.4)`).
+  - **System Tray & Widgets:** Live weather pill (left), hidden tray chevron, language selector (`ENG`), Action Center status pill (WiFi, Speaker, Battery), dynamic live clock (`Time + Date`), Notification Bell, and far-right "Show Desktop" sliver.
+  - **Dynamic Viewport Bounding Boxes:** Taskbar icon coordinates are computed dynamically from `getBoundingClientRect()`, ensuring accurate mouse glide targets regardless of screen resolution.
 
 ---
 
