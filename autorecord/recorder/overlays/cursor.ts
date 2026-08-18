@@ -149,10 +149,27 @@ export async function humanClick(page: Page): Promise<void> {
  */
 export async function humanScrollDown(
   page: Page,
-  totalPixels: number = 1800,
-  durationMs: number = 3600,
+  totalPixels: number = 1100,
+  durationMs: number = 3200,
 ): Promise<void> {
-  const steps = 60;
+  // 1. Determine the actual max scrollable distance of the main layout
+  const actualTarget = (await page
+    .evaluate((requestedPixels) => {
+      const layout =
+        document.getElementById('nd-docs-layout') ||
+        document.querySelector('main') ||
+        document.documentElement;
+      const maxScroll = Math.max(
+        0,
+        layout.scrollHeight - layout.clientHeight,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+      // Clamp to at most 75% of page depth so it never hits the bottom footer or triggers overscroll
+      return Math.min(requestedPixels, Math.max(300, Math.floor(maxScroll * 0.75)));
+    }, totalPixels)
+    .catch(() => totalPixels)) as number;
+
+  const steps = 50;
   const interval = Math.max(25, Math.floor(durationMs / steps));
   let previousProgress = 0;
 
@@ -161,25 +178,24 @@ export async function humanScrollDown(
     // Smooth cubic ease-in-out
     const currentProgress =
       t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    const deltaY = Math.round((currentProgress - previousProgress) * totalPixels);
+    const deltaY = Math.round((currentProgress - previousProgress) * actualTarget);
     previousProgress = currentProgress;
 
     if (deltaY > 0) {
-      // 1. Send native mouse wheel event
+      // Direct wheel scroll
       await page.mouse.wheel(0, deltaY);
 
-      // 2. Direct instant scrollBy on window and any scrollable containers (no competing smooth animation)
+      // Increment main scroll container directly
       await page
         .evaluate((dy) => {
-          window.scrollBy(0, dy);
-          var scrollers = document.querySelectorAll(
-            'main, article, [class*="overflow-y-auto"], [class*="content"], div[id*="content"]',
-          );
-          for (var j = 0; j < scrollers.length; j++) {
-            var el = scrollers[j];
-            if (el.scrollHeight > el.clientHeight) {
-              el.scrollTop += dy;
-            }
+          const layout =
+            document.getElementById('nd-docs-layout') ||
+            document.querySelector('main') ||
+            document.documentElement;
+          if (layout && layout.scrollHeight > layout.clientHeight) {
+            layout.scrollTop += dy;
+          } else {
+            window.scrollBy(0, dy);
           }
         }, deltaY)
         .catch(() => {});

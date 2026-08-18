@@ -202,17 +202,17 @@ export class RecordingEngine {
         // Move mouse into reading position
         await humanGlide(page, 960, 380, 16);
 
-        // Silky smooth scrolling down doc page (~90% depth at relaxed human reading pace)
-        console.log(`   Silky smooth scrolling down doc page (~90%)...`);
-        await humanScrollDown(page, 2000, 3600);
+        // Smooth scrolling down doc page (~75% depth to reveal first code block without overscroll)
+        console.log(`   Smooth scrolling down doc page...`);
+        await humanScrollDown(page, 1100, 3200);
 
         // Find the visible code block on screen and glide cursor over it
         const visibleCodePos = (await page.evaluate(`
           (function() {
             var pres = document.querySelectorAll('pre, div[class*="code"], code');
-            for (var i = pres.length - 1; i >= 0; i--) {
+            for (var i = 0; i < pres.length; i++) {
               var r = pres[i].getBoundingClientRect();
-              if (r.height > 60 && r.top >= 80 && r.top <= window.innerHeight - 100) {
+              if (r.height > 60 && r.top >= 120 && r.top <= window.innerHeight - 200) {
                 return {
                   x: r.left + Math.min(r.width / 2, 400),
                   y: r.top + Math.min(r.height / 3, 70),
