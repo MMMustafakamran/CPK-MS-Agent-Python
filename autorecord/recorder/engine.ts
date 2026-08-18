@@ -1,12 +1,52 @@
 import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { chromium } from 'playwright';
+import { chromium, type Page } from 'playwright';
 import { executePageAction } from './actions';
 import { checkServicesHealth, diagnoseError } from './diagnostics';
 import { generateIdeHtml } from './ide/generator';
 import { humanClick, humanGlide, humanScrollDown, sleep } from './overlays/cursor';
 import { clickTaskbarApp, ensureOverlays } from './overlays/taskbar';
 import { type PageRecordConfig } from './types';
+
+/**
+ * Smoothly and visibly scrolls the simulated VS Code .code-viewport down to the target startLine
+ */
+async function humanScrollCodeViewport(
+  page: Page,
+  startLine: number,
+): Promise<void> {
+  if (startLine <= 14) {
+    await sleep(300);
+    return;
+  }
+
+  // Calculate target scrollTop: each line is 22px in height
+  // Center the highlighted range in the editor pane
+  const targetScrollTop = Math.max(0, (startLine - 8) * 22);
+
+  await page.evaluate(async (targetY) => {
+    const viewport = document.querySelector(
+      '.editor-body-view:not([style*="display: none"]) .code-viewport, .code-viewport',
+    ) as HTMLElement | null;
+    if (!viewport) return;
+
+    const startY = viewport.scrollTop;
+    const distance = targetY - startY;
+    if (Math.abs(distance) < 15) return;
+
+    const steps = 32;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      // Smooth cubic ease-in-out
+      const progress =
+        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      viewport.scrollTop = startY + distance * progress;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }, targetScrollTop);
+
+  await sleep(350);
+}
 
 export class RecordingEngine {
   private readonly videosDir: string;
@@ -78,7 +118,9 @@ export class RecordingEngine {
       if (
         msg.includes('reo.dev') ||
         msg.includes('removeChild') ||
-        msg.includes('Minified React error')
+        msg.includes('Minified React error') ||
+        msg.includes('Hydration failed') ||
+        msg.includes("server rendered text didn't match")
       ) {
         return;
       }
@@ -97,7 +139,9 @@ export class RecordingEngine {
           !txt.includes('Failed to load resource') &&
           !txt.includes('404 (Not Found)') &&
           !txt.includes('webpack-hmr') &&
-          !txt.includes('.map')
+          !txt.includes('.map') &&
+          !txt.includes('Hydration failed') &&
+          !txt.includes("server rendered text didn't match")
         ) {
           console.warn(`   ⚠️ [Browser Console Error]: ${txt}`);
         }
@@ -233,15 +277,7 @@ export class RecordingEngine {
           console.log(
             `   Displaying CopilotKit & AG-UI Versions in package.json (lines 12-22)...`,
           );
-          await page.evaluate(`
-            (function() {
-              var highlighted = document.querySelector('.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted');
-              if (highlighted) {
-                highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            })()
-          `);
-          await sleep(300);
+          await humanScrollCodeViewport(page, 12);
           await humanGlide(page, 520, 360, 18);
           await sleep(1500);
 
@@ -268,19 +304,11 @@ export class RecordingEngine {
           }
           await sleep(300);
 
-          // 3. Highlight project code in page.tsx (auto-scrolling code if below viewport)
+          // 3. Highlight project code in page.tsx (visibly scrolls down if snippet is below initial view)
           console.log(
             `   Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
           );
-          await page.evaluate(`
-            (function() {
-              var highlighted = document.querySelector('.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted');
-              if (highlighted) {
-                highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            })()
-          `);
-          await sleep(400);
+          await humanScrollCodeViewport(page, config.startLine);
 
           const codeLocator = page
             .locator(
@@ -324,16 +352,8 @@ export class RecordingEngine {
           await ensureOverlays(page, 'vscode');
           await sleep(300);
 
-          // Smoothly scroll code-viewport so highlighted block is centered
-          await page.evaluate(`
-            (function() {
-              var highlighted = document.querySelector('.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted');
-              if (highlighted) {
-                highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            })()
-          `);
-          await sleep(400);
+          // Smoothly scroll code-viewport down to the target startLine
+          await humanScrollCodeViewport(page, config.startLine);
 
           const codeLocator = page
             .locator(
