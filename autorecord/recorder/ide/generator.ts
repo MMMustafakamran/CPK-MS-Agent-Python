@@ -1,6 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
+export interface IdeTabConfig {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  tabLabel?: string;
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -19,8 +26,13 @@ function highlightSyntax(line: string, ext: string): string {
 
   // 1. Full line comments
   const trimmed = line.trimStart();
-  if (trimmed.startsWith('//') || (isPython && trimmed.startsWith('#')) || trimmed.startsWith('/*')) {
-    return `<span style="color:#6a9955;">${escapeHtml(line)}</span>`;
+  if (
+    trimmed.startsWith('//') ||
+    (isPython && trimmed.startsWith('#')) ||
+    trimmed.startsWith('/*') ||
+    trimmed.startsWith('*')
+  ) {
+    return `<span style="color:#6a9955;font-style:italic;">${escapeHtml(line)}</span>`;
   }
 
   // 2. JSON highlighting
@@ -40,18 +52,31 @@ function highlightSyntax(line: string, ext: string): string {
     }
   }
 
-  // 3. General tokenizer for TypeScript/JSX & Python
-  let escaped = escapeHtml(line);
+  // 3. Robust tokenizer with string & comment placeholders to avoid collisions
+  const strings: string[] = [];
+  const comments: string[] = [];
 
-  // Strings (double, single, backtick)
-  escaped = escaped.replace(/(["'`])((?:\\.|[^\\])*?)\1/g, '<span style="color:#ce9178;">$1$2$1</span>');
+  // Protect strings
+  let processed = line.replace(/(["'`])((?:\\.|[^\\])*?)\1/g, (match) => {
+    strings.push(match);
+    return `___STR_${strings.length - 1}___`;
+  });
 
-  // Inline comments
+  // Protect inline comments
   if (isPython) {
-    escaped = escaped.replace(/(#.*)$/g, '<span style="color:#6a9955;">$1</span>');
+    processed = processed.replace(/(#.*)$/g, (match) => {
+      comments.push(match);
+      return `___COMM_${comments.length - 1}___`;
+    });
   } else {
-    escaped = escaped.replace(/(\/\/.*)$/g, '<span style="color:#6a9955;">$1</span>');
+    processed = processed.replace(/(\/\/.*)$/g, (match) => {
+      comments.push(match);
+      return `___COMM_${comments.length - 1}___`;
+    });
   }
+
+  // HTML Escape before syntax styling
+  let escaped = escapeHtml(processed);
 
   if (isPython) {
     // Python Keywords
@@ -59,146 +84,270 @@ function highlightSyntax(line: string, ext: string): string {
     const pyDefs = /\b(def|class|async|await|lambda)\b/g;
     const pyConstants = /\b(True|False|None|self)\b/g;
     const pyDecorators = /(@[\w.]+)/g;
+    const pyBuiltins = /\b(print|len|range|str|int|dict|list|set|tuple|type|isinstance|open)\b/g;
+    const pyFunctions = /\b([a-zA-Z_]\w*)(?=\s*\()/g;
 
     escaped = escaped.replace(pyControl, '<span style="color:#c586c0;">$1</span>');
     escaped = escaped.replace(pyDefs, '<span style="color:#569cd6;">$1</span>');
     escaped = escaped.replace(pyConstants, '<span style="color:#569cd6;">$1</span>');
     escaped = escaped.replace(pyDecorators, '<span style="color:#dcdcaa;">$1</span>');
+    escaped = escaped.replace(pyBuiltins, '<span style="color:#4ec9b0;">$1</span>');
+    escaped = escaped.replace(pyFunctions, '<span style="color:#dcdcaa;">$1</span>');
   } else if (isTsx) {
     // TS/JS Keywords
     const tsControl = /\b(import|export|from|return|if|else|for|while|switch|case|default|try|catch|finally|throw|break|continue)\b/g;
     const tsDefs = /\b(const|let|var|function|type|interface|class|enum|extends|implements|async|await|new)\b/g;
     const tsConstants = /\b(true|false|null|undefined|void|any|number|string|boolean|object)\b/g;
     const tsReact = /\b(useAgent|useCopilotKit|useComponent|useHumanInTheLoop|useRenderTool|useDefaultRenderTool|useFrontendTool|useAgentContext|CopilotChat|CopilotSidebar|CopilotPopup|CopilotKitProvider|CopilotKit)\b/g;
+    const tsTags = /(&lt;\/?)([A-Z]\w*)/g;
+    const tsFunctions = /\b([a-zA-Z_]\w*)(?=\s*\()/g;
+    const tsProps = /\b([a-zA-Z_]\w*)(?=\s*=\s*)/g;
 
     escaped = escaped.replace(tsControl, '<span style="color:#c586c0;">$1</span>');
     escaped = escaped.replace(tsDefs, '<span style="color:#569cd6;">$1</span>');
     escaped = escaped.replace(tsConstants, '<span style="color:#4ec9b0;">$1</span>');
     escaped = escaped.replace(tsReact, '<span style="color:#4ec9b0;font-weight:600;">$1</span>');
+    escaped = escaped.replace(tsTags, '$1<span style="color:#4ec9b0;">$2</span>');
+    escaped = escaped.replace(tsProps, '<span style="color:#9cdcfe;">$1</span>');
+    escaped = escaped.replace(tsFunctions, '<span style="color:#dcdcaa;">$1</span>');
   }
+
+  // Restore numbers
+  escaped = escaped.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8;">$1</span>');
+
+  // Restore strings
+  escaped = escaped.replace(/___STR_(\d+)___/g, (_, idx) => {
+    const rawStr = strings[Number(idx)];
+    return `<span style="color:#ce9178;">${escapeHtml(rawStr)}</span>`;
+  });
+
+  // Restore comments
+  escaped = escaped.replace(/___COMM_(\d+)___/g, (_, idx) => {
+    const rawComm = comments[Number(idx)];
+    return `<span style="color:#6a9955;font-style:italic;">${escapeHtml(rawComm)}</span>`;
+  });
 
   return escaped;
 }
 
-export function generateIdeHtml(
-  rootDir: string,
-  relativeFilePath: string,
-  startLine = 1,
-  endLine = 30,
-): string {
-  const fullPath = join(rootDir, relativeFilePath);
-  let code = '// File not found';
-  if (existsSync(fullPath)) {
-    code = readFileSync(fullPath, 'utf-8');
-  }
-
-  const fileName = basename(relativeFilePath);
-  const ext = fileName.split('.').pop() ?? '';
+function getFileIcon(ext: string): string {
   const isTsx = ext === 'tsx' || ext === 'ts' || ext === 'js' || ext === 'jsx';
   const isPython = ext === 'py';
   const isJson = ext === 'json';
   const isMd = ext === 'md';
 
-  const fileIcon = isPython
-    ? '🐍'
-    : isTsx
-      ? '⚛'
-      : isJson
-        ? '📦'
-        : isMd
-          ? '📝'
-          : '📄';
+  if (isPython) {
+    return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11.9 2c-4.4 0-4.1 1.9-4.1 1.9l.01 2h4.2v.6H5.8S2 6.1 2 10.6s3.3 4.3 3.3 4.3h2v-2.8s-.1-3.3 3.3-3.3h5.7s3.2.1 3.2-3.1-3.2-3.7-7.6-3.7z" fill="#3776ab"/><path d="M12.1 22c4.4 0 4.1-1.9 4.1-1.9l-.01-2h-4.2v-.6h6.2s3.8.4 3.8-4.1-3.3-4.3-3.3-4.3h-2v2.8s.1 3.3-3.3 3.3H7.7s-3.2-.1-3.2 3.1 3.2 3.7 7.6 3.7z" fill="#ffd43b"/><circle cx="9.5" cy="4.5" r=".7" fill="#fff"/><circle cx="14.5" cy="19.5" r=".7" fill="#fff"/></svg>`;
+  }
+  if (isTsx) {
+    return `<svg width="15" height="15" viewBox="0 0 24 24" fill="#3178c6"><rect width="24" height="24" rx="3"/><text x="4" y="17" fill="#fff" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold">TS</text></svg>`;
+  }
+  if (isJson) {
+    return `<svg width="15" height="15" viewBox="0 0 24 24" fill="#cbcb41"><text x="3" y="17" fill="#cbcb41" font-family="Consolas, monospace" font-size="14" font-weight="bold">{ }</text></svg>`;
+  }
+  if (isMd) {
+    return `<svg width="15" height="15" viewBox="0 0 24 24" fill="#42a5f5"><rect width="24" height="24" rx="2" fill="none" stroke="#42a5f5" stroke-width="2"/><path d="M4 16V8l4 4 4-4v8M17 8v8m-3-3l3 3 3-3" fill="none" stroke="#42a5f5" stroke-width="2"/></svg>`;
+  }
+  return `<svg width="15" height="15" viewBox="0 0 24 24" fill="#858585"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#90a4ae"/></svg>`;
+}
 
-  const langLabel = isPython
-    ? 'Python'
-    : isTsx
-      ? 'TypeScript JSX'
-      : isJson
-        ? 'JSON'
-        : isMd
-          ? 'Markdown'
-          : 'Plain Text';
+function getLangLabel(ext: string): string {
+  if (ext === 'py') return 'Python 3.12';
+  if (ext === 'tsx' || ext === 'ts' || ext === 'jsx' || ext === 'js')
+    return 'TypeScript JSX';
+  if (ext === 'json') return 'JSON';
+  if (ext === 'md') return 'Markdown';
+  return 'Plain Text';
+}
 
-  const normalizedPath = relativeFilePath.replace(/\\/g, '/');
-  const pathParts = normalizedPath.split('/');
-  const codeLines = code.split('\n');
+export function generateIdeHtml(
+  rootDir: string,
+  primaryFilePath: string,
+  startLine = 1,
+  endLine = 30,
+  extraTabs: IdeTabConfig[] = [],
+  activeTabIdx = 0,
+): string {
+  const tabsList: IdeTabConfig[] = [
+    { filePath: primaryFilePath, startLine, endLine },
+    ...extraTabs,
+  ];
 
-  const linesHtml = codeLines
-    .map((line, idx) => {
-      const lineNum = idx + 1;
-      const isHighlighted = lineNum >= startLine && lineNum <= endLine;
-      const highlightedContent = highlightSyntax(line, ext);
-
-      const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
-      const numClass = isHighlighted ? 'line-num highlighted' : 'line-num';
-      const textClass = isHighlighted
-        ? 'line-content highlighted'
-        : 'line-content';
+  // Render tab headers
+  const tabHeadersHtml = tabsList
+    .map((tab, idx) => {
+      const fileName = basename(tab.filePath);
+      const ext = fileName.split('.').pop() ?? '';
+      const icon = getFileIcon(ext);
+      const isActive = idx === activeTabIdx;
 
       return `
-        <div class="${lineClass}">
-          <div class="${numClass}">${lineNum}</div>
-          <div class="${textClass}"><span>${highlightedContent}</span></div>
+        <div
+          id="ide-tab-${idx}"
+          class="tab ${isActive ? 'active' : ''}"
+          onclick="window.switchIdeTab(${idx})"
+          style="${
+            isActive
+              ? 'background:#1e1e1e;border-top:1px solid #007acc;color:#ffffff;'
+              : 'background:#181818;border-top:1px solid transparent;color:#9d9d9d;'
+          }"
+        >
+          <span class="file-icon">${icon}</span>
+          <span>${escapeHtml(fileName)}</span>
+          <span class="close-btn">&#x2715;</span>
         </div>
       `;
     })
     .join('');
 
-  const breadcrumbsHtml = pathParts
-    .map((part, idx) => {
-      const isLast = idx === pathParts.length - 1;
-      return `<span class="breadcrumb-item ${isLast ? 'active' : ''}">${escapeHtml(part)}</span>${
-        !isLast ? '<span class="breadcrumb-sep">&gt;</span>' : ''
-      }`;
+  // Render file viewports for all tabs
+  const tabBodiesHtml = tabsList
+    .map((tab, idx) => {
+      const fullPath = join(rootDir, tab.filePath);
+      let code = '// File not found';
+      if (existsSync(fullPath)) {
+        code = readFileSync(fullPath, 'utf-8');
+      }
+
+      const fileName = basename(tab.filePath);
+      const ext = fileName.split('.').pop() ?? '';
+      const normalizedPath = tab.filePath.replace(/\\/g, '/');
+      const pathParts = normalizedPath.split('/');
+      const codeLines = code.split('\n');
+
+      const linesHtml = codeLines
+        .map((line, lIdx) => {
+          const lineNum = lIdx + 1;
+          const isHighlighted =
+            lineNum >= tab.startLine && lineNum <= tab.endLine;
+          const isCaretLine = lineNum === tab.startLine;
+          const highlightedContent = highlightSyntax(line, ext);
+
+          const lineClass = isHighlighted
+            ? 'code-line highlighted'
+            : 'code-line';
+          const numClass = isHighlighted ? 'line-num highlighted' : 'line-num';
+          const textClass = isHighlighted
+            ? 'line-content highlighted'
+            : 'line-content';
+
+          const caretHtml = isCaretLine ? '<span class="vs-caret"></span>' : '';
+
+          return `
+            <div class="${lineClass}">
+              <div class="${numClass}">${lineNum}</div>
+              <div class="${textClass}"><span>${highlightedContent}${caretHtml}</span></div>
+            </div>
+          `;
+        })
+        .join('');
+
+      const minimapHtml = codeLines
+        .slice(0, 100)
+        .map((line, lIdx) => {
+          const lineNum = lIdx + 1;
+          const isHighlighted =
+            lineNum >= tab.startLine && lineNum <= tab.endLine;
+          const width = Math.min(
+            Math.max((line.trim().length / 60) * 100, 10),
+            90,
+          );
+          return `<div class="minimap-line ${
+            isHighlighted ? 'active' : ''
+          }" style="width:${width}%;"></div>`;
+        })
+        .join('');
+
+      const breadcrumbsHtml = pathParts
+        .map((part, pIdx) => {
+          const isLast = pIdx === pathParts.length - 1;
+          return `
+            <span class="breadcrumb-item ${isLast ? 'active' : ''}">
+              ${
+                isLast
+                  ? getFileIcon(ext)
+                  : '<span style="color:#dcb67a;font-size:11px;">📁</span>'
+              }
+              <span>${escapeHtml(part)}</span>
+            </span>
+            ${!isLast ? '<span class="breadcrumb-sep">&gt;</span>' : ''}
+          `;
+        })
+        .join('');
+
+      const isDisplayed = idx === activeTabIdx;
+
+      return `
+        <div id="ide-view-${idx}" class="editor-body-view" style="display:${
+        isDisplayed ? 'flex' : 'none'
+      };flex-direction:column;flex:1;overflow:hidden;">
+          <div class="breadcrumbs-bar">
+            ${breadcrumbsHtml}
+          </div>
+          <div class="editor-body">
+            <div class="code-viewport">
+              ${linesHtml}
+            </div>
+            <div class="minimap">
+              ${minimapHtml}
+            </div>
+          </div>
+        </div>
+      `;
     })
     .join('');
 
-  // Dynamic file tree generator based on the active relativeFilePath
+  // Build tree nodes for primary file + extra tabs
+  const primaryParts = primaryFilePath.replace(/\\/g, '/').split('/');
   const treeNodes: string[] = [];
-  for (let i = 0; i < pathParts.length; i++) {
-    const isFile = i === pathParts.length - 1;
-    const part = pathParts[i];
+
+  for (let i = 0; i < primaryParts.length; i++) {
+    const isFile = i === primaryParts.length - 1;
+    const part = primaryParts[i];
     const indentClass = i === 0 ? '' : `pl-${Math.min(i, 4)}`;
 
     if (isFile) {
+      const ext = part.split('.').pop() ?? '';
       treeNodes.push(`
-        <div class="tree-node ${indentClass} active-file">
-          <span>${fileIcon}</span>
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(part)}</span>
+        <div class="tree-node ${indentClass} file-node active-file" data-tab-idx="0" onclick="window.switchIdeTab(0)">
+          <span class="file-icon">${getFileIcon(ext)}</span>
+          <span class="file-label">${escapeHtml(part)}</span>
         </div>
       `);
     } else {
       treeNodes.push(`
-        <div class="tree-node ${indentClass}">
-          <span style="color:#858585;">▾</span>
-          <span class="folder-name">📁 ${escapeHtml(part)}</span>
+        <div class="tree-node ${indentClass} folder-node">
+          <svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#858585" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          <span class="folder-icon">📁</span>
+          <span class="folder-name">${escapeHtml(part)}</span>
         </div>
       `);
     }
   }
 
-  // If active file is in frontend, show backend folder too
-  if (normalizedPath.startsWith('frontend/')) {
+  // Extra files in tree
+  extraTabs.forEach((extra, eIdx) => {
+    const eParts = extra.filePath.replace(/\\/g, '/').split('/');
+    const eName = eParts[eParts.length - 1];
+    const eExt = eName.split('.').pop() ?? '';
+    const eIndent = `pl-${Math.min(eParts.length - 1, 4)}`;
+
     treeNodes.push(`
-      <div class="tree-node">
-        <span style="color:#858585;">▸</span>
-        <span class="folder-name">📁 backend</span>
+      <div class="tree-node ${eIndent} file-node" data-tab-idx="${eIdx + 1}" onclick="window.switchIdeTab(${eIdx + 1})">
+        <span class="file-icon">${getFileIcon(eExt)}</span>
+        <span class="file-label">${escapeHtml(eName)}</span>
       </div>
     `);
-  } else if (normalizedPath.startsWith('backend/')) {
-    treeNodes.unshift(`
-      <div class="tree-node">
-        <span style="color:#858585;">▸</span>
-        <span class="folder-name">📁 frontend</span>
-      </div>
-    `);
-  }
+  });
+
+  const primaryExt = basename(primaryFilePath).split('.').pop() ?? '';
+  const primaryLang = getLangLabel(primaryExt);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VS Code - ${escapeHtml(fileName)}</title>
+  <title>CPK-MS-Agent-Python - Visual Studio Code</title>
   <style>
     * {
       box-sizing: border-box;
@@ -221,6 +370,17 @@ export function generateIdeHtml(
       width: 100vw;
       height: 100vh;
       overflow: hidden;
+      animation: win11Open 0.22s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+    @keyframes win11Open {
+      0% {
+        opacity: 0.85;
+        transform: scale(0.99) translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
     }
     /* Titlebar */
     .titlebar {
@@ -230,26 +390,67 @@ export function generateIdeHtml(
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 12px;
+      padding: 0 10px;
       font-size: 12px;
       color: #9d9d9d;
     }
     .titlebar-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
-    .titlebar-path {
-      color: #cccccc;
+    .menubar {
       display: flex;
-      gap: 6px;
+      gap: 10px;
+      font-size: 12px;
+      color: #cccccc;
     }
-    .titlebar-path span.sub {
+    .menubar span {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .menubar span:hover {
+      background: #2a2d2e;
+    }
+    /* Command Palette Search Box */
+    .titlebar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 440px;
+      height: 24px;
+      background: #2a2a2a;
+      border: 1px solid #3c3c3c;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 11px;
+      color: #cccccc;
+      cursor: pointer;
+    }
+    .titlebar-center .search-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .titlebar-center .keybadge {
+      background: #383838;
+      border: 1px solid #4a4a4a;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 10px;
       color: #858585;
     }
     .titlebar-controls {
       display: flex;
-      gap: 14px;
+      align-items: center;
+      gap: 16px;
       color: #858585;
       font-size: 13px;
     }
@@ -268,17 +469,17 @@ export function generateIdeHtml(
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 0;
+      padding: 8px 0;
       color: #858585;
     }
     .activity-group {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
       align-items: center;
     }
     .activity-icon {
-      width: 40px;
+      width: 42px;
       height: 40px;
       display: flex;
       align-items: center;
@@ -293,10 +494,21 @@ export function generateIdeHtml(
       content: '';
       position: absolute;
       left: 0;
-      top: 4px;
-      bottom: 4px;
+      top: 6px;
+      bottom: 6px;
       width: 2px;
       background: #007acc;
+    }
+    .badge {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: #007acc;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: bold;
+      border-radius: 8px;
+      padding: 1px 4px;
     }
     /* Sidebar */
     .sidebar {
@@ -310,25 +522,29 @@ export function generateIdeHtml(
     .sidebar-header {
       padding: 10px 16px;
       font-weight: 600;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       color: #bbbbbb;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
     .sidebar-project {
-      padding: 4px 10px;
+      padding: 6px 12px;
       font-weight: bold;
+      font-size: 11px;
       color: #e1e1e1;
       display: flex;
       align-items: center;
       gap: 6px;
+      cursor: pointer;
     }
     .file-tree {
       flex: 1;
       overflow-y: auto;
-      padding: 4px 8px;
-      font-family: Consolas, 'Courier New', monospace;
+      padding: 2px 4px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 12px;
       line-height: 22px;
     }
@@ -336,19 +552,24 @@ export function generateIdeHtml(
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 2px 4px;
+      padding: 3px 6px;
       color: #cccccc;
-    }
-    .tree-node.pl-1 { padding-left: 14px; }
-    .tree-node.pl-2 { padding-left: 26px; }
-    .tree-node.pl-3 { padding-left: 38px; }
-    .tree-node.pl-4 { padding-left: 50px; }
-    .tree-node.active-file {
-      background: rgba(4, 57, 94, 0.6);
-      color: #ffffff;
       border-radius: 3px;
+      cursor: pointer;
+      position: relative;
     }
-    .folder-name { color: #dcb67a; }
+    .tree-node.pl-1 { padding-left: 18px; }
+    .tree-node.pl-2 { padding-left: 30px; }
+    .tree-node.pl-3 { padding-left: 42px; }
+    .tree-node.pl-4 { padding-left: 54px; }
+    .tree-node.active-file {
+      background: #04395e;
+      color: #ffffff;
+      font-weight: 500;
+    }
+    .folder-name { color: #cccccc; font-weight: 500; }
+    .folder-icon { font-size: 12px; }
+    .file-icon { display: flex; align-items: center; }
     /* Editor Area */
     .editor-pane {
       display: flex;
@@ -356,6 +577,7 @@ export function generateIdeHtml(
       flex: 1;
       background: #1e1e1e;
       overflow: hidden;
+      position: relative;
     }
     .tabs-bar {
       height: 35px;
@@ -363,22 +585,40 @@ export function generateIdeHtml(
       border-bottom: 1px solid #2b2b2b;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+    }
+    .tabs-left {
+      display: flex;
+      height: 100%;
     }
     .tab {
       height: 100%;
-      background: #1e1e1e;
       border-right: 1px solid #2b2b2b;
-      padding: 0 16px;
+      padding: 0 14px;
       display: flex;
       align-items: center;
       gap: 8px;
       font-size: 12px;
-      color: #ffffff;
+      cursor: pointer;
+      transition: background 0.15s;
     }
     .tab .close-btn {
       color: #858585;
       font-size: 12px;
       margin-left: 6px;
+      border-radius: 3px;
+      padding: 1px 3px;
+    }
+    .tab .close-btn:hover {
+      background: #333;
+      color: #fff;
+    }
+    .tabs-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-right: 12px;
+      color: #858585;
     }
     .breadcrumbs-bar {
       height: 24px;
@@ -388,9 +628,14 @@ export function generateIdeHtml(
       display: flex;
       align-items: center;
       gap: 6px;
-      font-family: Consolas, 'Courier New', monospace;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 11px;
       color: #858585;
+    }
+    .breadcrumb-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     .breadcrumb-item.active {
       color: #cccccc;
@@ -399,18 +644,26 @@ export function generateIdeHtml(
       color: #555555;
     }
     /* Code Viewer */
+    .editor-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
     .code-viewport {
       flex: 1;
       overflow-y: auto;
-      padding: 10px 0 50px 0;
-      font-family: Consolas, 'Courier New', monospace;
-      font-size: 13px;
+      padding: 10px 0 60px 0;
+      font-family: 'Cascadia Code', Consolas, 'Fira Code', 'Courier New', monospace;
+      font-size: 13.5px;
       line-height: 22px;
+      -webkit-font-smoothing: antialiased;
     }
     .code-line {
       display: flex;
       align-items: center;
       width: 100%;
+      min-height: 22px;
     }
     .code-line.highlighted {
       background: rgba(38, 79, 120, 0.45);
@@ -419,14 +672,15 @@ export function generateIdeHtml(
     .line-num {
       width: 58px;
       text-align: right;
-      padding-right: 16px;
-      color: #858585;
+      padding-right: 18px;
+      color: #6e7681;
       flex-shrink: 0;
       user-select: none;
+      font-size: 12px;
     }
     .line-num.highlighted {
-      color: #e2e8f0;
-      font-weight: 600;
+      color: #ffffff;
+      font-weight: bold;
     }
     .line-content {
       flex: 1;
@@ -437,6 +691,40 @@ export function generateIdeHtml(
     .line-content.highlighted {
       color: #ffffff;
     }
+    /* Blinking VS Code Caret */
+    .vs-caret {
+      display: inline-block;
+      width: 2px;
+      height: 15px;
+      background: #528bff;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: vsBlink 1s step-start infinite;
+    }
+    @keyframes vsBlink {
+      50% { opacity: 0; }
+    }
+    /* Minimap */
+    .minimap {
+      width: 68px;
+      background: #181818;
+      border-left: 1px solid #252526;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 6px;
+      gap: 3px;
+      opacity: 0.65;
+      overflow: hidden;
+    }
+    .minimap-line {
+      height: 2px;
+      background: #4a4a4a;
+      border-radius: 1px;
+    }
+    .minimap-line.active {
+      background: #007acc;
+      box-shadow: 0 0 4px #007acc;
+    }
     /* Status Bar */
     .statusbar {
       height: 22px;
@@ -445,14 +733,20 @@ export function generateIdeHtml(
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 12px;
+      padding: 0 10px;
       font-size: 11px;
       z-index: 10;
     }
     .statusbar-left, .statusbar-right {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
+    }
+    .statusbar-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -464,14 +758,30 @@ export function generateIdeHtml(
         <svg width="16" height="16" viewBox="0 0 24 24" fill="#007acc">
           <path d="M18.5 2.5 12 8.5 7 4.5 3.5 6v12L7 19.5l5-4 6.5 6 3-1.5V4l-3-1.5z" />
         </svg>
-        <div class="titlebar-path">
-          <span class="sub">cpk-ms-agent-python</span>
-          <span class="sub">/</span>
-          <span>${escapeHtml(normalizedPath)}</span>
-          <span class="sub">- Visual Studio Code</span>
+        <div class="menubar">
+          <span>File</span>
+          <span>Edit</span>
+          <span>Selection</span>
+          <span>View</span>
+          <span>Go</span>
+          <span>Run</span>
+          <span>Terminal</span>
+          <span>Help</span>
         </div>
       </div>
+
+      <div class="titlebar-center">
+        <div class="search-left">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#858585" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <span>cpk-ms-agent-python &gt; ${escapeHtml(
+            primaryFilePath.replace(/\\/g, '/'),
+          )}</span>
+        </div>
+        <span class="keybadge">Ctrl + P</span>
+      </div>
+
       <div class="titlebar-controls">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
         <span>&#x2500;</span>
         <span>&#x25A1;</span>
         <span>&#x2715;</span>
@@ -504,6 +814,7 @@ export function generateIdeHtml(
               <path d="M18 15V9a9 9 0 0 0-9-9" />
               <path d="M6 9v12" />
             </svg>
+            <span class="badge">1</span>
           </div>
           <!-- Run & Debug -->
           <div class="activity-icon">
@@ -535,13 +846,13 @@ export function generateIdeHtml(
       <div class="sidebar">
         <div class="sidebar-header">
           <span>Explorer</span>
-          <span style="color:#858585;">&#x22EF;</span>
+          <span style="color:#858585;cursor:pointer;">&#x22EF;</span>
         </div>
         <div class="sidebar-project">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="m6 9 6 6 6-6" />
           </svg>
-          <span>CPK-MS-AGENT</span>
+          <span>CPK-MS-AGENT-PYTHON</span>
         </div>
         <div class="file-tree">
           ${treeNodes.join('')}
@@ -551,27 +862,26 @@ export function generateIdeHtml(
       <!-- Editor Pane -->
       <main class="editor-pane">
         <div class="tabs-bar">
-          <div class="tab">
-            <span>${fileIcon}</span>
-            <span>${escapeHtml(fileName)}</span>
-            <span class="close-btn">&#x2715;</span>
+          <div class="tabs-left">
+            ${tabHeadersHtml}
+          </div>
+          <div class="tabs-right-actions">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 3h18v18H3z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
           </div>
         </div>
 
-        <div class="breadcrumbs-bar">
-          ${breadcrumbsHtml}
-        </div>
-
-        <div class="code-viewport">
-          ${linesHtml}
-        </div>
+        ${tabBodiesHtml}
       </main>
     </div>
 
     <!-- Status Bar -->
     <footer class="statusbar">
       <div class="statusbar-left">
-        <span style="display:flex;align-items:center;gap:4px;">
+        <span class="statusbar-item" style="background:#1f8ad2;padding:0 6px;margin-left:-10px;height:100%;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg>
+        </span>
+        <span class="statusbar-item">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="18" cy="18" r="3" />
             <circle cx="6" cy="6" r="3" />
@@ -580,18 +890,54 @@ export function generateIdeHtml(
           </svg>
           main*
         </span>
-        <span>⊗ 0  ⚠ 0</span>
+        <span class="statusbar-item">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          0&#x2193; 1&#x2191;
+        </span>
+        <span class="statusbar-item">&#x2297; 0 &nbsp;&#x26A0; 0</span>
       </div>
       <div class="statusbar-right">
-        <span>Ln ${startLine}, Col 1</span>
-        <span>Spaces: 2</span>
-        <span>UTF-8</span>
-        <span>${langLabel}</span>
-        <span>Prettier</span>
+        <span class="statusbar-item">Ln ${startLine}, Col 1</span>
+        <span class="statusbar-item">Spaces: 2</span>
+        <span class="statusbar-item">UTF-8</span>
+        <span class="statusbar-item">${primaryLang}</span>
+        <span class="statusbar-item">Prettier &#x2713;</span>
+        <span class="statusbar-item">&#x1F514;</span>
       </div>
     </footer>
   </div>
+
+  <script>
+    window.switchIdeTab = function(idx) {
+      var tabs = document.querySelectorAll('.tab');
+      var views = document.querySelectorAll('.editor-body-view');
+      for (var i = 0; i < tabs.length; i++) {
+        if (i === idx) {
+          tabs[i].classList.add('active');
+          tabs[i].style.background = '#1e1e1e';
+          tabs[i].style.borderTop = '1px solid #007acc';
+          tabs[i].style.color = '#ffffff';
+        } else {
+          tabs[i].classList.remove('active');
+          tabs[i].style.background = '#181818';
+          tabs[i].style.borderTop = '1px solid transparent';
+          tabs[i].style.color = '#9d9d9d';
+        }
+        if (views[i]) views[i].style.display = i === idx ? 'flex' : 'none';
+      }
+      var fileNodes = document.querySelectorAll('.tree-node.file-node');
+      for (var j = 0; j < fileNodes.length; j++) {
+        if (fileNodes[j].getAttribute('data-tab-idx') === String(idx)) {
+          fileNodes[j].classList.add('active-file');
+        } else {
+          fileNodes[j].classList.remove('active-file');
+        }
+      }
+    };
+  </script>
 </body>
 </html>`;
 }
+
+
 
