@@ -241,7 +241,6 @@ export class RecordingEngine {
       }
 
       // ----------------------------------------------------
-      // ----------------------------------------------------
       // STEP 2: SHOW PROJECT CODE IN VS CODE IDE WITH SNIPPET SELECTION
       // ----------------------------------------------------
       const hasExtraTabs = config.extraTabs && config.extraTabs.length > 0;
@@ -257,7 +256,12 @@ export class RecordingEngine {
           config.extraTabs ?? [],
           0,
         );
-        await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
+        // Instant in-place DOM replacement: eliminates remote page unload, scroll-to-top jump & white flash
+        await page.evaluate((html) => {
+          document.open();
+          document.write(html);
+          document.close();
+        }, ideHtml);
         await ensureOverlays(page, 'vscode');
         await sleep(300);
 

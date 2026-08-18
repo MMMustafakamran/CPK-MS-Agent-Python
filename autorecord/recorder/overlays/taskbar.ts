@@ -32,7 +32,15 @@ export async function ensureOverlays(
       if (!bar) {
         bar = document.createElement('div');
         bar.id = 'win11-taskbar-overlay';
-        bar.style.cssText = 'position:fixed!important;bottom:0!important;left:0!important;width:100vw!important;height:48px!important;background:rgba(28,28,32,0.85)!important;backdrop-filter:blur(36px) saturate(180%)!important;-webkit-backdrop-filter:blur(36px) saturate(180%)!important;border-top:1px solid rgba(255,255,255,0.08)!important;box-shadow:0 -1px 8px rgba(0,0,0,0.35)!important;z-index:2147483645!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 8px 0 12px!important;box-sizing:border-box!important;font-family:"Segoe UI Variable Small","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,sans-serif!important;user-select:none!important;pointer-events:none!important;';
+        bar.style.cssText = 'position:fixed!important;bottom:0!important;left:0!important;width:100vw!important;height:48px!important;background:rgba(28,28,32,0.85)!important;backdrop-filter:blur(36px) saturate(180%)!important;-webkit-backdrop-filter:blur(36px) saturate(180%)!important;border-top:1px solid rgba(255,255,255,0.08)!important;box-shadow:0 -1px 8px rgba(0,0,0,0.35)!important;z-index:2147483645!important;display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 8px 0 12px!important;box-sizing:border-box!important;font-family:"Segoe UI Variable Small","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,sans-serif!important;user-select:none!important;pointer-events:auto!important;';
+
+        var swallow = function(e) {
+          if (e.stopPropagation) e.stopPropagation();
+          if (e.preventDefault) e.preventDefault();
+        };
+        bar.addEventListener('mousedown', swallow, true);
+        bar.addEventListener('mouseup', swallow, true);
+        bar.addEventListener('click', swallow, true);
 
         bar.innerHTML = [
           // Left: Windows 11 Weather / Widgets Pill
