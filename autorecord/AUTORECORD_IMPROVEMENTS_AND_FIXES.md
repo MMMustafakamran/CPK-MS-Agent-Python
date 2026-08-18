@@ -302,7 +302,7 @@ When copying `autorecord/` to a new repository (e.g. Agno, Angular, LangGraph, F
    Configure `id`, `docUrl`, `demoUrl`, `ideFile`, and highlighted line numbers (`startLine`, `endLine`) for each page in the repository.
 
 6. **Customize Actions in `recorder/actions/`:**
-   Ensure each action handler uses `waitForAgentResponseCompletion(page, 7000)` instead of fixed sleeps.
+   Ensure each action handler uses `waitForAgentResponseCompletion(page, 4000)` (or `1500` for multi-tab sequences) instead of fixed sleeps.
 
 7. **Validate TypeScript Compilation:**
    ```bash

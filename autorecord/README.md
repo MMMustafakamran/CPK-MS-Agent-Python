@@ -28,14 +28,15 @@ The **Autorecord Suite** is a Playwright-powered recording pipeline designed to 
 
 ### Key Highlights:
 
-- **Zero Black Screen & Instant Paint**: Starts immediately on the rendered doc page using `domcontentloaded` without dead delay frames.
-- **Interactive App-Switching Realism**: Glides the cursor to click Windows 11 Taskbar icons (illuminating active blue glow bars) between Doc, IDE, and Demo steps.
-- **100% Pure VS Code Simulation**: Step 2 renders code directly via a standalone HTML/CSS generator—completely isolated from Next.js, eliminating dev badges or floating inspectors.
-- **Next.js Hydration & Dev-Server Compilation Synchronization**: Waits for `load`, `networkidle`, and component readiness before dispatching actions, with auto-refill and submit retry logic to prevent keypresses from being swallowed during on-demand chunk compilation.
-- **Active Dynamic AI Response Detection**: Dynamically observes the chat DOM using `page.waitForFunction` to detect streaming assistant messages and generative tool shells, followed by smooth cursor tracking over the completed reply.
+- **Zero Black Screen & Instant Paint**: Navigates immediately via `domcontentloaded` without dead delay frames.
+- **Hyper-Realistic Windows 11 Fluent Taskbar**: Authentic Acrylic/Mica blur (`rgba(28, 28, 32, 0.85)`, `blur(36px) saturate(180%)`), official vector SVGs (Start, Search, Task View, Explorer, Chrome, VS Code 3D ribbon, Terminal, Copilot), active 16px blue pill indicators (`#60a5fa`), live weather widget (`76°F Mostly Sunny`), and complete system tray.
+- **Continuous Cross-Navigation Cursor Trajectory**: Persistent coordinate tracking across page navigations eliminates cursor teleportation—the mouse naturally glides from the exact taskbar icon clicked into the next view.
+- **Relaxed Human Doc Scrolling**: Silky 60fps continuous scroll down ~90% of page depth across 3.6 seconds (calibrated 50% slower human reading pace) without wheel/animation conflicts or jitter.
+- **100% Pure VS Code Simulation & Multi-Tab Support**: Step 2 renders code directly via a standalone HTML/CSS generator with Command Palette (`Ctrl + P`), Seti SVG icons, blinking caret, minimap, automatic `.code-viewport` snippet centering, and in-place multi-tab switching (`package.json` $\rightarrow$ `page.tsx`).
+- **Real-Time Token Stream Completion Detection & Dual Pacing**: Dynamically observes the assistant message DOM until streaming stabilizes, applying a standard 4.0s pause for single-prompt pages and a brisk 1.5s pause for multi-tab/sequential demos.
+- **Next.js Hydration & Dev-Server Compilation Synchronization**: Waits for DOM readiness and component readiness before dispatching actions, with automatic retry logic.
 - **Shadow DOM Piercing for Web Inspector**: Automatically queries inside Web Component shadow roots to open the CopilotKit DevConsole and navigate between Threads, Agents, and Learning tabs.
 - **Pre-flight Service Diagnostics**: Verifies that both Next.js (`http://localhost:3000`) and Microsoft Agent Framework FastAPI (`http://localhost:8000/health`) are online before starting.
-- **Natural Human Physics**: Virtual mouse cursor with cubic Bézier curves, Fitts's law acceleration, micro-overshoots, realistic typing jitter, and smooth document scrolling.
 
 ---
 
@@ -52,7 +53,7 @@ graph LR
 
 1. **Step 1 — Official Documentation View**:
    - Opens the official documentation URL immediately via `domcontentloaded`.
-   - Pauses for **500ms** on the header, executes a silky 60fps continuous scroll down ~90% of the page with smooth cubic easing to reveal the complete documentation and code examples without jitter.
+   - Pauses for **500ms** on the header, executes a silky 60fps continuous scroll down ~90% of the page over 3.6s with smooth cubic easing to reveal the complete documentation and code examples without jitter.
    - Dynamically identifies the visible code snippet in the viewport, glides the virtual cursor over it, and pauses for a 2.0s reading window.
    - Glides cursor down to the simulated Windows 11 Taskbar, clicks the **VS Code** icon, and illuminates the blue active indicator (`#60a5fa`).
 
@@ -66,7 +67,7 @@ graph LR
    - Navigates directly to the demo endpoint (`http://localhost:3000/<route>/demo-chat`) with zero transition flicker (dark background shield).
    - Injects the simulated Windows 11 Taskbar with live clock and active app indicators.
    - Types test prompts with snappy human keystrokes (30ms) and actively tracks token streaming in real-time until completion.
-   - Pauses for **4 seconds** after completion so the viewer can comfortably read the generated reply.
+   - Applies the **Dual Pacing Policy**: Pauses for **4.0 seconds** on single-prompt pages, or **1.5 seconds** between sequential tabs/prompts (`slots`, `prebuilt-components`, `runtime`).
 
 ---
 
@@ -85,6 +86,8 @@ Rather than abrupt URL jumps, transitions between steps simulate natural desktop
 autorecord/
 ├── record-all-pages.ts        # CLI entrypoint & batch runner with summary report
 ├── README.md                  # Comprehensive root guide (this file)
+├── AUTORECORD_MIGRATION_AND_UPGRADE_GUIDE.md # Direct file-by-file upgrade playbook
+├── AUTORECORD_IMPROVEMENTS_AND_FIXES.md      # Master architectural inventory & fixes
 ├── PORTING_GUIDE.md           # Architecture & porting documentation
 ├── package.json               # Node.js dependencies (Playwright, TSX)
 ├── tsconfig.json              # TypeScript compilation configuration
