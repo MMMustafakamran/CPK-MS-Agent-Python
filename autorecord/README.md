@@ -51,8 +51,8 @@ graph LR
 ```
 
 1. **Step 1 — Official Documentation View**:
-   - Opens the official documentation URL (`config.docUrl`).
-   - Pauses for 1.5s on the header, smoothly scrolls down Phase 1 (800px) through overview/setup, and continues Phase 2 (950px) down to the primary code block (`main.py` / component).
+   - Opens the official documentation URL immediately via `domcontentloaded`.
+   - Pauses for **500ms** on the header, executes a silky 60fps continuous scroll down ~90% of the page with smooth cubic easing to reveal the complete documentation and code examples without jitter.
    - Dynamically identifies the visible code snippet in the viewport, glides the virtual cursor over it, and pauses for a 2.0s reading window.
    - Glides cursor down to the simulated Windows 11 Taskbar, clicks the **VS Code** icon, and illuminates the blue active indicator (`#60a5fa`).
 

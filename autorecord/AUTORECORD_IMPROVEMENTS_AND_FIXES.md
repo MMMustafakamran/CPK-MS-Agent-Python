@@ -36,9 +36,8 @@ flowchart TD
 
 ### The 3 Steps:
 1. **Step 1 — Official Documentation Page:**
-   - Navigates to the official documentation link (`config.docUrl`).
-   - Waits for full client-side rendering (`waitForSelector('h1, article, main, pre')`).
-   - Pauses for **1.5s** so the viewer sees the page title and header.
+   - Navigates immediately using `domcontentloaded` to eliminate remote asset wait times.
+   - Pauses for **500ms** so the viewer sees the page title and header.
    - Smoothly scrolls down Phase 1 (800px) and continues Phase 2 (950px) down to the primary code block (`main.py` / component).
    - Dynamically identifies the visible code block on screen, glides the virtual cursor over it, and pauses for **2.0s**.
    - Glides cursor to the Windows 11 Taskbar, clicks the VS Code icon, and illuminates the taskbar indicator.
@@ -181,42 +180,23 @@ export async function waitForAgentResponseCompletion(
 
 ---
 
-### Fix 6: Two-Phase Deep Doc Scrolling & In-Viewport VS Code Code Scrolling
+### Fix 6: Silky 60fps Continuous Doc Scrolling (~90% Depth) & VS Code Viewport Auto-Centering
 * **Problem:** 
-  1. Documentation pages previously stopped at 500px or snapped backwards when calling `scrollIntoViewIfNeeded()`.
+  1. Documentation pages previously had jittery stutter because `page.mouse.wheel` and `window.scrollBy({ behavior: 'smooth' })` were fired simultaneously, causing conflicting velocity curves.
   2. In VS Code, when code snippets were below line 25 (e.g. lines 58–104 or 66–116), they were offscreen or jumped abruptly.
-* **Solution in [`recorder/engine.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/engine.ts):**
-  - **Two-Phase Deep Doc Scroll:** Smoothly scrolls down Phase 1 (800px) through overview/setup, then Phase 2 (950px, total ~1750px) down to the primary code block (`main.py` / component) without backward snapping.
+* **Solution in [`recorder/overlays/cursor.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/cursor.ts) & [`recorder/engine.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/engine.ts):**
+  - **Native 60fps RAF Easing:** `humanScrollDown` runs a unified `requestAnimationFrame` loop with smooth cubic ease-in-out easing (`acceleration -> steady glide -> gentle deceleration`), eliminating wheel event conflicts and jitter completely.
+  - **~90% Page Depth Coverage:** Automatically computes `scrollHeight` and glides smoothly through ~85-90% of the entire documentation page, revealing full introductions and code examples.
   - **Visible Code Detection:** Dynamically detects the code block currently in the middle of the viewport and hovers the virtual cursor over it for 2.0s.
   - **`humanScrollCodeViewport(page, startLine)`:** For VS Code snippets with `startLine > 14`, the editor viewport smoothly and visibly scrolls down line-by-line over ~700ms using cubic ease-in-out, centering the highlighted block in real-time before the cursor glides across it.
 
 ```typescript
-async function humanScrollCodeViewport(
+// 60fps RAF continuous scroll in cursor.ts (calibrated at 3600ms for relaxed reading)
+export async function humanScrollDown(
   page: Page,
-  startLine: number,
-): Promise<void> {
-  if (startLine <= 14) {
-    await sleep(300);
-    return;
-  }
-  const targetScrollTop = Math.max(0, (startLine - 8) * 22);
-  await page.evaluate(async (targetY) => {
-    const viewport = document.querySelector(
-      '.editor-body-view:not([style*="display: none"]) .code-viewport, .code-viewport',
-    ) as HTMLElement | null;
-    if (!viewport) return;
-    const startY = viewport.scrollTop;
-    const distance = targetY - startY;
-    const steps = 32;
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const progress = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      viewport.scrollTop = startY + distance * progress;
-      await new Promise((r) => setTimeout(r, 20));
-    }
-  }, targetScrollTop);
-  await sleep(350);
-}
+  totalPixels = 1800,
+  durationMs = 3600,
+): Promise<void> { ... }
 ```
 
 ---

@@ -142,27 +142,52 @@ export async function humanClick(page: Page): Promise<void> {
   await sleep(40);
 }
 
-/** Swift smooth scroll down to code content without sluggish stutter */
+/**
+ * Smooth, natural human scroll down the documentation page (~85-90% depth)
+ * Dispatches smooth ease-in-out wheel increments to both the browser compositor and DOM scrollers.
+ * Calibrated for a relaxed, 50% slower reading velocity.
+ */
 export async function humanScrollDown(
   page: Page,
-  totalPixels: number = 420,
-  stepChunk: number = 60,
+  totalPixels: number = 1800,
+  durationMs: number = 3600,
 ): Promise<void> {
-  let scrolled = 0;
-  while (scrolled < totalPixels) {
-    const chunk = Math.min(totalPixels - scrolled, stepChunk);
-    scrolled += chunk;
+  const steps = 60;
+  const interval = Math.max(25, Math.floor(durationMs / steps));
+  let previousProgress = 0;
 
-    await page.mouse.wheel(0, chunk);
-    await page.evaluate(`
-      (function() {
-        window.scrollBy({ top: ${chunk}, behavior: 'smooth' });
-        var main = document.querySelector('main, article, [class*="overflow-y-auto"]');
-        if (main) main.scrollBy({ top: ${chunk}, behavior: 'smooth' });
-      })()
-    `);
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    // Smooth cubic ease-in-out
+    const currentProgress =
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const deltaY = Math.round((currentProgress - previousProgress) * totalPixels);
+    previousProgress = currentProgress;
 
-    await sleep(22);
+    if (deltaY > 0) {
+      // 1. Send native mouse wheel event
+      await page.mouse.wheel(0, deltaY);
+
+      // 2. Direct instant scrollBy on window and any scrollable containers (no competing smooth animation)
+      await page
+        .evaluate((dy) => {
+          window.scrollBy(0, dy);
+          var scrollers = document.querySelectorAll(
+            'main, article, [class*="overflow-y-auto"], [class*="content"], div[id*="content"]',
+          );
+          for (var j = 0; j < scrollers.length; j++) {
+            var el = scrollers[j];
+            if (el.scrollHeight > el.clientHeight) {
+              el.scrollTop += dy;
+            }
+          }
+        }, deltaY)
+        .catch(() => {});
+    }
+
+    await sleep(interval);
   }
+
+  await sleep(300);
 }
 

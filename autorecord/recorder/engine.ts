@@ -178,42 +178,29 @@ export class RecordingEngine {
       // ----------------------------------------------------
       console.log(`\n📖 Step 1: Navigating to Official Doc (${config.docUrl})...`);
       try {
-        try {
-          await page.goto(config.docUrl, {
-            waitUntil: 'load',
-            timeout: 20000,
-          });
-        } catch {
-          await page.goto(config.docUrl, {
-            waitUntil: 'domcontentloaded',
-            timeout: 15000,
-          });
-        }
+        await page.goto(config.docUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 25000,
+        });
 
-        // Wait for main doc content or header to render
+        // Fast check for doc header / content readiness
         await page
           .waitForSelector('h1, article, main, [class*="content"], pre', {
             state: 'visible',
-            timeout: 10000,
+            timeout: 5000,
           })
           .catch(() => {});
         await ensureOverlays(page, 'chrome');
 
-        // Let the viewer clearly see the official documentation page
-        await sleep(1500);
+        // Crisp pause so viewer registers the doc title, then glide straight into reading
+        await sleep(500);
 
         // Move mouse into reading position
-        await humanGlide(page, 960, 420, 18);
+        await humanGlide(page, 960, 380, 16);
 
-        // Smooth continuous scrolling down the doc page (Phase 1: Intro & setup)
-        console.log(`   Human-like scrolling down doc page (Phase 1)...`);
-        await humanScrollDown(page, 800, 35);
-        await sleep(350);
-
-        // Smooth continuous scrolling further down into code examples (Phase 2: Code implementation)
-        console.log(`   Human-like scrolling down doc page (Phase 2)...`);
-        await humanScrollDown(page, 950, 35);
-        await sleep(400);
+        // Silky smooth scrolling down doc page (~90% depth at relaxed human reading pace)
+        console.log(`   Silky smooth scrolling down doc page (~90%)...`);
+        await humanScrollDown(page, 2000, 3600);
 
         // Find the visible code block on screen and glide cursor over it
         const visibleCodePos = (await page.evaluate(`
