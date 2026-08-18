@@ -126,14 +126,33 @@ export function generateIdeHtml(
 
 ---
 
-### Fix 4: Practiced Human Cursor Motion & Snappy Pacing
-* **Problem:** The original cursor logic had erratic 30px overshoots, large random jitter ($\pm 1.8\text{px}$), and sluggish 100ms pauses, making motions feel wobbly, unpracticed, and slow.
-* **Solution in [`recorder/overlays/cursor.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/cursor.ts):**
-  - **Natural Cubic Bézier Arcs:** Single fluid quadratic/cubic curve with natural hand curvature ($cp1, cp2$) without robotic straight lines or artificial overshoots.
+### Fix 4: Practiced Human Cursor Motion & Cross-Navigation Continuity (Zero Teleportation)
+* **Problem:** 
+  1. The original cursor logic had erratic 30px overshoots, large random jitter ($\pm 1.8\text{px}$), and sluggish 100ms pauses, making motions feel wobbly and unpracticed.
+  2. Whenever a new page loaded or VS Code was opened, `ensureOverlays` injected `#playwright-virtual-mouse` with a hardcoded `top: 300px; left: 500px;`, causing the cursor to abruptly snap / teleport back to `(500, 300)` instead of staying on the taskbar icon that was just clicked.
+* **Solution in [`recorder/overlays/cursor.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/cursor.ts) & [`taskbar.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/overlays/taskbar.ts):**
+  - **Persistent Coordinate State:** `cursor.ts` maintains `globalCursorX` and `globalCursorY` continuously updated across the entire test run via `getGlobalCursorPos()` / `setGlobalCursorPos()`.
+  - **Zero Teleportation on Navigation:** When `ensureOverlays(page, activeApp)` injects the virtual mouse overlay into any newly loaded page or simulated IDE view, it mounts the cursor element directly at `${curY}px, ${curX}px` (the exact location of the taskbar icon just clicked).
+  - **Seamless Starting Trajectory:** When the next `humanGlide(page, targetX, targetY)` runs, the mouse glides naturally and continuously from the taskbar icon up into the editor or chat input.
+  - **Natural Cubic Bézier Arcs:** Single fluid curve with natural hand curvature ($cp1, cp2$) without robotic straight lines or artificial overshoots.
   - **Dense 60fps Event Emission:** 10ms–14ms frame delays with continuous coordinate streaming.
   - **Variable Dynamic Velocity:** Fast initial acceleration $\rightarrow$ fluid momentum $\rightarrow$ subtle target ease-out ($t = 1 - (1-t)^{2.5}$).
-  - **Microscopic Tremor:** Subtle sub-pixel micro-tremor ($\pm 0.35\text{px}$).
   - **Snappy Mechanics:** 30ms pre-click, 55ms mouse-down depression, 40ms mouse-up release, and 30ms typing cadence.
+
+```typescript
+// Persistent cursor positioning in cursor.ts & taskbar.ts
+let globalCursorX = 960;
+let globalCursorY = 540;
+
+export function getGlobalCursorPos() {
+  return { x: globalCursorX, y: globalCursorY };
+}
+
+export function setGlobalCursorPos(x: number, y: number) {
+  globalCursorX = x;
+  globalCursorY = y;
+}
+```
 
 ---
 

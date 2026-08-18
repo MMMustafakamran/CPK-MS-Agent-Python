@@ -1,5 +1,17 @@
 import { type Page } from 'playwright';
 
+let globalCursorX = 960;
+let globalCursorY = 540;
+
+export function getGlobalCursorPos(): { x: number; y: number } {
+  return { x: globalCursorX, y: globalCursorY };
+}
+
+export function setGlobalCursorPos(x: number, y: number): void {
+  globalCursorX = x;
+  globalCursorY = y;
+}
+
 export async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -9,7 +21,7 @@ export async function sleep(ms: number): Promise<void> {
  * - Natural cubic Bézier curves (smooth organic arcs, never robotic straight lines).
  * - Variable dynamic velocity (fast acceleration, smooth momentum, subtle target ease).
  * - High event density (dense 60fps stream of mousemove events for fluid video playback).
- * - No sluggish overshoots or artificial hesitation pauses.
+ * - Continuous unbroken trajectory across page navigations (zero teleportation).
  */
 export async function humanGlide(
   page: Page,
@@ -20,10 +32,10 @@ export async function humanGlide(
   const currentPos = (await page.evaluate(`
     (function() {
       var c = document.getElementById('playwright-virtual-mouse');
-      if (c) {
-        return { x: parseFloat(c.style.left) || 960, y: parseFloat(c.style.top) || 540 };
+      if (c && c.style.left && c.style.top) {
+        return { x: parseFloat(c.style.left) || ${globalCursorX}, y: parseFloat(c.style.top) || ${globalCursorY} };
       }
-      return { x: 960, y: 540 };
+      return { x: ${globalCursorX}, y: ${globalCursorY} };
     })()
   `)) as { x: number; y: number };
 
@@ -31,7 +43,10 @@ export async function humanGlide(
   const startY = currentPos.y;
   const distance = Math.hypot(targetX - startX, targetY - startY);
 
-  if (distance < 2) return;
+  if (distance < 2) {
+    setGlobalCursorPos(targetX, targetY);
+    return;
+  }
 
   // Step count proportional to distance, tuned for 200ms - 350ms practiced speed
   const steps = customSteps ?? Math.min(26, Math.max(12, Math.floor(distance / 28)));
@@ -100,6 +115,7 @@ export async function humanGlide(
     })()
   `);
   await page.mouse.move(targetX, targetY);
+  setGlobalCursorPos(targetX, targetY);
   await sleep(40);
 }
 

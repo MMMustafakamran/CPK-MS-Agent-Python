@@ -4,7 +4,7 @@ import { chromium, type Page } from 'playwright';
 import { executePageAction } from './actions';
 import { checkServicesHealth, diagnoseError } from './diagnostics';
 import { generateIdeHtml } from './ide/generator';
-import { humanClick, humanGlide, humanScrollDown, sleep } from './overlays/cursor';
+import { humanClick, humanGlide, humanScrollDown, setGlobalCursorPos, sleep } from './overlays/cursor';
 import { clickTaskbarApp, ensureOverlays } from './overlays/taskbar';
 import { type PageRecordConfig } from './types';
 
@@ -71,6 +71,8 @@ export class RecordingEngine {
     console.log(`\n======================================================`);
     console.log(`🎬 RECORDING: ${config.name} (${config.id})`);
     console.log(`======================================================`);
+
+    setGlobalCursorPos(960, 540);
 
     // 0. Automatic Pre-flight Health Check (Informational only)
     const health = await checkServicesHealth();
