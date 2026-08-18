@@ -24,11 +24,11 @@ import { runToolRenderingAction } from './tool-rendering.action';
  * Actively waits until:
  * 1. An assistant response message appears with text content.
  * 2. Streaming finishes (text content stops changing for 2+ seconds).
- * 3. Glides the mouse over the response and waits postWaitMs (default 6000ms) for reading.
+ * 3. Glides the mouse over the response and waits postWaitMs (default 7000ms) for reading.
  */
 export async function waitForAgentResponseCompletion(
   page: Page,
-  postWaitMs = 6000,
+  postWaitMs = 7000,
 ): Promise<void> {
   console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
 
@@ -51,7 +51,7 @@ export async function waitForAgentResponseCompletion(
       hasStarted = true;
       break;
     }
-    await sleep(400);
+    await sleep(300);
   }
 
   // Step 2: Stream completion detection — poll until text length stabilizes
@@ -75,7 +75,7 @@ export async function waitForAgentResponseCompletion(
 
       if (currentText.length > 0 && currentText === previousText) {
         stableCount++;
-        // If text is stable for 4 consecutive checks (2 full seconds), streaming has finished
+        // If text is stable for 4 consecutive checks (1.6s), streaming has finished
         if (stableCount >= 4) {
           console.log(
             `   ✅ AI agent response completed (${currentText.length} characters).`,
@@ -86,11 +86,11 @@ export async function waitForAgentResponseCompletion(
         stableCount = 0;
         previousText = currentText;
       }
-      await sleep(500);
+      await sleep(400);
     }
   } else {
     console.warn(`   ⚠️ AI agent response timeout (waiting fallback)...`);
-    await sleep(4000);
+    await sleep(3000);
   }
 
   // Step 3: Glide cursor smoothly to the finished response message
@@ -110,14 +110,14 @@ export async function waitForAgentResponseCompletion(
         page,
         abBox.x + Math.min(abBox.width / 2, 220),
         abBox.y + Math.min(abBox.height / 2, 60),
-        25,
+        20,
       );
     }
   } else {
-    await humanGlide(page, 960, 500, 25);
+    await humanGlide(page, 960, 500, 20);
   }
 
-  // Step 4: Generous reading pause after response completes
+  // Step 4: 7-second reading pause after response completes
   console.log(`   📖 Reading completed response (pausing ${postWaitMs / 1000}s)...`);
   await sleep(postWaitMs);
 }
@@ -132,7 +132,7 @@ export const runStandardAction: PageActionHandler = async (
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();
   await inputLocator.waitFor({ state: 'visible', timeout: 15000 });
-  await sleep(600);
+  await sleep(300);
 
   const inputBox = await inputLocator.boundingBox();
   if (inputBox) {
@@ -140,24 +140,24 @@ export const runStandardAction: PageActionHandler = async (
       page,
       inputBox.x + 80,
       inputBox.y + inputBox.height / 2,
-      25,
+      18,
     );
     await humanClick(page);
   } else {
     await inputLocator.click();
   }
-  await sleep(400);
+  await sleep(200);
 
   for (const char of config.prompt) {
-    await page.keyboard.type(char, { delay: 45 });
+    await page.keyboard.type(char, { delay: 30 });
   }
-  await sleep(600);
+  await sleep(300);
 
   // If text was wiped during typing by a sudden React re-render, re-fill
   const currentVal = await inputLocator.inputValue().catch(() => '');
   if (!currentVal && config.prompt) {
     await inputLocator.fill(config.prompt);
-    await sleep(300);
+    await sleep(200);
   }
 
   // Attempt to submit prompt via button click or Enter key
@@ -174,7 +174,7 @@ export const runStandardAction: PageActionHandler = async (
         page,
         btnBox.x + btnBox.width / 2,
         btnBox.y + btnBox.height / 2,
-        20,
+        16,
       );
       await humanClick(page);
     } else {
@@ -192,7 +192,7 @@ export const runStandardAction: PageActionHandler = async (
   }
 
   // 2. Actively wait for the response to stream completely and pause for reading
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6500);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 7000);
 };
 
 const ACTION_MAP: Record<string, PageActionHandler> = {

@@ -1,11 +1,10 @@
-import { exec } from 'node:child_process';
 import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { chromium } from 'playwright';
 import { executePageAction } from './actions';
 import { checkServicesHealth, diagnoseError } from './diagnostics';
 import { generateIdeHtml } from './ide/generator';
-import { humanGlide, humanScrollDown, sleep } from './overlays/cursor';
+import { humanClick, humanGlide, humanScrollDown, sleep } from './overlays/cursor';
 import { clickTaskbarApp, ensureOverlays } from './overlays/taskbar';
 import { type PageRecordConfig } from './types';
 
@@ -94,7 +93,11 @@ export class RecordingEngine {
         if (
           !txt.includes('favicon.ico') &&
           !txt.includes('reo.dev') &&
-          !txt.includes('analytics')
+          !txt.includes('analytics') &&
+          !txt.includes('Failed to load resource') &&
+          !txt.includes('404 (Not Found)') &&
+          !txt.includes('webpack-hmr') &&
+          !txt.includes('.map')
         ) {
           console.warn(`   ⚠️ [Browser Console Error]: ${txt}`);
         }
@@ -104,9 +107,9 @@ export class RecordingEngine {
     page.on('requestfailed', (req) => {
       const url = req.url();
       if (
-        url.includes('/api/copilotkit') ||
-        url.includes(':8000') ||
-        url.includes(':3000')
+        (url.includes('/api/copilotkit') || url.includes(':8000')) &&
+        !url.includes('favicon.ico') &&
+        !url.includes('.map')
       ) {
         console.warn(
           `   ⚠️ [Network Request Notice]: ${req.method()} ${url} (${req.failure()?.errorText || 'Failed'})`,
@@ -117,7 +120,7 @@ export class RecordingEngine {
     // Attach global dialog handler so unexpected alerts don't stall recordings
     page.on('dialog', async (dialog) => {
       console.log(`   [Dialog Event] "${dialog.message()}"`);
-      await sleep(800);
+      await sleep(400);
       try {
         await dialog.accept();
       } catch {}
@@ -129,39 +132,55 @@ export class RecordingEngine {
       // ----------------------------------------------------
       console.log(`\n📖 Step 1: Navigating to Official Doc (${config.docUrl})...`);
       try {
-        await page.goto(config.docUrl, {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000,
-        });
-        await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
+        try {
+          await page.goto(config.docUrl, {
+            waitUntil: 'load',
+            timeout: 20000,
+          });
+        } catch {
+          await page.goto(config.docUrl, {
+            waitUntil: 'domcontentloaded',
+            timeout: 15000,
+          });
+        }
+
+        // Wait for main doc content or header to render
+        await page
+          .waitForSelector('h1, article, main, [class*="content"], pre', {
+            state: 'visible',
+            timeout: 10000,
+          })
+          .catch(() => {});
         await ensureOverlays(page, 'chrome');
-        await sleep(400);
+
+        // Let the viewer clearly see the official documentation page
+        await sleep(1500);
 
         // Move mouse into reading position
-        await humanGlide(page, 960, 450, 22);
-        await sleep(200);
+        await humanGlide(page, 960, 420, 18);
 
-        // Natural smooth scrolling down the doc page
+        // Smooth practiced scrolling down the doc page
         console.log(`   Human-like scrolling down doc page...`);
-        await humanScrollDown(page, 500, 45);
-        await sleep(300);
+        await humanScrollDown(page, 520, 45);
+        await sleep(400);
 
-        // Move mouse over the code snippet
+        // Hover mouse over the code snippet on the doc page
         const hasCode = await page.$('pre, code, div[class*="code"]');
         if (hasCode) {
           const box = await hasCode.boundingBox();
           if (box) {
-            await humanGlide(page, box.x + box.width / 2, box.y + 40, 20);
+            await humanGlide(page, box.x + Math.min(box.width / 2, 400), box.y + 40, 18);
           }
         }
-        await sleep(2000);
+        // Reading pause on the doc snippet
+        await sleep(1800);
 
         // Switch to VS Code via Windows 11 Taskbar
         console.log(`   🖱️ Switching to VS Code via Windows 11 Taskbar...`);
         await clickTaskbarApp(page, 'vscode');
       } catch (e) {
         console.warn(`⚠️ Doc navigation notice (${config.docUrl}): ${diagnoseError(e, 'doc-page')}`);
-        await sleep(1000);
+        await sleep(600);
       }
 
       // ----------------------------------------------------
@@ -169,65 +188,97 @@ export class RecordingEngine {
       // ----------------------------------------------------
       if (config.id === 'quickstart') {
         console.log(
-          `\n💻 Step 2a: Displaying CopilotKit & AG-UI Versions in package.json (lines 12-22)...`,
+          `\n💻 Step 2: Displaying package.json & Project Code in VS Code IDE...`,
         );
         try {
-          const pkgHtml = generateIdeHtml(
+          const ideHtml = generateIdeHtml(
             this.rootDir,
             'frontend/package.json',
             12,
             22,
+            [
+              {
+                filePath: config.ideFile,
+                startLine: config.startLine,
+                endLine: config.endLine,
+              },
+            ],
+            0,
           );
-          await page.setContent(pkgHtml, { waitUntil: 'domcontentloaded' });
+          await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
           await ensureOverlays(page, 'vscode');
-          await sleep(400);
-          await humanGlide(page, 520, 380, 22);
-          await sleep(200);
-          await humanGlide(page, 720, 480, 25);
-          await sleep(2500);
+          await sleep(300);
+
+          // 1. Highlight dependencies in package.json
+          console.log(
+            `   Displaying CopilotKit & AG-UI Versions in package.json (lines 12-22)...`,
+          );
+          await humanGlide(page, 520, 360, 18);
+          await sleep(1500);
+
+          // 2. Smoothly glide cursor up to page.tsx tab in the tabs bar and click it
+          console.log(
+            `   🖱️ Switching tab to ${basename(config.ideFile)} in VS Code...`,
+          );
+          const tab1Locator = page.locator('#ide-tab-1');
+          if (await tab1Locator.isVisible().catch(() => false)) {
+            const tBox = await tab1Locator.boundingBox();
+            if (tBox) {
+              await humanGlide(
+                page,
+                tBox.x + tBox.width / 2,
+                tBox.y + tBox.height / 2,
+                18,
+              );
+              await humanClick(page);
+            } else {
+              await page.evaluate(`window.switchIdeTab(1)`);
+            }
+          } else {
+            await page.evaluate(`window.switchIdeTab(1)`);
+          }
+          await sleep(300);
+
+          // 3. Highlight project code in page.tsx
+          console.log(
+            `   Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
+          );
+          await humanGlide(page, 520, 360, 18);
+          await sleep(1800);
+
+          // Switch back to Chrome via Windows 11 Taskbar
+          console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
+          await clickTaskbarApp(page, 'chrome');
         } catch (e) {
-          console.warn(`⚠️ Package.json IDE view notice: ${diagnoseError(e, 'ide-simulation')}`);
+          console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
+          await sleep(600);
         }
-      }
-
-      console.log(
-        `\n💻 Step 2: Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
-      );
-      try {
-        const ideHtml = generateIdeHtml(
-          this.rootDir,
-          config.ideFile,
-          config.startLine,
-          config.endLine,
+      } else {
+        console.log(
+          `\n💻 Step 2: Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
         );
-        await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
-        await ensureOverlays(page, 'vscode');
-        await sleep(400);
-
-        // Move mouse over the Explorer header
-        await humanGlide(page, 120, 70, 18);
-        await sleep(200);
-
-        // Glide mouse into the code editor at the start of the snippet
-        await humanGlide(page, 520, 380, 22);
-        await sleep(200);
-
-        // Smoothly glide cursor down across the highlighted snippet block
-        await humanGlide(page, 720, 540, 25);
-
-        // Non-blocking fire-and-forget local VS Code desktop focus if available
         try {
-          exec(`code -r -g "${config.ideFile}:${config.startLine}"`);
-        } catch {}
+          const ideHtml = generateIdeHtml(
+            this.rootDir,
+            config.ideFile,
+            config.startLine,
+            config.endLine,
+          );
+          await page.setContent(ideHtml, { waitUntil: 'domcontentloaded' });
+          await ensureOverlays(page, 'vscode');
+          await sleep(300);
 
-        await sleep(2500);
+          // Glide mouse into the code editor at the start of the snippet
+          await humanGlide(page, 520, 360, 18);
+          await sleep(1800);
 
-        // Switch back to Chrome via Windows 11 Taskbar
-        console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
-        await clickTaskbarApp(page, 'chrome');
-      } catch (e) {
-        console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
-        await sleep(1000);
+          // Switch back to Chrome via Windows 11 Taskbar
+          console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
+          await clickTaskbarApp(page, 'chrome');
+        } catch (e) {
+          console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
+          await sleep(600);
+        }
       }
 
       // ----------------------------------------------------
@@ -235,8 +286,17 @@ export class RecordingEngine {
       // ----------------------------------------------------
       console.log(`\n🚀 Step 3: Opening Demo (${config.demoUrl})...`);
       try {
+        // Prevent doc page flash during cross-origin transition:
+        // Set dark background on current page before navigating to demoUrl
+        await page.evaluate(`
+          (function() {
+            document.body.style.backgroundColor = '#0f172a';
+            document.body.style.transition = 'none';
+          })()
+        `).catch(() => {});
+
         await page.goto(config.demoUrl, {
-          waitUntil: 'commit',
+          waitUntil: 'domcontentloaded',
           timeout: 45000,
         });
         await ensureOverlays(page, 'chrome');
@@ -250,13 +310,13 @@ export class RecordingEngine {
             { state: 'visible', timeout: 15000 },
           )
           .catch(() => {});
-        await sleep(1500);
+        await sleep(1000);
 
         // Dispatch specific demo actions
         await executePageAction(page, config, this.rootDir);
 
         console.log(`✅ Demo execution completed for ${config.id}.`);
-        await sleep(2000);
+        await sleep(1500);
       } catch (e) {
         console.warn(
           `\n⚠️ [Demo Action Notice on ${config.id}]:\n${diagnoseError(e, config.demoUrl)}\n`,
