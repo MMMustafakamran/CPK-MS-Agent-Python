@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { waitForAgentResponseCompletion } from './index';
 
 export const runRuntimeAction: PageActionHandler = async (
   page: Page,
@@ -21,7 +22,7 @@ export const runRuntimeAction: PageActionHandler = async (
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for 'my_agent' response...`);
-  await sleep(6500);
+  await waitForAgentResponseCompletion(page, 3000);
 
   // 2. Switch to sample_agent tab
   console.log(`   [Copilot Runtime] 2/3: Switching to 'sample_agent' tab...`);
@@ -48,7 +49,7 @@ export const runRuntimeAction: PageActionHandler = async (
       for (const c of prompt2) await page.keyboard.type(c, { delay: 45 });
       await sleep(400);
       await page.keyboard.press('Enter');
-      await sleep(6000);
+      await waitForAgentResponseCompletion(page, 3000);
     }
   }
 
@@ -65,5 +66,6 @@ export const runRuntimeAction: PageActionHandler = async (
   }
 
   await humanGlide(page, 960, 500, 25);
-  await sleep(config.waitAfterPromptMs ?? 4000);
+  await sleep(config.waitAfterPromptMs ?? 3500);
 };
+

@@ -11,7 +11,18 @@ export async function showNotepadNote(
   await sleep(1000);
 
   // Glide down to taskbar Notepad icon and click it
-  await humanGlide(page, 1038, 1055, 25);
+  const coords = (await page.evaluate(`
+    (function() {
+      var el = document.getElementById('win11-taskbar-notepad');
+      if (el) {
+        var rect = el.getBoundingClientRect();
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      }
+      return { x: window.innerWidth / 2 + 115, y: window.innerHeight - 24 };
+    })()
+  `)) as { x: number; y: number };
+
+  await humanGlide(page, coords.x, coords.y, 22);
   await humanClick(page);
   await sleep(200);
 

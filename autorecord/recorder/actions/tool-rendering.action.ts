@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { waitForAgentResponseCompletion } from './index';
 
 export const runToolRenderingAction: PageActionHandler = async (
   page: Page,
@@ -21,36 +22,22 @@ export const runToolRenderingAction: PageActionHandler = async (
   await page.keyboard.press('Enter');
 
   console.log(`   ⏳ Actively detecting AI agent response & custom tool rendering...`);
-  await page
-    .waitForFunction(
-      () => {
-        const text = document.body.innerText;
-        return (
-          text.includes('weather API') ||
-          text.includes('Tokyo') ||
-          text.includes('Calling') ||
-          document.querySelectorAll('.copilotKitAssistantMessage, pre, [class*="weather"]').length > 0
-        );
-      },
-      { timeout: 18000 },
-    )
-    .catch(() => {});
-
-  await sleep(4000);
-
   // Look for custom weather tool rendered element and glide cursor over it
   const weatherElement = page
     .locator('p:has-text("weather API"), div:has-text("Tokyo"), .copilotKitAssistantMessage')
     .first();
+  await weatherElement.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+  await sleep(1500);
+
   if (await weatherElement.isVisible({ timeout: 5000 }).catch(() => false)) {
     const weBox = await weatherElement.boundingBox();
     if (weBox) {
       console.log(`   🎯 Detected rendered weather tool call at (${Math.round(weBox.x)}, ${Math.round(weBox.y)})`);
       await humanGlide(page, weBox.x + Math.min(weBox.width / 2, 250), weBox.y + weBox.height / 2, 22);
-      await sleep(3500);
+      await sleep(2500);
     }
   }
 
-  await humanGlide(page, 960, 500, 25);
-  await sleep(config.waitAfterPromptMs ?? 6000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
 };
+

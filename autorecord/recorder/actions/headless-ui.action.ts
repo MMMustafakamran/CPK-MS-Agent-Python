@@ -63,24 +63,33 @@ export const runHeadlessUiAction: PageActionHandler = async (
   }
 
   console.log(`   ⏳ Actively detecting Headless UI assistant response bubble...`);
-  await page
-    .waitForFunction(
-      () => {
-        const bubbles = document.querySelectorAll('.max-w-md, p');
-        const text = document.body.innerText;
-        return (
-          bubbles.length >= 2 ||
-          text.includes('London') ||
-          text.includes('weather') ||
-          text.includes('degrees') ||
-          text.includes('temperature')
-        );
-      },
-      { timeout: 18000 },
-    )
-    .catch(() => {});
+  // Poll until assistant response starts and stabilizes
+  const streamStart = Date.now();
+  let previousText = '';
+  let stableCount = 0;
 
-  await sleep(4000);
+  while (Date.now() - streamStart < 35000) {
+    const currentText = await page
+      .evaluate(() => {
+        const bubbles = document.querySelectorAll('.max-w-md');
+        if (bubbles.length < 2) return '';
+        const lastMsg = bubbles[bubbles.length - 1];
+        return (lastMsg.textContent || '').trim();
+      })
+      .catch(() => '');
+
+    if (currentText.length > 0 && currentText === previousText) {
+      stableCount++;
+      if (stableCount >= 4) {
+        console.log(`   ✅ Headless UI response streaming completed.`);
+        break;
+      }
+    } else {
+      stableCount = 0;
+      previousText = currentText;
+    }
+    await sleep(500);
+  }
 
   // Glide cursor over the rendered assistant message
   const assistantBubble = page.locator('.max-w-md:not(:first-child)').last();
@@ -90,7 +99,7 @@ export const runHeadlessUiAction: PageActionHandler = async (
       console.log(
         `   🎯 Detected Headless UI assistant message at (${Math.round(abBox.x)}, ${Math.round(abBox.y)})`,
       );
-      await humanGlide(page, abBox.x + abBox.width / 2, abBox.y + 25, 22);
+      await humanGlide(page, abBox.x + Math.min(abBox.width / 2, 200), abBox.y + 25, 22);
     }
   } else {
     await humanGlide(page, 960, 400, 25);

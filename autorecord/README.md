@@ -102,7 +102,6 @@ autorecord/
     ├── overlays/
     │   ├── taskbar.ts         # Windows 11 Taskbar simulation overlay & app switching
     │   ├── cursor.ts          # Virtual mouse physics, Bézier easing & typing helpers
-    │   ├── nextjs-error.ts    # Next.js error badge detection & modal expander
     │   └── notepad.ts         # Slide-up Notepad developer note simulator
     └── actions/
         ├── prebuilt.action.ts       # Tab switching: CopilotChat -> CopilotSidebar -> CopilotPopup

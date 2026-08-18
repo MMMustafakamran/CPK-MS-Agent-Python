@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler } from '../types';
+import { waitForAgentResponseCompletion } from './index';
 
 export const runSlotsAction: PageActionHandler = async (page: Page) => {
   // 1/3: Level 1 (Tailwind classes)
@@ -19,7 +20,7 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for Level 1 response...`);
-  await sleep(6500);
+  await waitForAgentResponseCompletion(page, 3500);
 
   // 2/3: Level 2 (Props override)
   console.log(`   [Slots] 2/3: Switching to Level 2 (Props override)...`);
@@ -44,7 +45,7 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for Level 2 response...`);
-  await sleep(6500);
+  await waitForAgentResponseCompletion(page, 3500);
 
   // 3/3: Level 3 (Custom component)
   console.log(`   [Slots] 3/3: Switching to Level 3 (Custom component)...`);
@@ -69,5 +70,6 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for Level 3 response...`);
-  await sleep(7000);
+  await sleep(5000);
 };
+

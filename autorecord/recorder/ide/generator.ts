@@ -10,6 +10,76 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
+function highlightSyntax(line: string, ext: string): string {
+  const isPython = ext === 'py';
+  const isJson = ext === 'json';
+  const isTsx = ext === 'tsx' || ext === 'ts' || ext === 'js' || ext === 'jsx';
+
+  if (!line.trim()) return '&nbsp;';
+
+  // 1. Full line comments
+  const trimmed = line.trimStart();
+  if (trimmed.startsWith('//') || (isPython && trimmed.startsWith('#')) || trimmed.startsWith('/*')) {
+    return `<span style="color:#6a9955;">${escapeHtml(line)}</span>`;
+  }
+
+  // 2. JSON highlighting
+  if (isJson) {
+    const jsonMatch = line.match(/^(\s*)(".*?")(\s*:\s*)(.*)$/);
+    if (jsonMatch) {
+      const [, indent, key, colon, val] = jsonMatch;
+      let valHtml = escapeHtml(val);
+      if (val.trim().startsWith('"')) {
+        valHtml = `<span style="color:#ce9178;">${escapeHtml(val)}</span>`;
+      } else if (/^-?\d+(\.\d+)?/.test(val.trim())) {
+        valHtml = `<span style="color:#b5cea8;">${escapeHtml(val)}</span>`;
+      } else if (/^(true|false|null)/.test(val.trim())) {
+        valHtml = `<span style="color:#569cd6;">${escapeHtml(val)}</span>`;
+      }
+      return `${escapeHtml(indent)}<span style="color:#9cdcfe;">${escapeHtml(key)}</span>${escapeHtml(colon)}${valHtml}`;
+    }
+  }
+
+  // 3. General tokenizer for TypeScript/JSX & Python
+  let escaped = escapeHtml(line);
+
+  // Strings (double, single, backtick)
+  escaped = escaped.replace(/(["'`])((?:\\.|[^\\])*?)\1/g, '<span style="color:#ce9178;">$1$2$1</span>');
+
+  // Inline comments
+  if (isPython) {
+    escaped = escaped.replace(/(#.*)$/g, '<span style="color:#6a9955;">$1</span>');
+  } else {
+    escaped = escaped.replace(/(\/\/.*)$/g, '<span style="color:#6a9955;">$1</span>');
+  }
+
+  if (isPython) {
+    // Python Keywords
+    const pyControl = /\b(import|from|return|if|elif|else|for|while|try|except|finally|with|as|yield|raise|pass|break|continue)\b/g;
+    const pyDefs = /\b(def|class|async|await|lambda)\b/g;
+    const pyConstants = /\b(True|False|None|self)\b/g;
+    const pyDecorators = /(@[\w.]+)/g;
+
+    escaped = escaped.replace(pyControl, '<span style="color:#c586c0;">$1</span>');
+    escaped = escaped.replace(pyDefs, '<span style="color:#569cd6;">$1</span>');
+    escaped = escaped.replace(pyConstants, '<span style="color:#569cd6;">$1</span>');
+    escaped = escaped.replace(pyDecorators, '<span style="color:#dcdcaa;">$1</span>');
+  } else if (isTsx) {
+    // TS/JS Keywords
+    const tsControl = /\b(import|export|from|return|if|else|for|while|switch|case|default|try|catch|finally|throw|break|continue)\b/g;
+    const tsDefs = /\b(const|let|var|function|type|interface|class|enum|extends|implements|async|await|new)\b/g;
+    const tsConstants = /\b(true|false|null|undefined|void|any|number|string|boolean|object)\b/g;
+    const tsReact = /\b(useAgent|useCopilotKit|useComponent|useHumanInTheLoop|useRenderTool|useDefaultRenderTool|useFrontendTool|useAgentContext|CopilotChat|CopilotSidebar|CopilotPopup|CopilotKitProvider|CopilotKit)\b/g;
+
+    escaped = escaped.replace(tsControl, '<span style="color:#c586c0;">$1</span>');
+    escaped = escaped.replace(tsDefs, '<span style="color:#569cd6;">$1</span>');
+    escaped = escaped.replace(tsConstants, '<span style="color:#4ec9b0;">$1</span>');
+    escaped = escaped.replace(tsReact, '<span style="color:#4ec9b0;font-weight:600;">$1</span>');
+  }
+
+  return escaped;
+}
+
 export function generateIdeHtml(
   rootDir: string,
   relativeFilePath: string,
@@ -24,7 +94,7 @@ export function generateIdeHtml(
 
   const fileName = basename(relativeFilePath);
   const ext = fileName.split('.').pop() ?? '';
-  const isTsx = ext === 'tsx' || ext === 'ts';
+  const isTsx = ext === 'tsx' || ext === 'ts' || ext === 'js' || ext === 'jsx';
   const isPython = ext === 'py';
   const isJson = ext === 'json';
   const isMd = ext === 'md';
@@ -49,14 +119,15 @@ export function generateIdeHtml(
           ? 'Markdown'
           : 'Plain Text';
 
-  const pathParts = relativeFilePath.split(/[/\\]/);
+  const normalizedPath = relativeFilePath.replace(/\\/g, '/');
+  const pathParts = normalizedPath.split('/');
   const codeLines = code.split('\n');
 
   const linesHtml = codeLines
     .map((line, idx) => {
       const lineNum = idx + 1;
       const isHighlighted = lineNum >= startLine && lineNum <= endLine;
-      const escaped = escapeHtml(line) || '&nbsp;';
+      const highlightedContent = highlightSyntax(line, ext);
 
       const lineClass = isHighlighted ? 'code-line highlighted' : 'code-line';
       const numClass = isHighlighted ? 'line-num highlighted' : 'line-num';
@@ -67,7 +138,7 @@ export function generateIdeHtml(
       return `
         <div class="${lineClass}">
           <div class="${numClass}">${lineNum}</div>
-          <div class="${textClass}"><span>${escaped}</span></div>
+          <div class="${textClass}"><span>${highlightedContent}</span></div>
         </div>
       `;
     })
@@ -81,6 +152,47 @@ export function generateIdeHtml(
       }`;
     })
     .join('');
+
+  // Dynamic file tree generator based on the active relativeFilePath
+  const treeNodes: string[] = [];
+  for (let i = 0; i < pathParts.length; i++) {
+    const isFile = i === pathParts.length - 1;
+    const part = pathParts[i];
+    const indentClass = i === 0 ? '' : `pl-${Math.min(i, 4)}`;
+
+    if (isFile) {
+      treeNodes.push(`
+        <div class="tree-node ${indentClass} active-file">
+          <span>${fileIcon}</span>
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(part)}</span>
+        </div>
+      `);
+    } else {
+      treeNodes.push(`
+        <div class="tree-node ${indentClass}">
+          <span style="color:#858585;">▾</span>
+          <span class="folder-name">📁 ${escapeHtml(part)}</span>
+        </div>
+      `);
+    }
+  }
+
+  // If active file is in frontend, show backend folder too
+  if (normalizedPath.startsWith('frontend/')) {
+    treeNodes.push(`
+      <div class="tree-node">
+        <span style="color:#858585;">▸</span>
+        <span class="folder-name">📁 backend</span>
+      </div>
+    `);
+  } else if (normalizedPath.startsWith('backend/')) {
+    treeNodes.unshift(`
+      <div class="tree-node">
+        <span style="color:#858585;">▸</span>
+        <span class="folder-name">📁 frontend</span>
+      </div>
+    `);
+  }
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -230,6 +342,7 @@ export function generateIdeHtml(
     .tree-node.pl-1 { padding-left: 14px; }
     .tree-node.pl-2 { padding-left: 26px; }
     .tree-node.pl-3 { padding-left: 38px; }
+    .tree-node.pl-4 { padding-left: 50px; }
     .tree-node.active-file {
       background: rgba(4, 57, 94, 0.6);
       color: #ffffff;
@@ -354,7 +467,7 @@ export function generateIdeHtml(
         <div class="titlebar-path">
           <span class="sub">cpk-ms-agent-python</span>
           <span class="sub">/</span>
-          <span>${escapeHtml(relativeFilePath)}</span>
+          <span>${escapeHtml(normalizedPath)}</span>
           <span class="sub">- Visual Studio Code</span>
         </div>
       </div>
@@ -431,35 +544,7 @@ export function generateIdeHtml(
           <span>CPK-MS-AGENT</span>
         </div>
         <div class="file-tree">
-          <div class="tree-node">
-            <span style="color:#858585;">▾</span>
-            <span class="folder-name">📁 frontend</span>
-          </div>
-          <div class="tree-node pl-1">
-            <span style="color:#858585;">▾</span>
-            <span class="folder-name">📁 src</span>
-          </div>
-          <div class="tree-node pl-2">
-            <span style="color:#858585;">▾</span>
-            <span class="folder-name">📁 app</span>
-          </div>
-          <div class="tree-node pl-3 active-file">
-            <span>${fileIcon}</span>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(fileName)}</span>
-          </div>
-          <div class="tree-node">
-            <span style="color:#858585;">▾</span>
-            <span class="folder-name">📁 backend</span>
-          </div>
-          <div class="tree-node pl-1" style="color:#858585;">
-            <span>🐍 agents.py</span>
-          </div>
-          <div class="tree-node pl-1" style="color:#858585;">
-            <span>🐍 chat_client.py</span>
-          </div>
-          <div class="tree-node pl-1" style="color:#858585;">
-            <span>🐍 main.py</span>
-          </div>
+          ${treeNodes.join('')}
         </div>
       </div>
 
@@ -509,3 +594,4 @@ export function generateIdeHtml(
 </body>
 </html>`;
 }
+

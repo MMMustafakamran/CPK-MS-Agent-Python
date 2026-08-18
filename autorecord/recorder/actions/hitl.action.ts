@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { waitForAgentResponseCompletion } from './index';
 
 export const runHitlAction: PageActionHandler = async (
   page: Page,
@@ -21,24 +22,11 @@ export const runHitlAction: PageActionHandler = async (
   await page.keyboard.press('Enter');
 
   console.log(`   Waiting for Approval Required card to render in stream...`);
-  await page
-    .waitForFunction(
-      () => {
-        const text = document.body.innerText;
-        return (
-          text.includes('Approval required') ||
-          text.includes('rm -rf') ||
-          document.querySelectorAll('button:has-text("Approve"), button:has-text("Deny")').length > 0
-        );
-      },
-      { timeout: 18000 },
-    )
-    .catch(() => {});
-
-  await sleep(3500);
-
-  // Locate the Approve button
   const approveBtn = page.locator('button:has-text("Approve")').first();
+  await approveBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+  await sleep(1500);
+
+  // Locate and click the Approve button
   if (await approveBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     const abBox = await approveBtn.boundingBox();
     if (abBox) {
@@ -47,20 +35,10 @@ export const runHitlAction: PageActionHandler = async (
       await sleep(600);
       await humanClick(page);
       console.log(`   ✓ Clicked Approve button!`);
-      await sleep(4000);
     }
   }
 
-  // Detect and glide over the final assistant response
-  const assistantLocator = page
-    .locator('.copilotKitAssistantMessage, [data-message-role="assistant"]')
-    .last();
-  if (await assistantLocator.isVisible({ timeout: 4000 }).catch(() => false)) {
-    const respBox = await assistantLocator.boundingBox();
-    if (respBox) {
-      await humanGlide(page, respBox.x + Math.min(respBox.width / 2, 250), respBox.y + 30, 22);
-    }
-  }
-
-  await sleep(config.waitAfterPromptMs ?? 6000);
+  // Actively wait for final streaming response after approval
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 6000);
 };
+

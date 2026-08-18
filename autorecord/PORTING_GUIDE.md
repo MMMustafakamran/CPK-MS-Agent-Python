@@ -19,7 +19,6 @@ graph TD
         D
         F[overlays/taskbar.ts]
         G[overlays/cursor.ts]
-        H[overlays/nextjs-error.ts]
         I[overlays/notepad.ts]
         J[ide/generator.ts]
     end
@@ -32,7 +31,6 @@ graph TD
 
     B --> F
     B --> G
-    B --> H
     E --> L
 ```
 
@@ -56,15 +54,16 @@ graph TD
      "name": "autorecord",
      "version": "1.0.0",
      "scripts": {
-       "record": "tsx record-all-pages.ts"
+       "record": "tsx record-all-pages.ts",
+       "typecheck": "tsc --noEmit"
      },
      "dependencies": {
-       "playwright": "^1.49.0"
+       "playwright": "^1.51.0"
      },
      "devDependencies": {
-       "@types/node": "^22.10.0",
-       "tsx": "^4.19.0",
-       "typescript": "^5.7.0"
+       "@types/node": "^20",
+       "tsx": "^4.19.3",
+       "typescript": "^5"
      }
    }
    ```
@@ -88,30 +87,33 @@ Modify the backend/frontend URL targets to match your new project:
 
 ```typescript
 // autorecord/recorder/diagnostics.ts
-const FRONTEND_PORT = 3000;
-const BACKEND_PORT = 8000; // Change to 8080, 5000, 3001 etc. if needed
-
-export async function checkServicesHealth(): Promise<{
-  frontendOk: boolean;
-  backendOk: boolean;
-  frontendError?: string;
-  backendError?: string;
-}> {
-  // Check Frontend (e.g. Next.js / Vite / Remix)
-  const frontendHealth = await checkPort(`http://localhost:${FRONTEND_PORT}`);
-
-  // Check Backend (e.g. FastAPI / LangGraph / Express / AgentOS)
-  const backendHealth =
-    (await checkPort(`http://localhost:${BACKEND_PORT}/health`)) ||
-    (await checkPort(`http://localhost:${BACKEND_PORT}/agui`)) ||
-    (await checkPort(`http://localhost:${BACKEND_PORT}/`));
-
-  return {
-    frontendOk: frontendHealth.ok,
-    backendOk: backendHealth.ok,
-    frontendError: frontendHealth.error,
-    backendError: backendHealth.error,
+export async function checkServicesHealth(): Promise<HealthCheckResult> {
+  const result: HealthCheckResult = {
+    frontendOk: false,
+    backendOk: false,
   };
+
+  // Check Frontend (port 3000)
+  try {
+    const res = await fetch('http://localhost:3000/', {
+      signal: AbortSignal.timeout(3000),
+    });
+    result.frontendOk = res.ok || res.status < 500;
+  } catch (err: any) {
+    result.frontendError = err.message || 'Connection refused on port 3000';
+  }
+
+  // Check Backend (port 8000)
+  try {
+    const res = await fetch('http://localhost:8000/health', {
+      signal: AbortSignal.timeout(3000),
+    });
+    result.backendOk = res.ok || res.status < 500;
+  } catch (err: any) {
+    result.backendError = err.message || 'Connection refused on port 8000';
+  }
+
+  return result;
 }
 ```
 

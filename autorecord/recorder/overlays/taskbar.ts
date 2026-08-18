@@ -113,7 +113,10 @@ export async function clickTaskbarApp(
         var rect = el.getBoundingClientRect();
         return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       }
-      return { x: ${targetApp === 'vscode' ? 1029 : 983}, y: 1056 };
+      return {
+        x: window.innerWidth / 2 + (${targetApp === 'vscode' ? 69 : 23}),
+        y: window.innerHeight - 24,
+      };
     })()
   `)) as { x: number; y: number };
 

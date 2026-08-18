@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "record": "tsx record-all-pages.ts"
+    "record": "tsx record-all-pages.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "playwright": "^1.51.0"
