@@ -4,4 +4,12 @@ node_modules/
 .env.*
 !.env.example
 .copilotkit/
-
+# Ignore everything inside CLI subdirectories except READMEs
+copilotkit-cli/bun/*
+!copilotkit-cli/bun/README*
+copilotkit-cli/npm-cli/*
+!copilotkit-cli/npm-cli/README*
+copilotkit-cli/pnpm/*
+!copilotkit-cli/pnpm/README*
+copilotkit-cli/yarn/*
+!copilotkit-cli/yarn/README*
