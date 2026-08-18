@@ -1,0 +1,12 @@
+{
+  "name": "copilotkit-ms-agent-python-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "record": "npm --prefix autorecord run record --",
+    "record:all": "npm --prefix autorecord run record",
+    "record:quickstart": "npm --prefix autorecord run record -- --quickstart",
+    "record:list": "npm --prefix autorecord run record -- --list"
+  }
+}

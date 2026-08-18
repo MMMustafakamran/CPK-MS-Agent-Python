@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "record": "tsx record-all-pages.ts",
+    "record:all": "tsx record-all-pages.ts",
+    "record:list": "tsx record-all-pages.ts --list",
+    "record:quickstart": "tsx record-all-pages.ts --quickstart",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
