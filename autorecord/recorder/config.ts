@@ -23,7 +23,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 104,
     demoUrl: 'http://localhost:3000/prebuilt-components/demo-chat',
     prompt: 'What is CopilotKit?',
-    waitAfterPromptMs: 4000,
+    waitAfterPromptMs: 1500,
   },
   {
     id: 'slots',
@@ -35,7 +35,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 116,
     demoUrl: 'http://localhost:3000/custom-look-and-feel/slots/demo-chat',
     prompt: 'Hello from customized slots!',
-    waitAfterPromptMs: 4000,
+    waitAfterPromptMs: 1500,
   },
   {
     id: 'headless-ui',
@@ -59,7 +59,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 102,
     demoUrl: 'http://localhost:3000/programmatic-control/demo-chat',
     prompt: "What's the weather in Tokyo?",
-    waitAfterPromptMs: 4000,
+    waitAfterPromptMs: 1500,
   },
   {
     id: 'inspector',
@@ -71,7 +71,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 47,
     demoUrl: 'http://localhost:3000/inspector/demo-chat',
     prompt: 'Hello agent! Testing inspector.',
-    waitAfterPromptMs: 4000,
+    waitAfterPromptMs: 1500,
   },
   {
     id: 'display-only',
@@ -191,7 +191,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 43,
     demoUrl: 'http://localhost:3000/copilot-runtime/demo-chat',
     prompt: "What's the weather in Tokyo?",
-    waitAfterPromptMs: 4000,
+    waitAfterPromptMs: 1500,
   },
   {
     id: 'ag-ui',

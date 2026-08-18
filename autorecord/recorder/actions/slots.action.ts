@@ -20,7 +20,7 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for Level 1 response...`);
-  await waitForAgentResponseCompletion(page, 3500);
+  await waitForAgentResponseCompletion(page, 1500);
 
   // 2/3: Level 2 (Props override)
   console.log(`   [Slots] 2/3: Switching to Level 2 (Props override)...`);
@@ -30,7 +30,7 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
     await humanGlide(page, t2Box.x + t2Box.width / 2, t2Box.y + t2Box.height / 2, 20);
     await humanClick(page);
   }
-  await sleep(1500);
+  await sleep(1000);
   const inputLocator2 = page
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();
@@ -45,7 +45,7 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for Level 2 response...`);
-  await waitForAgentResponseCompletion(page, 3500);
+  await waitForAgentResponseCompletion(page, 1500);
 
   // 3/3: Level 3 (Custom component)
   console.log(`   [Slots] 3/3: Switching to Level 3 (Custom component)...`);
@@ -55,7 +55,7 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
     await humanGlide(page, t3Box.x + t3Box.width / 2, t3Box.y + t3Box.height / 2, 20);
     await humanClick(page);
   }
-  await sleep(1500);
+  await sleep(1000);
   const inputLocator3 = page
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();
@@ -70,6 +70,6 @@ export const runSlotsAction: PageActionHandler = async (page: Page) => {
   await sleep(400);
   await page.keyboard.press('Enter');
   console.log(`   Waiting for Level 3 response...`);
-  await sleep(5000);
+  await waitForAgentResponseCompletion(page, 1500);
 };
 

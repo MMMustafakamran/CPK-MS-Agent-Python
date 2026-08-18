@@ -44,5 +44,5 @@ export const runProgrammaticAction: PageActionHandler = async (
 
   console.log(`   Waiting for Programmatic Control run to complete...`);
   await humanGlide(page, 960, 500, 25);
-  await sleep(config.waitAfterPromptMs ?? 8000);
+  await sleep(config.waitAfterPromptMs ?? 1500);
 };

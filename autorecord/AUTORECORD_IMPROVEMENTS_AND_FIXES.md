@@ -12,9 +12,10 @@
    - [Fix 2: Eliminating Doc Page / White Screen Transition Flash](#fix-2-eliminating-doc-page--white-screen-transition-flash)
    - [Fix 3: Authentic VS Code Dark+ Simulation & Multi-Tab Tab Switching](#fix-3-authentic-vs-code-dark-simulation--multi-tab-tab-switching)
    - [Fix 4: Practiced Human Cursor Motion & Snappy Pacing](#fix-4-practiced-human-cursor-motion--snappy-pacing)
-   - [Fix 5: Real-Time Token Stream Completion Detection](#fix-5-real-time-token-stream-completion-detection)
-   - [Fix 6: Dynamic Viewport-Relative Taskbar & Notepad Coordinates](#fix-6-dynamic-viewport-relative-taskbar--notepad-coordinates)
-   - [Fix 7: Browser Console & Network Noise Filtering](#fix-7-browser-console--network-noise-filtering)
+   - [Fix 5: Real-Time Token Stream Completion Detection & Dual Pacing Policy](#fix-5-real-time-token-stream-completion-detection--dual-pacing-policy)
+   - [Fix 6: Two-Phase Deep Doc Scrolling & In-Viewport VS Code Code Scrolling](#fix-6-two-phase-deep-doc-scrolling--in-viewport-vs-code-code-scrolling)
+   - [Fix 7: Dynamic Viewport-Relative Taskbar & Notepad Coordinates](#fix-7-dynamic-viewport-relative-taskbar--notepad-coordinates)
+   - [Fix 8: Browser Console, Network & Hydration Warning Filtering](#fix-8-browser-console-network--hydration-warning-filtering)
 3. [Repository File Map & Responsibilities](#3-repository-file-map--responsibilities)
 4. [Step-by-Step Guide for Porting to Other Repositories](#4-step-by-step-guide-for-porting-to-other-repositories)
 
@@ -136,13 +137,15 @@ export function generateIdeHtml(
 
 ---
 
-### Fix 5: Real-Time Token Stream Completion Detection & 4s Reading Pause
-* **Problem:** Actions previously relied on arbitrary static sleeps (`sleep(4000)`, `sleep(6500)`), causing recordings to either cut off streaming responses prematurely or wait too long.
-* **Solution in [`recorder/actions/index.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/actions/index.ts):**
+### Fix 5: Real-Time Token Stream Completion Detection & Dual Pacing Policy
+* **Problem:** Actions previously relied on arbitrary static sleeps (`sleep(4000)`, `sleep(6500)`), causing recordings to either cut off streaming responses prematurely or wait too long, especially during multi-tab demos.
+* **Solution in [`recorder/actions/index.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/actions/index.ts) & [`config.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/config.ts):**
   - `waitForAgentResponseCompletion(page, postWaitMs)` actively polls the assistant message bubble content.
   - Detects stream completion when text length remains constant for 4 consecutive checks (1.6s).
   - Smoothly glides cursor to focus on the assistant response.
-  - Standardized **4.0s post-response reading pause** (`postWaitMs = 4000`).
+  - **Dual Pacing Policy:**
+    - **Single-Prompt Pages** (e.g. `quickstart`, `headless-ui`, `display-only`): Standard **4.0-second reading pause** (`postWaitMs = 4000`).
+    - **Multi-Tab / Multi-Prompt Pages** (e.g. `slots`, `prebuilt-components`, `runtime`, `programmatic-control`, `inspector`): Fast, energetic **1.5-second pause** (`postWaitMs = 1500`) between tabs/levels to keep video pacing brisk without dead air.
 
 ```typescript
 export async function waitForAgentResponseCompletion(
@@ -152,19 +155,50 @@ export async function waitForAgentResponseCompletion(
   // 1. Wait for first token to appear (up to 30s)
   // 2. Poll until text content stabilizes for 4 checks (1.6s)
   // 3. Glide cursor to focus on response bubble
-  // 4. Pause for optimal reading duration (4.0s)
+  // 4. Pause for optimal reading duration (4.0s standard / 1.5s for multi-tab steps)
+  await sleep(postWaitMs);
 }
 ```
 
 ---
 
-### Fix 6: Deep Doc Scrolling & In-Viewport IDE Code Centering
+### Fix 6: Two-Phase Deep Doc Scrolling & In-Viewport VS Code Code Scrolling
 * **Problem:** 
-  1. Documentation pages previously only scrolled 500px, cutting off lower sections.
-  2. In VS Code, when code snippets were below line 25, they were obscured by the bottom taskbar or out of view.
+  1. Documentation pages previously stopped at 500px or snapped backwards when calling `scrollIntoViewIfNeeded()`.
+  2. In VS Code, when code snippets were below line 25 (e.g. lines 58–104 or 66–116), they were offscreen or jumped abruptly.
 * **Solution in [`recorder/engine.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/engine.ts):**
-  - **Doc Page Deep Scroll:** Increased scroll distance to 950px with automatic `scrollIntoViewIfNeeded` on the code snippet.
-  - **IDE Viewport Centering:** `engine.ts` executes `scrollIntoView({ behavior: 'smooth', block: 'center' })` on `.code-line.highlighted` inside `.code-viewport` and dynamically tracks its bounding box for the virtual mouse glide.
+  - **Two-Phase Deep Doc Scroll:** Smoothly scrolls down Phase 1 (800px) through overview/setup, then Phase 2 (950px, total ~1750px) down to the primary code block (`main.py` / component) without backward snapping.
+  - **Visible Code Detection:** Dynamically detects the code block currently in the middle of the viewport and hovers the virtual cursor over it for 2.0s.
+  - **`humanScrollCodeViewport(page, startLine)`:** For VS Code snippets with `startLine > 14`, the editor viewport smoothly and visibly scrolls down line-by-line over ~700ms using cubic ease-in-out, centering the highlighted block in real-time before the cursor glides across it.
+
+```typescript
+async function humanScrollCodeViewport(
+  page: Page,
+  startLine: number,
+): Promise<void> {
+  if (startLine <= 14) {
+    await sleep(300);
+    return;
+  }
+  const targetScrollTop = Math.max(0, (startLine - 8) * 22);
+  await page.evaluate(async (targetY) => {
+    const viewport = document.querySelector(
+      '.editor-body-view:not([style*="display: none"]) .code-viewport, .code-viewport',
+    ) as HTMLElement | null;
+    if (!viewport) return;
+    const startY = viewport.scrollTop;
+    const distance = targetY - startY;
+    const steps = 32;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const progress = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      viewport.scrollTop = startY + distance * progress;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }, targetScrollTop);
+  await sleep(350);
+}
+```
 
 ---
 
@@ -176,10 +210,10 @@ export async function waitForAgentResponseCompletion(
 
 ---
 
-### Fix 7: Browser Console & Network Noise Filtering
-* **Problem:** Next.js App Router background prefetch chunks, `.map` source maps, and favicon 404s logged false alarm warning messages in terminal output.
+### Fix 8: Browser Console, Network & Hydration Warning Filtering
+* **Problem:** Next.js App Router background prefetch chunks, `.map` source maps, favicon 404s, and React dev hydration differences (e.g. random timestamps/UUIDs) logged false alarm warning messages in terminal output.
 * **Solution in [`recorder/engine.ts`](file:///c:/Users/dynamic%20computer/Desktop/work/FIQROS/optimized-malaika/mspy/CPK-MS-Agent-Python/autorecord/recorder/engine.ts):**
-  - Filtered out benign 404s, `webpack-hmr`, `favicon.ico`, and source-map errors so only genuine runtime breakages are logged.
+  - Filtered out benign 404s, `webpack-hmr`, `favicon.ico`, source-map errors, `Hydration failed`, and `server rendered text didn't match` warnings so only genuine runtime breakages are logged.
 
 ---
 
