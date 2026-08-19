@@ -261,15 +261,30 @@ async function checkOnline(problems: Problem[]): Promise<void> {
     await p.goto(PAGES[0].demoUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await p.waitForTimeout(3000);
 
-    for (const key of ['chatInput', 'chatSubmit', 'chatReady'] as const) {
+    // chatInput and chatReady are load-bearing: without them there is nothing to
+    // drive. chatSubmit is optional by design -- the recorder presses Enter when
+    // it finds no submit control, which is what actually happens on CopilotKit
+    // v2, whose send button carries no type, aria-label or text. Reporting that
+    // as an error would put the reference implementation permanently in the red
+    // and teach everyone to ignore this command.
+    for (const key of ['chatInput', 'chatReady'] as const) {
       const count = await p.locator(SELECTORS[key]).count().catch(() => 0);
       if (count === 0) {
         problems.push({
           scope: 'selectors.config',
           severity: 'error',
-          message: `${key} matched nothing on ${PAGES[0].demoUrl}`,
+          message: `${key} matched nothing on ${PAGES[0].demoUrl} -- nothing to drive`,
         });
       }
+    }
+
+    const submitCount = await p.locator(SELECTORS.chatSubmit).count().catch(() => 0);
+    if (submitCount === 0) {
+      problems.push({
+        scope: 'selectors.config',
+        severity: 'warning',
+        message: `chatSubmit matched nothing on ${PAGES[0].demoUrl}; prompts will submit via the Enter key (fine, but the cursor never visibly clicks Send)`,
+      });
     }
   } catch (e) {
     problems.push({

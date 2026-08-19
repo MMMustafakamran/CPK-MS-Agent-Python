@@ -3,8 +3,7 @@
 **Before editing anything here, read [ADAPT.md](ADAPT.md).**
 
 This folder is a portable screen-recording suite shared across every CopilotKit
-framework repo. The same copy lives in the `ms-agent-python`, `ms-agent-dotnet`,
-`agno`, `angular`, … repos, adapted per framework.
+framework repo adapted per framework.
 
 Two rules override any instinct to tidy:
 

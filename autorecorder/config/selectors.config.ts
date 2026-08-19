@@ -23,7 +23,16 @@ export interface SelectorContract {
   /** The prompt box. First match wins, so order matters. */
   chatInput: string;
 
-  /** Send control. When it matches nothing, the recorder presses Enter instead. */
+  /**
+   * Send control. Optional: when it matches nothing the recorder presses Enter,
+   * which is what happens on CopilotKit v2 — its send button carries no `type`,
+   * no `aria-label` and no text, only `cpk:` utility classes, so there is
+   * nothing stable to target. `doctor --online` reports a no-match as a warning
+   * rather than an error for that reason.
+   *
+   * Worth setting if this frontend has a targetable send button: the cursor then
+   * visibly travels to it and clicks, which reads better on video.
+   */
   chatSubmit: string;
 
   /**
