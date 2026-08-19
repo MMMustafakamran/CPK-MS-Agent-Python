@@ -1,7 +1,7 @@
 import { type Page } from 'playwright';
-import { humanClick, humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from './index';
+import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 
 /**
  * The three slot customization levels, in the order the page tabs them.

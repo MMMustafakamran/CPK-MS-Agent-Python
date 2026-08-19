@@ -1,33 +1,14 @@
 import { type Page } from 'playwright';
-import { humanClick, humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { runAgUiAction } from './ag-ui.action';
-import { runAgentAppContextAction } from './agent-app-context.action';
-import { runAuthAction } from './auth.action';
-import { runDisplayOnlyAction } from './display-only.action';
-import { runFrontendToolsAction } from './frontend-tools.action';
-import { runHeadlessUiAction } from './headless-ui.action';
-import { runHitlAction } from './hitl.action';
-import { runInspectorAction } from './inspector.action';
-import { runPrebuiltAction } from './prebuilt.action';
-import { runProgrammaticAction } from './programmatic.action';
-import { runRuntimeAction } from './runtime.action';
-import {
-  runSharedStateReadAction,
-  runSharedStateWriteAction,
-} from './shared-state.action';
-import { runSlotsAction } from './slots.action';
-import { runStateRenderingAction } from './state-rendering.action';
-import { runToolRenderingAction } from './tool-rendering.action';
-
+import { SELECTORS } from '../config/selectors.config';
+import { humanClick, humanGlide, sleep } from './overlays/cursor';
+import { type PageActionHandler, type PageRecordConfig } from './types';
 /**
  * Assistant messages as CopilotKit's own prebuilt components render them.
  *
  * Pages that replace the message view via a slot render none of these classes,
  * so they must pass their own selector -- see the `slots` level-3 handler.
  */
-export const DEFAULT_ASSISTANT_MESSAGE_SELECTOR =
-  '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]';
+export const DEFAULT_ASSISTANT_MESSAGE_SELECTOR = SELECTORS.assistantMessage;
 
 /**
  * Returns the current count of assistant message elements in the DOM
@@ -149,12 +130,10 @@ export async function waitForAgentResponseCompletion(
 }
 
 /** Default chat input across the CopilotKit prebuilt surfaces. */
-const DEFAULT_INPUT_SELECTOR =
-  'textarea, input[type="text"], [contenteditable="true"]';
+const DEFAULT_INPUT_SELECTOR = SELECTORS.chatInput;
 
 /** Default submit control; falls back to the Enter key when absent. */
-const DEFAULT_SUBMIT_SELECTOR =
-  'button[type="submit"], button:has-text("Send"), .copilotKitSendButton, button[aria-label*="Send"]';
+const DEFAULT_SUBMIT_SELECTOR = SELECTORS.chatSubmit;
 
 export interface SendPromptOptions {
   /** Override when a page hand-rolls its own input (headless UI, programmatic control). */
@@ -267,32 +246,3 @@ export const runStandardAction: PageActionHandler = async (
     initialMsgCount,
   );
 };
-
-const ACTION_MAP: Record<string, PageActionHandler> = {
-  quickstart: runStandardAction,
-  'prebuilt-components': runPrebuiltAction,
-  slots: runSlotsAction,
-  'headless-ui': runHeadlessUiAction,
-  'programmatic-control': runProgrammaticAction,
-  inspector: runInspectorAction,
-  'display-only': runDisplayOnlyAction,
-  interactive: runHitlAction,
-  'tool-rendering': runToolRenderingAction,
-  'state-rendering': runStateRenderingAction,
-  'frontend-tools': runFrontendToolsAction,
-  'in-app-agent-read': runSharedStateReadAction,
-  'in-app-agent-write': runSharedStateWriteAction,
-  'agent-app-context': runAgentAppContextAction,
-  auth: runAuthAction,
-  'copilot-runtime': runRuntimeAction,
-  'ag-ui': runAgUiAction,
-};
-
-export async function executePageAction(
-  page: Page,
-  config: PageRecordConfig,
-  rootPath: string,
-): Promise<void> {
-  const handler = ACTION_MAP[config.id] ?? runStandardAction;
-  await handler(page, config, rootPath);
-}

@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "npm --prefix frontend run dev",
-    "record": "npm --prefix autorecord run record --",
-    "record:all": "npm --prefix autorecord run record",
-    "record:quickstart": "npm --prefix autorecord run record -- --quickstart",
-    "record:list": "npm --prefix autorecord run record -- --list",
-    "record:verify": "npm --prefix autorecord run verify"
+    "record": "npm --prefix autorecorder run record --",
+    "record:all": "npm --prefix autorecorder run record",
+    "record:list": "npm --prefix autorecorder run record -- --list",
+    "record:doctor": "npm --prefix autorecorder run doctor",
+    "record:doctor:online": "npm --prefix autorecorder run doctor:online"
   }
 }

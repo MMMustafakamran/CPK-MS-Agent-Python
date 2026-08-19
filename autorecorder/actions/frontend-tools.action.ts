@@ -1,6 +1,6 @@
 import { type Page } from 'playwright';
-import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { sendPrompt, waitForAgentResponseCompletion } from './index';
+import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 
 export const runFrontendToolsAction: PageActionHandler = async (
   page: Page,

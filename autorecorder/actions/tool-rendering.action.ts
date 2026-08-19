@@ -1,7 +1,7 @@
 import { type Page } from 'playwright';
-import { humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { sendPrompt, waitForAgentResponseCompletion } from './index';
+import { humanGlide, sleep } from '../core/overlays/cursor';
+import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 
 export const runToolRenderingAction: PageActionHandler = async (
   page: Page,

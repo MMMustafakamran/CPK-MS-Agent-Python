@@ -1,6 +1,6 @@
 import { type Page } from 'playwright';
-import { humanClick, humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 /**
  * Deliberately NOT routed through the shared sendPrompt() helper.

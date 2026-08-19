@@ -1,3 +1,5 @@
+import { PROJECT } from '../config/project.config';
+
 export interface HealthCheckResult {
   frontendOk: boolean;
   backendOk: boolean;
@@ -5,12 +7,10 @@ export interface HealthCheckResult {
   backendError?: string;
 }
 
-const FRONTEND_BASE_URL =
-  process.env.FRONTEND_URL || 'http://localhost:3000';
-const BACKEND_BASE_URL =
-  process.env.BACKEND_URL || 'http://localhost:8000';
+const FRONTEND_BASE_URL = PROJECT.frontendUrl;
+const BACKEND_BASE_URL = PROJECT.backendUrl;
 
-/** Pre-flight check to verify if Next.js and Microsoft Agent Framework backend are running */
+/** Pre-flight check that both this project's services are up. */
 export async function checkServicesHealth(): Promise<HealthCheckResult> {
   const result: HealthCheckResult = {
     frontendOk: false,
@@ -30,7 +30,7 @@ export async function checkServicesHealth(): Promise<HealthCheckResult> {
 
   // Check Backend
   try {
-    const res = await fetch(`${BACKEND_BASE_URL}/health`, {
+    const res = await fetch(`${BACKEND_BASE_URL}${PROJECT.backendHealthPath}`, {
       signal: AbortSignal.timeout(3000),
     });
     result.backendOk = res.ok || res.status < 500;
@@ -55,17 +55,20 @@ export function diagnoseError(error: unknown, context?: string): string {
   const errStr =
     error instanceof Error ? error.message : String(error ?? 'Unknown error');
 
+  const backendPort = new URL(PROJECT.backendUrl).port;
+  const frontendPort = new URL(PROJECT.frontendUrl).port;
+
   if (errStr.includes('ECONNREFUSED') || errStr.includes('Failed to fetch')) {
-    if (errStr.includes('8000') || context?.includes('backend')) {
+    if (errStr.includes(backendPort) || context?.includes('backend')) {
       return (
-        '🔴 [Microsoft Agent Framework Backend Offline]: The Python backend on port 8000 is not reachable.\n' +
-        '   👉 Fix: Open a terminal, run: `cd backend && uv run --prerelease=allow main.py`'
+        `🔴 [Agent Backend Offline]: ${PROJECT.backendUrl} is not reachable.\n` +
+        `   👉 Fix: ${PROJECT.backendStartCmd}`
       );
     }
-    if (errStr.includes('3000') || context?.includes('frontend')) {
+    if (errStr.includes(frontendPort) || context?.includes('frontend')) {
       return (
-        '🔴 [Next.js Frontend Offline]: The Next.js dev server on port 3000 is not reachable.\n' +
-        '   👉 Fix: Open a terminal, run: `cd frontend && npm run dev`'
+        `🔴 [Frontend Offline]: ${PROJECT.frontendUrl} is not reachable.\n` +
+        `   👉 Fix: ${PROJECT.frontendStartCmd}`
       );
     }
   }

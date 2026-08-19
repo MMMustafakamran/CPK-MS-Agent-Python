@@ -1,7 +1,7 @@
 import { type Page } from 'playwright';
-import { humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { sendPrompt } from './index';
+import { humanGlide, sleep } from '../core/overlays/cursor';
+import { type PageActionHandler, type PageRecordConfig } from '../core/types';
+import { sendPrompt } from '../core/actions';
 
 export const runDisplayOnlyAction: PageActionHandler = async (
   page: Page,

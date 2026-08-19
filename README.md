@@ -157,15 +157,18 @@ npm run dev
 
 Open **<http://localhost:3000>**. The home page probes the agent server-side and shows a connection panel — check it first if anything misbehaves.
 
-**Optional — record the demos.** With both processes up, `autorecord/` drives a real browser through every route and saves a narrated screen capture per doc page:
+**Optional — record the demos.** With both processes up, `autorecorder/` drives a real browser through every route and saves a screen capture per doc page:
 
 ```bash
+npm run record:doctor             # is the recorder configured correctly?
 npm run record -- --list          # every registered route
 npm run record -- --quickstart    # one page
 npm run record                    # all 17, sequentially
 ```
 
-It refuses to start if either service is down (`--force` overrides). Output lands in `autorecord/videos/`. Full reference: [`autorecord/README.md`](autorecord/README.md).
+It refuses to start if either service is down (`--force` overrides). Output lands in `autorecorder/videos/`.
+
+`autorecorder/` is written to be copied into the other CopilotKit framework repos and adapted — see [`autorecorder/README.md`](autorecorder/README.md) to run it and [`autorecorder/ADAPT.md`](autorecorder/ADAPT.md) to port it.
 
 ---
 
@@ -388,13 +391,11 @@ CPK-MS-Agent-Python/
 │   ├── manifest.json          # ★ syncedAt — the doc-sync date in the header above
 │   └── CHANGELOG.md           # what changed upstream, written at discovery
 │
-├── autorecord/                # Playwright screen-recording suite (Node/TS)
-│   ├── record-all-pages.ts    # ★ CLI entrypoint; pre-flight gate + suite summary
-│   ├── recorder/config.ts     # ★ the 17 routes, source files and highlight ranges
-│   ├── recorder/engine.ts     # ★ browser lifecycle, 3-step sequence, pass/fail
-│   ├── recorder/ide/          # VS Code simulator (Shiki-highlighted, from disk)
-│   ├── recorder/overlays/     # Windows 11 taskbar + virtual cursor
-│   ├── recorder/actions/      # per-route interaction scripts
+├── autorecorder/              # portable screen-recording suite (Node/TS)
+│   ├── ADAPT.md               # ★ how to port this folder to another framework
+│   ├── config/                # ★ the entire adaptation surface (3 files)
+│   ├── actions/               # ★ per-page interaction scripts + registry
+│   ├── core/                  # frozen: engine, IDE simulator, overlays, doctor
 │   └── videos/                # exported .webm, one per doc page
 │
 └── 1cli-testing/              # scratch space for CopilotKit CLI experiments

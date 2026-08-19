@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium, type Page } from 'playwright';
-import { executePageAction } from './actions';
+import { executePageAction } from '../actions';
 import { diagnoseError } from './diagnostics';
+import { SELECTORS } from '../config/selectors.config';
 import { generateIdeHtml } from './ide/generator';
 import { humanClick, humanGlide, humanScrollDown, setGlobalCursorPos, sleep } from './overlays/cursor';
 import { clickTaskbarApp, ensureOverlays, waitForHydration } from './overlays/taskbar';
@@ -76,7 +77,7 @@ export class RecordingEngine {
 
   constructor(rootDir: string) {
     this.rootDir = rootDir;
-    this.videosDir = join(rootDir, 'autorecord', 'videos');
+    this.videosDir = join(rootDir, 'autorecorder', 'videos');
     this.tempVideoDir = join(this.videosDir, '.temp_chunks');
     if (!existsSync(this.videosDir)) {
       mkdirSync(this.videosDir, { recursive: true });
@@ -216,7 +217,7 @@ export class RecordingEngine {
 
         // Fast check for doc header / content readiness
         await page
-          .waitForSelector('h1, article, main, [class*="content"], pre', {
+          .waitForSelector(SELECTORS.docContentReady, {
             state: 'visible',
             timeout: 5000,
           })
@@ -254,7 +255,7 @@ export class RecordingEngine {
         // Find the visible code block on screen and glide cursor over it
         const visibleCodePos = (await page.evaluate(`
           (function() {
-            var pres = document.querySelectorAll('pre, div[class*="code"], code');
+            var pres = document.querySelectorAll('${SELECTORS.docCodeBlock}');
             for (var i = 0; i < pres.length; i++) {
               var r = pres[i].getBoundingClientRect();
               if (r.height > 60 && r.top >= 120 && r.top <= window.innerHeight - 200) {
@@ -449,10 +450,10 @@ export class RecordingEngine {
         await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
         // No .catch() here: if the demo never renders an interactive surface there
         // is nothing to record, and that must fail rather than warn.
-        await page.waitForSelector(
-          'textarea, input[type="text"], input, [contenteditable="true"], .copilotKitChat, [class*="copilotKit"]',
-          { state: 'visible', timeout: 15000 },
-        );
+        await page.waitForSelector(SELECTORS.chatReady, {
+          state: 'visible',
+          timeout: 15000,
+        });
         await sleep(1000);
 
         // Dispatch specific demo actions

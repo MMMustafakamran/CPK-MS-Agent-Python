@@ -4,10 +4,11 @@
  */
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PAGES } from './recorder/config';
-import { checkServicesHealth } from './recorder/diagnostics';
-import { RecordingEngine } from './recorder/engine';
-import { verifyConfig } from './recorder/verify';
+import { PAGES } from './config/pages.config';
+import { PROJECT } from './config/project.config';
+import { checkServicesHealth } from './core/diagnostics';
+import { RecordingEngine } from './core/engine';
+import { runDoctor } from './core/doctor';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -34,15 +35,15 @@ async function assertServicesUp(force: boolean): Promise<void> {
   console.error(`\n🔍 [Pre-flight Service Diagnostics]`);
   if (!health.backendOk) {
     console.error(
-      `   🔴 Microsoft Agent Framework backend (port 8000) unreachable: ${health.backendError}`,
+      `   [x] Agent backend ${PROJECT.backendUrl} unreachable: ${health.backendError}`,
     );
-    console.error(`      👉 cd backend && uv run --prerelease=allow main.py`);
+    console.error(`       Fix: ${PROJECT.backendStartCmd}`);
   }
   if (!health.frontendOk) {
     console.error(
-      `   🔴 Next.js frontend (port 3000) unreachable: ${health.frontendError}`,
+      `   [x] Frontend ${PROJECT.frontendUrl} unreachable: ${health.frontendError}`,
     );
-    console.error(`      👉 cd frontend && npm run dev`);
+    console.error(`       Fix: ${PROJECT.frontendStartCmd}`);
   }
 
   if (force) {
@@ -62,8 +63,9 @@ const GLOBAL_FLAGS = new Set([
   'list',
   '--help',
   '-h',
+  '--doctor',
   '--verify-config',
-  '--verify',
+  '--online',
 ]);
 
 async function main(): Promise<void> {
@@ -78,9 +80,9 @@ async function main(): Promise<void> {
     rawArgs.includes('--help') ||
     rawArgs.includes('-h');
 
-  // Static config check -- no browser, no services needed.
-  if (rawArgs.includes('--verify-config') || rawArgs.includes('--verify')) {
-    process.exit(verifyConfig(ROOT));
+  // Adaptation check. Static by default; --online also probes live URLs.
+  if (rawArgs.includes('--doctor') || rawArgs.includes('--verify-config')) {
+    process.exit(await runDoctor(ROOT, { online: rawArgs.includes('--online') }));
   }
 
   if (isListMode) {
@@ -222,7 +224,7 @@ async function main(): Promise<void> {
       (warnedCount > 0 ? ` (${warnedCount} with notes)` : '') +
       `, ${failedCount} failed`,
   );
-  console.log(`📁 Video files saved to: ${join(ROOT, 'autorecord', 'videos')}\n`);
+  console.log(`📁 Video files saved to: ${join(ROOT, 'autorecorder', 'videos')}\n`);
 
   if (failedCount > 0) {
     process.exit(1);

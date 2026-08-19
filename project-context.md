@@ -4,7 +4,7 @@ This project is already implemented based on the documentation in the `doc-snaps
 
 `doc-snapshot/pages/` holds one Markdown file per live doc page — instructions, explanations, code snippets, highlighted snippets, and examples. The working project contains their corresponding implementations. `doc-snapshot/manifest.json` records when the snapshot was last synced, and `doc-snapshot/CHANGELOG.md` records what changed upstream between syncs.
 
-The project is intentionally **simple, lightweight, and testing-friendly**, allowing the implementation to be manually inspected and demonstrated. `autorecord/` records that demonstration as video, one clip per doc page.
+The project is intentionally **simple, lightweight, and testing-friendly**, allowing the implementation to be manually inspected and demonstrated. `autorecorder/` records that demonstration as video, one clip per doc page.
 
 ### Documentation Rules
 

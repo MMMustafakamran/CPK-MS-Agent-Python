@@ -1,14 +1,14 @@
 {
-  "name": "autorecord",
+  "name": "autorecorder",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "record": "tsx record-all-pages.ts",
-    "record:all": "tsx record-all-pages.ts",
-    "record:list": "tsx record-all-pages.ts --list",
-    "verify": "tsx record-all-pages.ts --verify-config",
-    "record:quickstart": "tsx record-all-pages.ts --quickstart",
+    "record": "tsx cli.ts",
+    "record:all": "tsx cli.ts",
+    "record:list": "tsx cli.ts --list",
+    "doctor": "tsx cli.ts --doctor",
+    "doctor:online": "tsx cli.ts --doctor --online",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

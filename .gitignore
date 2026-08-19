@@ -28,3 +28,6 @@ __pycache__/
 # The snapshot itself (doc-snapshot/pages/, manifest.json, CHANGELOG.md)
 # IS committed; it is the baseline every diff is taken against.
 doc-snapshot/reports/
+
+# Autorecorder scratch
+autorecorder/videos/.temp_chunks/
