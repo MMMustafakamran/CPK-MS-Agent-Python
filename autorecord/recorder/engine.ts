@@ -5,7 +5,7 @@ import { executePageAction } from './actions';
 import { diagnoseError } from './diagnostics';
 import { generateIdeHtml } from './ide/generator';
 import { humanClick, humanGlide, humanScrollDown, setGlobalCursorPos, sleep } from './overlays/cursor';
-import { clickTaskbarApp, ensureOverlays } from './overlays/taskbar';
+import { clickTaskbarApp, ensureOverlays, waitForHydration } from './overlays/taskbar';
 import { type PageRecordConfig } from './types';
 
 /**
@@ -121,7 +121,29 @@ export class RecordingEngine {
       },
     });
 
+    // Playwright starts recording the moment a page is created, so however long
+    // the first navigation takes is dead footage at the head of every video.
+    // Warming the doc URL in a throwaway page of the same context primes DNS,
+    // TLS and the HTTP cache, which measured 1717ms -> 843ms on the real page.
+    const warmup = await context.newPage();
+    await warmup
+      .goto(config.docUrl, { waitUntil: 'domcontentloaded', timeout: 20000 })
+      .catch(() => {});
+    const warmupVideo = warmup.video();
+    await warmup.close().catch(() => {});
+    await warmupVideo?.delete().catch(() => {});
+
     const page = await context.newPage();
+
+    // about:blank computes to rgba(0,0,0,0) and paints pure black regardless of
+    // --background-color, so the residual lead-in reads as a black screen.
+    // Paint it VS Code grey instead, so the head of the video looks deliberate.
+    await page
+      .evaluate(() => {
+        document.documentElement.style.background = '#1e1e1e';
+        if (document.body) document.body.style.background = '#1e1e1e';
+      })
+      .catch(() => {});
 
     // Attach informational console & request listeners (error detection disabled)
     page.on('pageerror', (err) => {
@@ -199,13 +221,29 @@ export class RecordingEngine {
             timeout: 5000,
           })
           .catch(() => {});
+
+        // Overlays go on immediately so the taskbar is present from the first
+        // frame. They survive hydration on their own now -- ensureOverlays
+        // installs a MutationObserver that re-attaches them if React deletes
+        // them while reconciling <html>.
         await ensureOverlays(page, 'chrome');
+
+        // Scrolling is the part that must wait: a hydration remount snaps the
+        // page back to the top mid-scroll. Start the wait now and let the intro
+        // play over it rather than stalling on a frozen frame.
+        const hydration = waitForHydration(page);
 
         // Crisp pause so viewer registers the doc title, then glide straight into reading
         await sleep(500);
 
         // Move mouse into reading position
         await humanGlide(page, 960, 380, 16);
+
+        if (!(await hydration)) {
+          console.warn(
+            `   ⚠️ Doc page hydration not observed within 8s; scrolling anyway.`,
+          );
+        }
 
         // Smooth scrolling down doc page (~75% depth to reveal first code block without overscroll).
         // Raised from 1100 now that humanScrollDown drives a single scroller and no
@@ -400,6 +438,10 @@ export class RecordingEngine {
           );
         }
 
+        // Our demo pages are App Router too, so React will delete the overlays
+        // when it hydrates -- but the guard inside ensureOverlays re-attaches
+        // them. No wait here: nothing scrolls this page, and if hydration has
+        // already finished the probe would never fire and just burn its timeout.
         await ensureOverlays(page, 'chrome');
 
         // Wait for page body and chat element readiness

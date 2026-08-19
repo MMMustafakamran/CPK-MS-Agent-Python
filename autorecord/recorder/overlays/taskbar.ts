@@ -1,6 +1,46 @@
 import { type Page } from 'playwright';
 import { getGlobalCursorPos, humanClick, humanGlide, sleep } from './cursor';
 
+/**
+ * Waits until the page's framework has finished hydrating.
+ *
+ * Next.js App Router renders `<html>` itself, so React owns
+ * `document.documentElement`. Anything appended to `<html>` before hydration
+ * completes is an unexpected child, and React deletes it when it reconciles --
+ * which is what silently removed the taskbar and the cursor partway through the
+ * doc page, and reset the page's scroll back to the top along with them.
+ *
+ * Detected directly rather than guessed at: drop a sentinel into `<html>` and
+ * wait for React to delete it. Measured at ~4.5s after DOMContentLoaded on
+ * docs.copilotkit.ai, which is precisely when the overlays used to vanish.
+ *
+ * @returns true if hydration was observed, false on timeout (a page that never
+ *   hydrates -- e.g. the static IDE view -- would always time out, so do not
+ *   call this for one).
+ */
+export async function waitForHydration(
+  page: Page,
+  timeoutMs = 8000,
+): Promise<boolean> {
+  return page
+    .evaluate(async (timeout) => {
+      const probe = document.createElement('div');
+      probe.id = '__autorecord_hydration_probe';
+      probe.style.cssText =
+        'position:fixed;left:-9999px;top:0;width:0;height:0;pointer-events:none;';
+      document.documentElement.appendChild(probe);
+
+      const started = Date.now();
+      while (Date.now() - started < timeout) {
+        if (!probe.isConnected) return true;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      probe.remove();
+      return false;
+    }, timeoutMs)
+    .catch(() => false);
+}
+
 /** Injects or re-attaches the Windows 11 Taskbar & Virtual Mouse overlay onto the current page */
 export async function ensureOverlays(
   page: Page,
@@ -165,6 +205,25 @@ export async function ensureOverlays(
         }
       }
 
+      // 1b. Keep both overlays attached across framework re-renders.
+      //
+      // React owns document.documentElement on any App Router page, so a render
+      // pass will happily delete children it did not create. waitForHydration()
+      // avoids the initial mount; this catches anything later, and costs nothing
+      // when nothing removes them.
+      if (!window.__autorecordOverlayGuard) {
+        window.__autorecordOverlayGuard = new MutationObserver(function () {
+          var b = document.getElementById('win11-taskbar-overlay') || window.__autorecordBar;
+          var c = document.getElementById('playwright-virtual-mouse') || window.__autorecordCursor;
+          if (b && !b.isConnected) document.documentElement.appendChild(b);
+          if (c && !c.isConnected) document.documentElement.appendChild(c);
+        });
+        window.__autorecordOverlayGuard.observe(document.documentElement, {
+          childList: true,
+        });
+      }
+      window.__autorecordBar = bar;
+
       // 2. Virtual Mouse Cursor
       var cursor = document.getElementById('playwright-virtual-mouse');
       if (!cursor) {
@@ -174,6 +233,7 @@ export async function ensureOverlays(
         cursor.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.6));"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.45 0 .67-.54.35-.85L6.35 2.86a.5.5 0 0 0-.85.35Z" fill="#ffffff" stroke="#111111" stroke-width="1.5"/></svg>';
         document.documentElement.appendChild(cursor);
       }
+      window.__autorecordCursor = cursor;
     })();
   `;
 
