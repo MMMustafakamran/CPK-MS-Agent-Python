@@ -157,6 +157,16 @@ npm run dev
 
 Open **<http://localhost:3000>**. The home page probes the agent server-side and shows a connection panel — check it first if anything misbehaves.
 
+**Optional — record the demos.** With both processes up, `autorecord/` drives a real browser through every route and saves a narrated screen capture per doc page:
+
+```bash
+npm run record -- --list          # every registered route
+npm run record -- --quickstart    # one page
+npm run record                    # all 17, sequentially
+```
+
+It refuses to start if either service is down (`--force` overrides). Output lands in `autorecord/videos/`. Full reference: [`autorecord/README.md`](autorecord/README.md).
+
 ---
 
 ## 7. What to expect — walkthrough per section
@@ -246,7 +256,7 @@ The code on a page is never a re-typed approximation: each page reads real files
 | `/ms-agent-python/frontend-tools`                             | `/frontend-tools`                             | ✅ Working   |                                                                            |
 | `/ms-agent-python/shared-state/in-app-agent-read`             | `/shared-state/in-app-agent-read`             | ✅ Working   | Seeded via server `default_state` — see §9.                                |
 | `/ms-agent-python/shared-state/in-app-agent-write`            | `/shared-state/in-app-agent-write`            | ✅ Working   |                                                                            |
-| `/ms-agent-python/agent-app-context`                          | `/agent-app-context`                          | ✅ Working   |                                                                            |
+| `/ms-agent-python/agent-app-context`                          | `/agent-app-context`                          | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
 | `/ms-agent-python/auth`                                       | `/auth`                                       | ✅ Working   | Demo reports live auth state on both sides and sends a request through it. |
 | `/ms-agent-python/copilot-runtime`                            | `/copilot-runtime`                            | ✅ Working   |                                                                            |
 | `/ms-agent-python/ag-ui`                                      | `/ag-ui`                                      | ✅ Working   |                                                                            |
@@ -287,6 +297,9 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 
 **9. The agent-framework packages are pre-release**
 `uv add` fails without `--prerelease=allow`; the docs' install commands omit it.
+
+**10. Readables: the agent does not always pick up shared context**
+On `/agent-app-context`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
 
 ---
 
@@ -334,9 +347,10 @@ Commit `doc-snapshot/` — `pages/`, `manifest.json` and `CHANGELOG.md` are the 
 ## 11. Project structure
 
 ```
-ms-agent-framework-pt/
+CPK-MS-Agent-Python/
 ├── CLAUDE.md
 ├── README.md
+├── project-context.md         # how docs/ and code relate; rules for changing either
 ├── .env.example
 │
 ├── frontend/                  # Next.js 16 app — also hosts the Copilot Runtime
@@ -363,11 +377,27 @@ ms-agent-framework-pt/
 │           ├── source.ts              # ★ server-only reader behind SourceCode
 │           └── health.ts              # server-only agent probe
 │
-└── backend/                   # Python — FastAPI + agent-framework-ag-ui
-    ├── pyproject.toml
-    ├── main.py                # ★ app, CORS, auth middleware, 3 endpoint mounts
-    ├── agents.py              # ★ the 3 doc-defined agents, tools, state schemas
-    └── chat_client.py         # OpenAI / Azure OpenAI client construction
+├── backend/                   # Python — FastAPI + agent-framework-ag-ui
+│   ├── pyproject.toml
+│   ├── main.py                # ★ app, CORS, auth middleware, 3 endpoint mounts
+│   ├── agents.py              # ★ the 3 doc-defined agents, tools, state schemas
+│   └── chat_client.py         # OpenAI / Azure OpenAI client construction
+│
+├── doc-snapshot/              # synced copy of the live docs; the drift baseline
+│   ├── pages/                 # one .md per doc page
+│   ├── manifest.json          # ★ syncedAt — the doc-sync date in the header above
+│   └── CHANGELOG.md           # what changed upstream, written at discovery
+│
+├── autorecord/                # Playwright screen-recording suite (Node/TS)
+│   ├── record-all-pages.ts    # ★ CLI entrypoint; pre-flight gate + suite summary
+│   ├── recorder/config.ts     # ★ the 17 routes, source files and highlight ranges
+│   ├── recorder/engine.ts     # ★ browser lifecycle, 3-step sequence, pass/fail
+│   ├── recorder/ide/          # VS Code simulator (Shiki-highlighted, from disk)
+│   ├── recorder/overlays/     # Windows 11 taskbar + virtual cursor
+│   ├── recorder/actions/      # per-route interaction scripts
+│   └── videos/                # exported .webm, one per doc page
+│
+└── 1cli-testing/              # scratch space for CopilotKit CLI experiments
 ```
 
 The nav, every route header, the demo links, and the status table all derive from `frontend/src/lib/nav-config.ts`.

@@ -31,12 +31,13 @@ The **Autorecord Suite** is a Playwright-powered recording pipeline designed to 
 - **Zero Black Screen & Instant Paint**: Navigates immediately via `domcontentloaded` without dead delay frames.
 - **Hyper-Realistic Windows 11 Fluent Taskbar**: Authentic Acrylic/Mica blur (`rgba(28, 28, 32, 0.85)`, `blur(36px) saturate(180%)`), official vector SVGs (Start, Search, Task View, Explorer, Chrome, VS Code 3D ribbon, Terminal, Copilot), active 16px blue pill indicators (`#60a5fa`), live weather widget (`76°F Mostly Sunny`), and complete system tray.
 - **Continuous Cross-Navigation Cursor Trajectory**: Persistent coordinate tracking across page navigations eliminates cursor teleportation—the mouse naturally glides from the exact taskbar icon clicked into the next view.
-- **Relaxed Human Doc Scrolling**: Silky 60fps continuous scroll down ~90% of page depth across 3.6 seconds (calibrated 50% slower human reading pace) without wheel/animation conflicts or jitter.
+- **Relaxed Human Doc Scrolling**: Continuous eased scroll to ~75% of page depth across 3.2 seconds at a reading pace. Exactly one scroller is driven per tick — sending a wheel event *and* nudging `scrollTop` double-counts the travel and was the source of the old overscroll bounce.
 - **100% Pure VS Code Simulation & Multi-Tab Support**: Step 2 renders code directly via a standalone HTML/CSS generator with Command Palette (`Ctrl + P`), Seti SVG icons, blinking caret, minimap, automatic `.code-viewport` snippet centering, and in-place multi-tab switching (`package.json` $\rightarrow$ `page.tsx`).
 - **Real-Time Token Stream Completion Detection & Dual Pacing**: Dynamically observes the assistant message DOM until streaming stabilizes, applying a standard 4.0s pause for single-prompt pages and a brisk 1.5s pause for multi-tab/sequential demos.
 - **Next.js Hydration & Dev-Server Compilation Synchronization**: Waits for DOM readiness and component readiness before dispatching actions, with automatic retry logic.
 - **Shadow DOM Piercing for Web Inspector**: Automatically queries inside Web Component shadow roots to open the CopilotKit DevConsole and navigate between Threads, Agents, and Learning tabs.
-- **Pre-flight Service Diagnostics**: Verifies that both Next.js (`http://localhost:3000`) and Microsoft Agent Framework FastAPI (`http://localhost:8000/health`) are online before starting.
+- **Pre-flight Gate**: Confirms Next.js (`http://localhost:3000`) and the Agent Framework FastAPI service (`http://localhost:8000/health`) both answer, and **aborts before launching a browser** if either does not. `--force` overrides.
+- **Honest Pass/Fail**: A 404 route, a chat surface that never renders, or an agent that never answers fails the run and exits 1. Only an unreachable *external doc page* degrades to a warning, since that is not the thing under test.
 
 ---
 
@@ -53,7 +54,7 @@ graph LR
 
 1. **Step 1 — Official Documentation View**:
    - Opens the official documentation URL immediately via `domcontentloaded`.
-   - Pauses for **500ms** on the header, executes a silky 60fps continuous scroll down ~90% of the page over 3.6s with smooth cubic easing to reveal the complete documentation and code examples without jitter.
+   - Pauses for **500ms** on the header, then eases down to ~75% of page depth over 3.2s — clamped so it never bottoms out into the footer.
    - Dynamically identifies the visible code snippet in the viewport, glides the virtual cursor over it, and pauses for a 2.0s reading window.
    - Glides cursor down to the simulated Windows 11 Taskbar, clicks the **VS Code** icon, and illuminates the blue active indicator (`#60a5fa`).
 
@@ -85,11 +86,9 @@ Rather than abrupt URL jumps, transitions between steps simulate natural desktop
 ```
 autorecord/
 ├── record-all-pages.ts        # CLI entrypoint & batch runner with summary report
-├── README.md                  # Comprehensive root guide (this file)
-├── AUTORECORD_MIGRATION_AND_UPGRADE_GUIDE.md # Direct file-by-file upgrade playbook
-├── AUTORECORD_IMPROVEMENTS_AND_FIXES.md      # Master architectural inventory & fixes
-├── PORTING_GUIDE.md           # Architecture & porting documentation
-├── package.json               # Node.js dependencies (Playwright, TSX)
+├── README.md                  # How to run this suite (this file)
+├── PORTING_GUIDE.md           # How to port it to another framework repo
+├── package.json               # Node.js dependencies (Playwright, Shiki, tsx)
 ├── tsconfig.json              # TypeScript compilation configuration
 ├── videos/                    # Output directory for exported WebM videos
 │   ├── MSPY-react-01-Quickstart.webm
@@ -101,11 +100,11 @@ autorecord/
     ├── engine.ts              # Playwright browser lifecycle manager & recording coordinator
     ├── diagnostics.ts         # Pre-flight service health checks & error pattern matcher
     ├── ide/
-    │   └── generator.ts       # Standalone pure HTML/CSS VS Code Dark+ simulator
+    │   └── generator.ts       # VS Code Dark+ simulator; Shiki-highlighted, read from disk
     ├── overlays/
     │   ├── taskbar.ts         # Windows 11 Taskbar simulation overlay & app switching
-    │   ├── cursor.ts          # Virtual mouse physics, Bézier easing & typing helpers
-    │   └── notepad.ts         # Slide-up Notepad developer note simulator
+    │   ├── cursor.ts          # Virtual mouse physics, Bézier easing & scroll helpers
+    │   └── notepad.ts         # Notepad note simulator — UNUSED, not wired into any step
     └── actions/
         ├── prebuilt.action.ts       # Tab switching: CopilotChat -> CopilotSidebar -> CopilotPopup
         ├── programmatic.action.ts   # Dark Mode state toggle & copilotkit.runAgent execution
@@ -159,11 +158,44 @@ npx playwright install chromium
 
 ## 🚀 Usage & CLI Reference
 
-### Inspect All Registered Routes (`--list`)
+Every command works from `autorecord/` **or** from the repo root — the root
+`package.json` forwards `record`, `record:all`, `record:quickstart` and
+`record:list` through to this package.
 
-```bash
-npm run record -- --list
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `--list`, `-l`, `--help` | Print every registered route with its doc URL, demo URL and source range, then exit. |
+| `--page=<id>` / `--page <id>` | Record exactly one route. |
+| `--<id>` | Shorthand for the same thing — `--quickstart`, `--slots`, `--ag-ui`. |
+| `<id>` | Positional form — `npm run record quickstart`. |
+| `--filter=<query>` | Record every route whose id or name contains `<query>`. |
+| `--force` | Record even when the pre-flight health check fails. |
+
+### Pre-flight gate
+
+Before any browser launches, the runner checks that the frontend (`:3000`) and
+the backend (`:8000`) both answer. If either is down it prints what to start and
+**exits 1** without recording — a video of a dead page is worse than no video.
+`--force` overrides. Override the URLs with `FRONTEND_URL` / `BACKEND_URL`.
+
+### Reading the summary
+
 ```
+   ✅ [PASS]  (24.1s) Quickstart -> MSPY-react-01-Quickstart.webm
+   ⚠️  [PASS*] (31.7s) Inspector -> MSPY-react-06-Inspector.webm
+        · Doc page (https://…/inspector): ℹ️ [Diagnostic Note]: Timeout 25000ms exceeded
+   ❌ [FAIL]  (19.4s) AG-UI -> MSPY-react-17-AgUi.webm
+        · Demo step failed: Agent never produced a response within 30s
+```
+
+- **PASS** — every step completed.
+- **PASS\*** — recorded fine, but the external doc page misbehaved. The intro
+  footage is degraded; the feature under test is not implicated.
+- **FAIL** — the demo route 404'd, never rendered an interactive surface, the
+  agent never answered, or the IDE view could not be built. The process exits 1,
+  so this is safe to gate CI on.
 
 ### Record an Individual Feature Page (`--page=<id>`)
 
@@ -273,7 +305,7 @@ All 17 active demo routes in `frontend/src/lib/nav-config.ts` are mapped with ac
 ### 1. Standalone VS Code IDE Simulator
 
 - **Location**: `autorecord/recorder/ide/generator.ts`
-- Generates an isolated HTML/CSS page from local project files and renders it with `page.setContent()`.
+- Generates an isolated HTML/CSS page from local project files, syntax-highlighted with [Shiki](https://shiki.style) (`dark-plus`), and swaps it in via `document.open()/write()/close()`. Replacing the DOM in place — rather than navigating — is what removes the unload flash and the scroll-to-top jump.
 - Completely decouples the IDE view from Next.js, guaranteeing zero dev badges or floating inspectors on Step 2.
 
 ### 2. Windows 11 Taskbar & App Switching Overlay
@@ -311,9 +343,9 @@ autorecord/videos/
 ```
 
 - Resolution: **1920 × 1080 (1080p Full HD)**
-- Framerate: **60 FPS**
+- Framerate: **~25 FPS** — Playwright's capture rate, which is not configurable. Cursor and scroll easing are driven at ~60 events/sec, so motion still reads as smooth at that capture rate.
 - Format: **WebM** (`VP8` / `VP9` codec)
-- Filename pattern: `MSPY-react-<FeatureName>.webm`
+- Filename pattern: `MSPY-react-<NN>-<FeatureName>.webm` — the index keeps the directory sorted in doc-nav order (set per page via `filename` in `recorder/config.ts`)
 
 ---
 

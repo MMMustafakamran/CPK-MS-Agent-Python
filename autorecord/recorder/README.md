@@ -19,11 +19,11 @@ autorecord/
     ├── engine.ts              # Playwright browser lifecycle, taskbar transitions & coordinator
     ├── diagnostics.ts         # Pre-flight service checks & automated error diagnosis
     ├── ide/
-    │   └── generator.ts       # Standalone pure HTML/CSS VS Code Dark+ simulator
+    │   └── generator.ts       # VS Code Dark+ simulator; Shiki-highlighted, read from disk
     ├── overlays/
     │   ├── taskbar.ts         # Windows 11 taskbar simulation & app switching
     │   ├── cursor.ts          # Virtual mouse cursor physics and Bézier animations
-    │   └── notepad.ts         # Slide-up Notepad developer notes
+    │   └── notepad.ts         # Notepad note simulator -- UNUSED, not wired into any step
     └── actions/
         ├── prebuilt.action.ts       # Tab switching: CopilotChat -> CopilotSidebar -> CopilotPopup
         ├── slots.action.ts          # Slot customization: Level 1 -> Level 2 -> Level 3
@@ -53,7 +53,7 @@ autorecord/
    - Glides cursor down to the simulated Windows 11 Taskbar and clicks the **VS Code** icon (illuminating its blue glow bar).
 
 2. **Step 2 — Visual Studio Code IDE View**:
-   - Renders a standalone VS Code dark theme interface (`vs-dark`) generated directly from project source files on disk via `autorecord/recorder/ide/generator.ts`.
+   - Renders a standalone VS Code Dark+ interface generated directly from project source files on disk via `autorecord/recorder/ide/generator.ts`, syntax-highlighted with Shiki.
    - Renders a clean Explorer sidebar with expanded route folders, file tabs, and exact line numbers.
    - Highlights the exact snippet lines (`startLine` to `endLine`) in the project source file and smoothly glides cursor down the code.
    - Glides cursor down to the Taskbar and clicks the **Chrome** icon (illuminating its blue glow bar).
@@ -65,7 +65,7 @@ autorecord/
 
 4. **Video Export**:
    - Clean runs saved to `autorecord/videos/MSPY-react-*.webm` (`✅ [PASS] (22.4s)`).
-   - Unhandled runtime errors are trapped and reported with actionable diagnostics.
+   - A 404 route, a chat surface that never renders, or an agent that never answers is reported `❌ [FAIL]` and exits the process 1. An unreachable external doc page degrades to `⚠️ [PASS*]` with a note.
 
 ---
 

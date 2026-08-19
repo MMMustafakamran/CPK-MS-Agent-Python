@@ -1,10 +1,10 @@
 # Project Context
 
-This project is already implemented based on the documentation in the `docs/` folder.
+This project is already implemented based on the documentation in the `doc-snapshot/` folder.
 
-The `docs/` folder contains instructions, explanations, code snippets, highlighted snippets, and examples. The working project contains their corresponding implementations.
+`doc-snapshot/pages/` holds one Markdown file per live doc page — instructions, explanations, code snippets, highlighted snippets, and examples. The working project contains their corresponding implementations. `doc-snapshot/manifest.json` records when the snapshot was last synced, and `doc-snapshot/CHANGELOG.md` records what changed upstream between syncs.
 
-The project is intentionally **simple, lightweight, and testing-friendly**, allowing the implementation to be manually inspected and demonstrated.
+The project is intentionally **simple, lightweight, and testing-friendly**, allowing the implementation to be manually inspected and demonstrated. `autorecord/` records that demonstration as video, one clip per doc page.
 
 ### Documentation Rules
 
@@ -17,7 +17,7 @@ The project is intentionally **simple, lightweight, and testing-friendly**, allo
 
 ### Relationship
 
-* `docs/` = documented behavior and implementation
+* `doc-snapshot/pages/` = documented behavior and implementation (a synced copy of the live CopilotKit docs)
 * Project code = working implementation
 * Highlighted/code snippets = references to relevant implementation areas
 

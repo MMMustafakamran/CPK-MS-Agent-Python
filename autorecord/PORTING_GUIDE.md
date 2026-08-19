@@ -328,6 +328,11 @@ if (targetPos) {
 
 ## 📝 Step 7: Slide-up Notepad Notes for Architecture & Stubs
 
+> **Not wired into any recording step today.** `overlays/notepad.ts` ships with the
+> suite, but no engine step or action imports it — none of the 17 configured routes
+> exercise it. Treat it as an available building block for stub/architecture pages,
+> not as part of the current pipeline.
+
 For features requiring architectural notes, database requirement explanations, or stub pages, use [`showNotepadNote`](./recorder/overlays/notepad.ts):
 
 ```typescript
@@ -362,7 +367,7 @@ npm run record -- --filter=shared-state
 npm run record
 ```
 
-All recorded videos are saved to `autorecord/videos/` as **1080p, 60fps WebM** files with the configured filename (e.g. `MSPY-react-*.webm`). Execution elapsed duration per page is reported in the final summary.
+All recorded videos are saved to `autorecord/videos/` as **1080p WebM** files with the configured filename (e.g. `MSPY-react-*.webm`). Playwright captures at ~25fps; that rate is not configurable. Execution elapsed duration per page is reported in the final summary, and a failed page exits the process 1.
 
 ---
 
