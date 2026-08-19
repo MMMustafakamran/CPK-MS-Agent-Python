@@ -111,8 +111,12 @@ export async function waitForAgentResponseCompletion(
       await sleep(400);
     }
   } else {
-    console.warn(`   ⚠️ AI agent response timeout (waiting fallback)...`);
-    await sleep(3000);
+    // An agent that never answers is the failure this suite exists to catch.
+    // Warning here and continuing is what let broken pages report [PASS].
+    throw new Error(
+      'Agent never produced a response within 30s -- no assistant message ever ' +
+        'received content. Check the backend and the browser console output above.',
+    );
   }
 
   // Step 3: Glide cursor smoothly to the finished response message

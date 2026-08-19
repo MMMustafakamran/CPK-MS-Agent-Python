@@ -5,6 +5,7 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PAGES } from './recorder/config';
+import { checkServicesHealth } from './recorder/diagnostics';
 import { RecordingEngine } from './recorder/engine';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -17,16 +18,55 @@ interface PageResult {
   success: boolean;
   durationSec: number;
   error?: string;
+  warnings: string[];
 }
 
+/**
+ * Both services must be up before any browser launches. Recording against a
+ * dead backend produces a full-length video of a broken page, so this aborts
+ * by default; `--force` records anyway when that is deliberately what you want.
+ */
+async function assertServicesUp(force: boolean): Promise<void> {
+  const health = await checkServicesHealth();
+  if (health.frontendOk && health.backendOk) return;
+
+  console.error(`\n🔍 [Pre-flight Service Diagnostics]`);
+  if (!health.backendOk) {
+    console.error(
+      `   🔴 Microsoft Agent Framework backend (port 8000) unreachable: ${health.backendError}`,
+    );
+    console.error(`      👉 cd backend && uv run --prerelease=allow main.py`);
+  }
+  if (!health.frontendOk) {
+    console.error(
+      `   🔴 Next.js frontend (port 3000) unreachable: ${health.frontendError}`,
+    );
+    console.error(`      👉 cd frontend && npm run dev`);
+  }
+
+  if (force) {
+    console.warn(`\n   ⚠️ --force given; recording anyway. Expect unusable video.\n`);
+    return;
+  }
+
+  console.error(`\n❌ Aborting before launching a browser. Pass --force to override.\n`);
+  process.exit(1);
+}
+
+/** Global switches that must never be mistaken for a page id or filter query. */
+const GLOBAL_FLAGS = new Set(['--force', '--list', '-l', 'list', '--help', '-h']);
+
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
+  const rawArgs = process.argv.slice(2);
+  // Selection args only; `--force` etc. would otherwise fall through to the
+  // substring filter below and match zero pages.
+  const args = rawArgs.filter((a) => !GLOBAL_FLAGS.has(a));
   const isListMode =
-    args.includes('--list') ||
-    args.includes('-l') ||
-    args.includes('list') ||
-    args.includes('--help') ||
-    args.includes('-h');
+    rawArgs.includes('--list') ||
+    rawArgs.includes('-l') ||
+    rawArgs.includes('list') ||
+    rawArgs.includes('--help') ||
+    rawArgs.includes('-h');
 
   if (isListMode) {
     console.log(`\n📋 REGISTERED RECORDING ROUTES (${PAGES.length} total):\n`);
@@ -114,6 +154,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  await assertServicesUp(rawArgs.includes('--force'));
+
   console.log(`\n======================================================`);
   console.log(
     `🎬 STARTING AUTOMATED RECORDING FOR ${targetPages.length} PAGE(S)`,
@@ -136,25 +178,35 @@ async function main(): Promise<void> {
       success: res.success,
       durationSec,
       error: res.error,
+      warnings: res.warnings,
     });
   }
 
   const totalDuration = ((Date.now() - suiteStartTime) / 1000).toFixed(1);
   const failedCount = results.filter((r) => !r.success).length;
+  const warnedCount = results.filter((r) => r.success && r.warnings.length > 0).length;
 
   console.log(`\n======================================================`);
   console.log(`📊 RECORDING SUITE SUMMARY (Total: ${totalDuration}s)`);
   console.log(`======================================================`);
   for (const r of results) {
     if (r.success) {
-      console.log(`   ✅ [PASS] (${r.durationSec}s) ${r.name} -> ${r.filename}`);
+      const badge = r.warnings.length > 0 ? '⚠️  [PASS*]' : '✅ [PASS] ';
+      console.log(`   ${badge} (${r.durationSec}s) ${r.name} -> ${r.filename}`);
+      for (const w of r.warnings) console.log(`        · ${w}`);
     } else {
       console.log(
-        `   ❌ [FAIL] (${r.durationSec}s) ${r.name} -> ${r.filename} (${r.error || 'Error captured'})`,
+        `   ❌ [FAIL]  (${r.durationSec}s) ${r.name} -> ${r.filename}`,
       );
+      console.log(`        · ${r.error || 'Error captured'}`);
     }
   }
   console.log(`======================================================`);
+  console.log(
+    `   ${results.length - failedCount} passed` +
+      (warnedCount > 0 ? ` (${warnedCount} with notes)` : '') +
+      `, ${failedCount} failed`,
+  );
   console.log(`📁 Video files saved to: ${join(ROOT, 'autorecord', 'videos')}\n`);
 
   if (failedCount > 0) {

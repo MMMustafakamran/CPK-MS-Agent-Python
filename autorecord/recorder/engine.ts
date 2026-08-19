@@ -2,18 +2,25 @@ import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium, type Page } from 'playwright';
 import { executePageAction } from './actions';
-import { checkServicesHealth, diagnoseError } from './diagnostics';
+import { diagnoseError } from './diagnostics';
 import { generateIdeHtml } from './ide/generator';
 import { humanClick, humanGlide, humanScrollDown, setGlobalCursorPos, sleep } from './overlays/cursor';
 import { clickTaskbarApp, ensureOverlays } from './overlays/taskbar';
 import { type PageRecordConfig } from './types';
 
 /**
- * Smoothly and visibly scrolls the simulated VS Code .code-viewport down to the target startLine
+ * Smoothly and visibly scrolls the simulated VS Code .code-viewport down to the target startLine.
+ *
+ * `viewIdx` targets one specific tab's viewport by id. A selector list such as
+ * `.editor-body-view:not([style*="display: none"]) .code-viewport, .code-viewport`
+ * does NOT work here: querySelector resolves a selector list in document order,
+ * not list order, so it returns tab 0's (hidden) viewport whenever a later tab
+ * is active -- which silently scrolled the wrong pane on every extra tab.
  */
 async function humanScrollCodeViewport(
   page: Page,
   startLine: number,
+  viewIdx: number,
 ): Promise<void> {
   if (startLine <= 14) {
     await sleep(300);
@@ -24,9 +31,9 @@ async function humanScrollCodeViewport(
   // Center the highlighted range in the editor pane
   const targetScrollTop = Math.max(0, (startLine - 8) * 22);
 
-  await page.evaluate(async (targetY) => {
+  await page.evaluate(async ({ targetY, idx }) => {
     const viewport = document.querySelector(
-      '.editor-body-view:not([style*="display: none"]) .code-viewport, .code-viewport',
+      `#ide-view-${idx} .code-viewport`,
     ) as HTMLElement | null;
     if (!viewport) return;
 
@@ -43,9 +50,23 @@ async function humanScrollCodeViewport(
       viewport.scrollTop = startY + distance * progress;
       await new Promise((r) => setTimeout(r, 20));
     }
-  }, targetScrollTop);
+  }, { targetY: targetScrollTop, idx: viewIdx });
 
   await sleep(350);
+}
+
+/**
+ * Virtual path the simulated IDE is served from, on the frontend's own origin.
+ * Intercepted by Playwright and fulfilled from memory -- it never reaches Next.js.
+ */
+const IDE_ROUTE_PATH = '/__autorecord_ide__';
+
+/** Result of one page recording, with hard failures separated from cosmetic notes. */
+export interface RecordResult {
+  success: boolean;
+  filename: string;
+  error?: string;
+  warnings: string[];
 }
 
 export class RecordingEngine {
@@ -65,9 +86,7 @@ export class RecordingEngine {
     }
   }
 
-  async recordPage(
-    config: PageRecordConfig,
-  ): Promise<{ success: boolean; filename: string; error?: string }> {
+  async recordPage(config: PageRecordConfig): Promise<RecordResult> {
     console.log(`\n======================================================`);
     console.log(`🎬 RECORDING: ${config.name} (${config.id})`);
     console.log(`======================================================`);
@@ -77,26 +96,12 @@ export class RecordingEngine {
     let recordSuccess = false;
     let recordError: string | undefined;
     let finalSavedFilename = '';
+    const warnings: string[] = [];
 
-    // 0. Automatic Pre-flight Health Check (Informational only)
-    const health = await checkServicesHealth();
-    if (!health.frontendOk || !health.backendOk) {
-      console.warn(`\n🔍 [Pre-flight Service Diagnostics]:`);
-      if (!health.backendOk) {
-        console.warn(
-          `   🔴 Microsoft Agent Framework Backend (port 8000) is unreachable: ${health.backendError}`,
-        );
-        console.warn(
-          `      👉 Make sure to run: cd backend && uv run --prerelease=allow main.py\n`,
-        );
-      }
-      if (!health.frontendOk) {
-        console.warn(
-          `   🔴 Next.js Frontend (port 3000) is unreachable: ${health.frontendError}`,
-        );
-        console.warn(`      👉 Make sure to run: cd frontend && npm run dev\n`);
-      }
-    }
+    /** A step that renders the thing under test failed -- the video is not usable. */
+    const fail = (message: string): void => {
+      if (!recordError) recordError = message;
+    };
 
     const browser = await chromium.launch({
       headless: false,
@@ -202,9 +207,11 @@ export class RecordingEngine {
         // Move mouse into reading position
         await humanGlide(page, 960, 380, 16);
 
-        // Smooth scrolling down doc page (~75% depth to reveal first code block without overscroll)
+        // Smooth scrolling down doc page (~75% depth to reveal first code block without overscroll).
+        // Raised from 1100 now that humanScrollDown drives a single scroller and no
+        // longer double-counts each tick.
         console.log(`   Smooth scrolling down doc page...`);
-        await humanScrollDown(page, 1100, 3200);
+        await humanScrollDown(page, 1600, 3200);
 
         // Find the visible code block on screen and glide cursor over it
         const visibleCodePos = (await page.evaluate(`
@@ -236,7 +243,11 @@ export class RecordingEngine {
         console.log(`   🖱️ Switching to VS Code via Windows 11 Taskbar...`);
         await clickTaskbarApp(page, 'vscode');
       } catch (e) {
-        console.warn(`⚠️ Doc navigation notice (${config.docUrl}): ${diagnoseError(e, 'doc-page')}`);
+        // The doc site is external and not the thing under test, so a bad fetch
+        // degrades the intro rather than invalidating the recording.
+        const note = `Doc page (${config.docUrl}): ${diagnoseError(e, 'doc-page')}`;
+        warnings.push(note);
+        console.warn(`⚠️ Doc navigation notice -- ${note}`);
         await sleep(600);
       }
 
@@ -248,7 +259,7 @@ export class RecordingEngine {
         `\n💻 Step 2: Displaying Project Code in VS Code IDE (${config.ideFile}: lines ${config.startLine}-${config.endLine})...`,
       );
       try {
-        const ideHtml = generateIdeHtml(
+        const ideHtml = await generateIdeHtml(
           this.rootDir,
           config.ideFile,
           config.startLine,
@@ -256,22 +267,36 @@ export class RecordingEngine {
           config.extraTabs ?? [],
           0,
         );
-        // Instant in-place DOM replacement: eliminates remote page unload, scroll-to-top jump & white flash
-        await page.evaluate((html) => {
-          document.open();
-          document.write(html);
-          document.close();
-        }, ideHtml);
+        // Serve the IDE from the frontend's own origin and navigate to it, rather
+        // than document.write()-ing it into the doc page.
+        //
+        // document.write leaves the document's URL as the doc URL, so the doc page
+        // is only ever one renderer hiccup away from resurfacing -- and because the
+        // IDE HTML wipes the doc's <link> tags, when it does come back it comes back
+        // unstyled. A real navigation destroys that document outright.
+        //
+        // It also makes Step 2 -> Step 3 a SAME-ORIGIN navigation, so there is no
+        // cross-origin process swap between the IDE and the demo. The response is
+        // fulfilled from memory, and the IDE paints #1e1e1e -- which matches the
+        // browser's --background-color launch arg, so there is still no white flash.
+        const ideUrl = new URL(IDE_ROUTE_PATH, config.demoUrl).toString();
+        await page.route(ideUrl, (route) =>
+          route.fulfill({
+            status: 200,
+            contentType: 'text/html; charset=utf-8',
+            body: ideHtml,
+          }),
+        );
+        await page.goto(ideUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 20000,
+        });
         await ensureOverlays(page, 'vscode');
         await sleep(300);
 
         // Highlight primary file snippet
-        await humanScrollCodeViewport(page, config.startLine);
-        const codeLocator = page
-          .locator(
-            '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
-          )
-          .first();
+        await humanScrollCodeViewport(page, config.startLine, 0);
+        const codeLocator = page.locator('#ide-view-0 .code-line.highlighted').first();
         if (await codeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
           const box = await codeLocator.boundingBox();
           if (box) {
@@ -314,12 +339,10 @@ export class RecordingEngine {
             }
             await sleep(300);
 
-            // Scroll & Highlight extra tab code
-            await humanScrollCodeViewport(page, extra.startLine);
+            // Scroll & Highlight extra tab code -- scoped to the tab that is now active
+            await humanScrollCodeViewport(page, extra.startLine, targetDomIdx);
             const extraCodeLocator = page
-              .locator(
-                '.editor-body-view:not([style*="display: none"]) .code-line.highlighted, .code-line.highlighted',
-              )
+              .locator(`#ide-view-${targetDomIdx} .code-line.highlighted`)
               .first();
             if (await extraCodeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
               const box = await extraCodeLocator.boundingBox();
@@ -342,7 +365,11 @@ export class RecordingEngine {
         console.log(`   🖱️ Switching back to Chrome via Windows 11 Taskbar...`);
         await clickTaskbarApp(page, 'chrome');
       } catch (e) {
-        console.warn(`⚠️ IDE view error: ${diagnoseError(e, 'ide-simulation')}`);
+        // The IDE view is generated from local files, so a failure here is a real
+        // defect in this repo -- never a flaky-network excuse.
+        const msg = `IDE view failed: ${diagnoseError(e, 'ide-simulation')}`;
+        fail(msg);
+        console.error(`❌ ${msg}`);
         await sleep(600);
       }
 
@@ -351,8 +378,8 @@ export class RecordingEngine {
       // ----------------------------------------------------
       console.log(`\n🚀 Step 3: Opening Demo (${config.demoUrl})...`);
       try {
-        // Prevent doc page flash during cross-origin transition:
-        // Set dark background on current page before navigating to demoUrl
+        // Belt-and-braces: paint the outgoing document dark so that even a slow
+        // demo compile holds on a dark frame rather than anything bright.
         await page.evaluate(`
           (function() {
             document.body.style.backgroundColor = '#0f172a';
@@ -360,21 +387,30 @@ export class RecordingEngine {
           })()
         `).catch(() => {});
 
-        await page.goto(config.demoUrl, {
+        const response = await page.goto(config.demoUrl, {
           waitUntil: 'domcontentloaded',
           timeout: 45000,
         });
+
+        // A 404/500 used to sail through as a PASS -- the route simply did not exist.
+        const status = response?.status() ?? 0;
+        if (status >= 400) {
+          throw new Error(
+            `Demo route returned HTTP ${status} (${config.demoUrl})`,
+          );
+        }
+
         await ensureOverlays(page, 'chrome');
 
         // Wait for page body and chat element readiness
         console.log(`   ⏳ Waiting for Next.js compilation & React hydration to settle...`);
         await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
-        await page
-          .waitForSelector(
-            'textarea, input[type="text"], input, [contenteditable="true"], .copilotKitChat, [class*="copilotKit"]',
-            { state: 'visible', timeout: 15000 },
-          )
-          .catch(() => {});
+        // No .catch() here: if the demo never renders an interactive surface there
+        // is nothing to record, and that must fail rather than warn.
+        await page.waitForSelector(
+          'textarea, input[type="text"], input, [contenteditable="true"], .copilotKitChat, [class*="copilotKit"]',
+          { state: 'visible', timeout: 15000 },
+        );
         await sleep(1000);
 
         // Dispatch specific demo actions
@@ -383,16 +419,16 @@ export class RecordingEngine {
         console.log(`✅ Demo execution completed for ${config.id}.`);
         await sleep(1500);
       } catch (e) {
-        console.warn(
-          `\n⚠️ [Demo Action Notice on ${config.id}]:\n${diagnoseError(e, config.demoUrl)}\n`,
-        );
+        const msg = `Demo step failed: ${diagnoseError(e, config.demoUrl)}`;
+        fail(msg);
+        console.error(`\n❌ [Demo Failure on ${config.id}]:\n${msg}\n`);
         await sleep(1000);
       }
 
-      recordSuccess = true;
+      recordSuccess = !recordError;
     } catch (err: any) {
-      recordSuccess = false;
       recordError = err?.message || String(err);
+      recordSuccess = false;
       console.error(`❌ Recording error for ${config.id}:`, recordError);
     } finally {
       const video = page.video();
@@ -424,6 +460,7 @@ export class RecordingEngine {
       success: recordSuccess,
       filename: finalSavedFilename,
       error: recordError,
+      warnings,
     };
   }
 }
