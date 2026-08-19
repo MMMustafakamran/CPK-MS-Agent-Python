@@ -7,7 +7,6 @@ export interface PageRecordConfig {
   filename?: string;
   docUrl: string;
   ideFile: string;
-  ideLine?: number;
   startLine: number;
   endLine: number;
   extraTabs?: IdeTabConfig[];

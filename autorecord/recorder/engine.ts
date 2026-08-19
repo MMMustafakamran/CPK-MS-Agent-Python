@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { chromium, type Page } from 'playwright';
 import { executePageAction } from './actions';
@@ -454,6 +454,13 @@ export class RecordingEngine {
       }
 
       await browser.close().catch(() => {});
+
+      // Playwright's raw chunk lands here before saveAs moves it out. Nothing
+      // should survive the run; left alone it accumulated one stray .webm per
+      // recording, gitignored and invisible.
+      try {
+        rmSync(this.tempVideoDir, { recursive: true, force: true });
+      } catch {}
     }
 
     return {

@@ -19,7 +19,6 @@ graph TD
         D
         F[overlays/taskbar.ts]
         G[overlays/cursor.ts]
-        I[overlays/notepad.ts]
         J[ide/generator.ts]
     end
 
@@ -58,7 +57,8 @@ graph TD
        "typecheck": "tsc --noEmit"
      },
      "dependencies": {
-       "playwright": "^1.51.0"
+       "playwright": "^1.51.0",
+       "shiki": "^4.4.3"
      },
      "devDependencies": {
        "@types/node": "^20",
@@ -136,6 +136,7 @@ export async function checkServicesHealth(): Promise<HealthCheckResult> {
 - `startLine` & `endLine`: Snippet line range highlighted in VS Code.
 - `extraTabs`: *(Optional)* Array of extra file tabs to render and switch through in VS Code.
 - `prompt`: User prompt typed in Step 3.
+- `prompts`: *(Optional)* Ordered prompts for pages that drive several turns or tabs. Read via `promptsFor(config)`; keep these in config rather than hardcoded in the handler.
 - `waitAfterPromptMs`: Reading pause duration after the response finishes streaming (e.g. `4000` standard, `1500` for multi-step sequences).
 
 ### Example Configuration:
@@ -203,10 +204,12 @@ await ensureOverlays(page, 'chrome');
 // Wait for page body and chat element readiness
 console.log(`   ⏳ Waiting for Next.js compilation & React hydration to settle...`);
 await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
+// Deliberately NOT caught: if the demo never renders an interactive surface
+// there is nothing to record, and that has to fail rather than warn.
 await page.waitForSelector(
   'textarea, input[type="text"], input, [contenteditable="true"], .copilotKitChat, [class*="copilotKit"]',
   { state: 'visible', timeout: 15000 },
-).catch(() => {});
+);
 await sleep(1000);
 ```
 
@@ -323,27 +326,6 @@ if (targetPos) {
   await humanClick(page);
 }
 ```
-
----
-
-## 📝 Step 7: Slide-up Notepad Notes for Architecture & Stubs
-
-> **Not wired into any recording step today.** `overlays/notepad.ts` ships with the
-> suite, but no engine step or action imports it — none of the 17 configured routes
-> exercise it. Treat it as an available building block for stub/architecture pages,
-> not as part of the current pipeline.
-
-For features requiring architectural notes, database requirement explanations, or stub pages, use [`showNotepadNote`](./recorder/overlays/notepad.ts):
-
-```typescript
-import { showNotepadNote } from '../overlays/notepad';
-
-await showNotepadNote(page, 'architecture_notice.txt', [
-  'Note: Multi-agent routing requires AG-UI protocol endpoints active on :8000',
-]);
-```
-
-This slides up an authentic Windows 11 Notepad window, clicks into the document, and simulates developer typing keystrokes with natural human jitter.
 
 ---
 

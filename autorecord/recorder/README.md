@@ -22,8 +22,7 @@ autorecord/
     │   └── generator.ts       # VS Code Dark+ simulator; Shiki-highlighted, read from disk
     ├── overlays/
     │   ├── taskbar.ts         # Windows 11 taskbar simulation & app switching
-    │   ├── cursor.ts          # Virtual mouse cursor physics and Bézier animations
-    │   └── notepad.ts         # Notepad note simulator -- UNUSED, not wired into any step
+    │   └── cursor.ts          # Virtual mouse cursor physics and Bézier animations
     └── actions/
         ├── prebuilt.action.ts       # Tab switching: CopilotChat -> CopilotSidebar -> CopilotPopup
         ├── slots.action.ts          # Slot customization: Level 1 -> Level 2 -> Level 3

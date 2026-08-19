@@ -103,8 +103,7 @@ autorecord/
     │   └── generator.ts       # VS Code Dark+ simulator; Shiki-highlighted, read from disk
     ├── overlays/
     │   ├── taskbar.ts         # Windows 11 Taskbar simulation overlay & app switching
-    │   ├── cursor.ts          # Virtual mouse physics, Bézier easing & scroll helpers
-    │   └── notepad.ts         # Notepad note simulator — UNUSED, not wired into any step
+    │   └── cursor.ts          # Virtual mouse physics, Bézier easing & scroll helpers
     └── actions/
         ├── prebuilt.action.ts       # Tab switching: CopilotChat -> CopilotSidebar -> CopilotPopup
         ├── programmatic.action.ts   # Dark Mode state toggle & copilotkit.runAgent execution
