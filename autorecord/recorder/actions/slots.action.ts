@@ -1,78 +1,58 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler } from '../types';
-import { getAssistantMessageCount, waitForAgentResponseCompletion } from './index';
+import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from './index';
 
-export const runSlotsAction: PageActionHandler = async (page: Page) => {
-  // 1/3: Level 1 (Tailwind classes)
-  console.log(`   [Slots] 1/3: Demonstrating Level 1 (Tailwind classes)...`);
-  const inputLocator1 = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator1.waitFor({ timeout: 8000 });
-  const msgCount1 = await getAssistantMessageCount(page);
-  const inputBox1 = await inputLocator1.boundingBox();
-  if (inputBox1) {
-    await humanGlide(page, inputBox1.x + 80, inputBox1.y + inputBox1.height / 2, 20);
-    await humanClick(page);
-  }
-  const prompt1 = 'Hello from customized slots level 1!';
-  await page.keyboard.type(prompt1, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
-  console.log(`   Waiting for Level 1 response...`);
-  await waitForAgentResponseCompletion(page, 1500, msgCount1);
+/**
+ * The three slot customization levels, in the order the page tabs them.
+ *
+ * Level 3 replaces the message view entirely (`messageView={CustomMessageView}`),
+ * so it renders none of CopilotKit's own message classes -- its assistant
+ * bubbles are plain `div.text-left` inside the custom view's wrapper. Detection
+ * has to be told that, or the run reports "agent never responded" on a level
+ * that is in fact working.
+ */
+const SLOT_LEVELS: {
+  tabLabel: string | null;
+  messageSelector?: string;
+}[] = [
+  { tabLabel: null },
+  { tabLabel: '2 · Props override' },
+  { tabLabel: '3 · Custom component', messageSelector: '.space-y-4 > div.text-left' },
+];
 
-  // 2/3: Level 2 (Props override)
-  console.log(`   [Slots] 2/3: Switching to Level 2 (Props override)...`);
-  const tab2 = page.locator('button:has-text("2 · Props override")');
-  const t2Box = await tab2.boundingBox();
-  if (t2Box) {
-    await humanGlide(page, t2Box.x + t2Box.width / 2, t2Box.y + t2Box.height / 2, 20);
-    await humanClick(page);
-  }
-  await sleep(1000);
-  const inputLocator2 = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator2.waitFor({ timeout: 6000 }).catch(() => {});
-  const msgCount2 = await getAssistantMessageCount(page);
-  const inputBox2 = await inputLocator2.boundingBox();
-  if (inputBox2) {
-    await humanGlide(page, inputBox2.x + 80, inputBox2.y + inputBox2.height / 2, 20);
-    await humanClick(page);
-  }
-  const prompt2 = 'Hello from slot level 2 props override!';
-  await page.keyboard.type(prompt2, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
-  console.log(`   Waiting for Level 2 response...`);
-  await waitForAgentResponseCompletion(page, 1500, msgCount2);
+export const runSlotsAction: PageActionHandler = async (
+  page: Page,
+  config: PageRecordConfig,
+) => {
+  const prompts = promptsFor(config);
 
-  // 3/3: Level 3 (Custom component)
-  console.log(`   [Slots] 3/3: Switching to Level 3 (Custom component)...`);
-  const tab3 = page.locator('button:has-text("3 · Custom component")');
-  const t3Box = await tab3.boundingBox();
-  if (t3Box) {
-    await humanGlide(page, t3Box.x + t3Box.width / 2, t3Box.y + t3Box.height / 2, 20);
-    await humanClick(page);
+  for (let level = 0; level < SLOT_LEVELS.length; level++) {
+    const { tabLabel, messageSelector } = SLOT_LEVELS[level];
+    console.log(`   [Slots] ${level + 1}/${SLOT_LEVELS.length}: Level ${level + 1}...`);
+
+    if (tabLabel) {
+      const tab = page.locator(`button:has-text("${tabLabel}")`).first();
+      const tBox = await tab.boundingBox();
+      if (tBox) {
+        await humanGlide(page, tBox.x + tBox.width / 2, tBox.y + tBox.height / 2, 20);
+        await humanClick(page);
+      }
+      await sleep(1000);
+    }
+
+    const prompt = prompts[level] ?? prompts[prompts.length - 1];
+    const msgCount = await sendPrompt(page, prompt, {
+      timeoutMs: level === 0 ? 8000 : 6000,
+      messageSelector,
+    });
+
+    console.log(`   Waiting for Level ${level + 1} response...`);
+    await waitForAgentResponseCompletion(
+      page,
+      config.waitAfterPromptMs ?? 1500,
+      msgCount,
+      messageSelector,
+    );
   }
-  await sleep(1000);
-  const inputLocator3 = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator3.waitFor({ timeout: 6000 }).catch(() => {});
-  const msgCount3 = await getAssistantMessageCount(page);
-  const inputBox3 = await inputLocator3.boundingBox();
-  if (inputBox3) {
-    await humanGlide(page, inputBox3.x + 80, inputBox3.y + inputBox3.height / 2, 20);
-    await humanClick(page);
-  }
-  const prompt3 = 'Hello from slot level 3 custom component!';
-  await page.keyboard.type(prompt3, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
-  console.log(`   Waiting for Level 3 response...`);
-  await waitForAgentResponseCompletion(page, 1500, msgCount3);
 };
-

@@ -1,25 +1,14 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { waitForAgentResponseCompletion } from './index';
+import { sendPrompt, waitForAgentResponseCompletion } from './index';
 
 export const runHitlAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
   console.log(`   [Human in the Loop] Typing prompt to trigger approval gate...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
-  const inputBox = await inputLocator.boundingBox();
-  if (inputBox) {
-    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
-    await humanClick(page);
-  }
-  await page.keyboard.type(config.prompt, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
+  const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
 
   console.log(`   Waiting for Approval Required card to render in stream...`);
   const approveBtn = page.locator('button:has-text("Approve")').first();
@@ -39,6 +28,5 @@ export const runHitlAction: PageActionHandler = async (
   }
 
   // Actively wait for final streaming response after approval
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
 };
-

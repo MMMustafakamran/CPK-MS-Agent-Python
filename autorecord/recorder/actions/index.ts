@@ -21,16 +21,23 @@ import { runStateRenderingAction } from './state-rendering.action';
 import { runToolRenderingAction } from './tool-rendering.action';
 
 /**
+ * Assistant messages as CopilotKit's own prebuilt components render them.
+ *
+ * Pages that replace the message view via a slot render none of these classes,
+ * so they must pass their own selector -- see the `slots` level-3 handler.
+ */
+export const DEFAULT_ASSISTANT_MESSAGE_SELECTOR =
+  '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]';
+
+/**
  * Returns the current count of assistant message elements in the DOM
  */
-export async function getAssistantMessageCount(page: Page): Promise<number> {
+export async function getAssistantMessageCount(
+  page: Page,
+  messageSelector: string = DEFAULT_ASSISTANT_MESSAGE_SELECTOR,
+): Promise<number> {
   return page
-    .evaluate(() => {
-      const msgs = document.querySelectorAll(
-        '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
-      );
-      return msgs.length;
-    })
+    .evaluate((sel) => document.querySelectorAll(sel).length, messageSelector)
     .catch(() => 0);
 }
 
@@ -44,6 +51,7 @@ export async function waitForAgentResponseCompletion(
   page: Page,
   postWaitMs = 4000,
   initialMessageCount?: number,
+  messageSelector: string = DEFAULT_ASSISTANT_MESSAGE_SELECTOR,
 ): Promise<void> {
   console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
 
@@ -54,10 +62,8 @@ export async function waitForAgentResponseCompletion(
 
   while (Date.now() - startTime < 30000) {
     const status = await page
-      .evaluate((bCount) => {
-        const msgs = document.querySelectorAll(
-          '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
-        );
+      .evaluate(({ bCount, sel }) => {
+        const msgs = document.querySelectorAll(sel);
         if (msgs.length === 0) return { started: false, len: 0 };
         // If initialMessageCount was given, ensure we are looking at a new message
         if (bCount > 0 && msgs.length <= bCount) {
@@ -66,7 +72,7 @@ export async function waitForAgentResponseCompletion(
         const lastMsg = msgs[msgs.length - 1];
         const txt = (lastMsg.textContent || '').trim();
         return { started: txt.length > 2, len: txt.length };
-      }, baseCount)
+      }, { bCount: baseCount, sel: messageSelector })
       .catch(() => ({ started: false, len: 0 }));
 
     if (status.started) {
@@ -85,14 +91,12 @@ export async function waitForAgentResponseCompletion(
 
     while (Date.now() - streamStart < 45000) {
       const currentText = await page
-        .evaluate(() => {
-          const msgs = document.querySelectorAll(
-            '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',
-          );
+        .evaluate((sel) => {
+          const msgs = document.querySelectorAll(sel);
           if (msgs.length === 0) return '';
           const lastMsg = msgs[msgs.length - 1];
           return (lastMsg.textContent || '').trim();
-        })
+        }, messageSelector)
         .catch(() => '');
 
       if (currentText.length > 0 && currentText === previousText) {
@@ -120,11 +124,7 @@ export async function waitForAgentResponseCompletion(
   }
 
   // Step 3: Glide cursor smoothly to the finished response message
-  const assistantLocator = page
-    .locator(
-      '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child)',
-    )
-    .last();
+  const assistantLocator = page.locator(messageSelector).last();
 
   if (await assistantLocator.isVisible({ timeout: 3000 }).catch(() => false)) {
     const abBox = await assistantLocator.boundingBox();
@@ -148,76 +148,119 @@ export async function waitForAgentResponseCompletion(
   await sleep(postWaitMs);
 }
 
-export const runStandardAction: PageActionHandler = async (
+/** Default chat input across the CopilotKit prebuilt surfaces. */
+const DEFAULT_INPUT_SELECTOR =
+  'textarea, input[type="text"], [contenteditable="true"]';
+
+/** Default submit control; falls back to the Enter key when absent. */
+const DEFAULT_SUBMIT_SELECTOR =
+  'button[type="submit"], button:has-text("Send"), .copilotKitSendButton, button[aria-label*="Send"]';
+
+export interface SendPromptOptions {
+  /** Override when a page hand-rolls its own input (headless UI, programmatic control). */
+  inputSelector?: string;
+  /** Override when submitting means clicking something other than a send button. */
+  submitSelector?: string;
+  /** Select-all + delete before typing, for inputs that arrive pre-populated. */
+  clearFirst?: boolean;
+  /** How long to wait for the input to appear. */
+  timeoutMs?: number;
+  /** Override when the page renders messages through a custom slot. */
+  messageSelector?: string;
+}
+
+/**
+ * Types a prompt into a demo page's chat input and submits it, the way a person
+ * would -- glide, click, key-by-key typing, then the send button.
+ *
+ * Extracted because twelve action handlers had carried their own near-identical
+ * copy of this, and only one of them had the swallowed-submit retry. Everything
+ * routed through here now gets it.
+ *
+ * @returns The assistant message count observed *before* submitting. Pass it to
+ *   waitForAgentResponseCompletion so multi-turn pages do not mistake the
+ *   previous turn's reply for this one's.
+ */
+export async function sendPrompt(
   page: Page,
-  config: PageRecordConfig,
-) => {
-  // 1. Detect that the demo page & chat interface are fully rendered
-  console.log(`   🔍 Detecting demo page & chat component rendering...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 15000 });
+  prompt: string,
+  options: SendPromptOptions = {},
+): Promise<number> {
+  const {
+    inputSelector = DEFAULT_INPUT_SELECTOR,
+    submitSelector = DEFAULT_SUBMIT_SELECTOR,
+    clearFirst = false,
+    timeoutMs = 15000,
+    messageSelector = DEFAULT_ASSISTANT_MESSAGE_SELECTOR,
+  } = options;
+
+  const inputLocator = page.locator(inputSelector).first();
+  await inputLocator.waitFor({ state: 'visible', timeout: timeoutMs });
   await sleep(300);
 
-  const initialMsgCount = await getAssistantMessageCount(page);
+  const initialMsgCount = await getAssistantMessageCount(page, messageSelector);
 
   const inputBox = await inputLocator.boundingBox();
   if (inputBox) {
-    await humanGlide(
-      page,
-      inputBox.x + 80,
-      inputBox.y + inputBox.height / 2,
-      18,
-    );
+    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 18);
     await humanClick(page);
   } else {
     await inputLocator.click();
   }
   await sleep(200);
 
-  await page.keyboard.type(config.prompt, { delay: 30 });
+  if (clearFirst) {
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+  }
+
+  await page.keyboard.type(prompt, { delay: 35 });
   await sleep(300);
 
-  // If text was wiped during typing by a sudden React re-render, re-fill
+  // If a sudden React re-render wiped the text mid-typing, put it back.
   const currentVal = await inputLocator.inputValue().catch(() => '');
-  if (!currentVal && config.prompt) {
-    await inputLocator.fill(config.prompt);
+  if (!currentVal && prompt) {
+    await inputLocator.fill(prompt);
     await sleep(200);
   }
 
-  // Attempt to submit prompt via button click or Enter key
-  const sendBtn = page
-    .locator(
-      'button[type="submit"], button:has-text("Send"), .copilotKitSendButton, button[aria-label*="Send"]',
-    )
-    .first();
-
-  if (await sendBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    const btnBox = await sendBtn.boundingBox();
+  const submitBtn = page.locator(submitSelector).first();
+  if (await submitBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    const btnBox = await submitBtn.boundingBox();
     if (btnBox) {
-      await humanGlide(
-        page,
-        btnBox.x + btnBox.width / 2,
-        btnBox.y + btnBox.height / 2,
-        16,
-      );
+      await humanGlide(page, btnBox.x + btnBox.width / 2, btnBox.y + btnBox.height / 2, 16);
       await humanClick(page);
     } else {
-      await sendBtn.click();
+      await submitBtn.click();
     }
   } else {
     await page.keyboard.press('Enter');
   }
 
-  // Double-check after 800ms if input is still populated (swallowed submit), re-trigger Enter
+  // A swallowed submit leaves the text sitting in the box -- retry once.
   await sleep(800);
   const remainingVal = await inputLocator.inputValue().catch(() => '');
   if (remainingVal.trim().length > 0) {
     await page.keyboard.press('Enter');
   }
 
-  // 2. Actively wait for the response to stream completely and pause for reading
+  return initialMsgCount;
+}
+
+/**
+ * Prompts declared for a page, in order. Falls back to the single `prompt`
+ * field for pages that only send one.
+ */
+export function promptsFor(config: PageRecordConfig): string[] {
+  return config.prompts?.length ? config.prompts : [config.prompt];
+}
+
+export const runStandardAction: PageActionHandler = async (
+  page: Page,
+  config: PageRecordConfig,
+) => {
+  console.log(`   🔍 Detecting demo page & chat component rendering...`);
+  const initialMsgCount = await sendPrompt(page, config.prompt);
   await waitForAgentResponseCompletion(
     page,
     config.waitAfterPromptMs ?? 4000,

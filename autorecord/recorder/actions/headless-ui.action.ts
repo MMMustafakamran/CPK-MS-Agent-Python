@@ -2,6 +2,20 @@ import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
 
+/**
+ * Deliberately NOT routed through the shared sendPrompt() helper.
+ *
+ * This page hand-builds its input and Send button over useAgent/useCopilotKit,
+ * and its submit path is timing-sensitive in a way the shared helper breaks:
+ * switching it over made the run fail reproducibly with
+ * `agent_run_error_event HTTP 405` from the Python backend and no response at
+ * all, while this implementation streams reliably. The difference does not
+ * reproduce headlessly, so the exact trigger is not pinned down yet.
+ *
+ * Worth noting either way: the Send button sits at y=1026..1064 in a 1080-tall
+ * viewport while the taskbar overlay covers y>1032, so the real click is
+ * swallowed by the overlay and the submit actually lands via the Enter retry.
+ */
 export const runHeadlessUiAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,

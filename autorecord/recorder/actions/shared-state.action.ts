@@ -1,29 +1,20 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { waitForAgentResponseCompletion } from './index';
+import { sendPrompt, waitForAgentResponseCompletion } from './index';
 
 export const runSharedStateReadAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
   console.log(`   [Shared State Read] Sending prompt to switch language in agent.state...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
-  const inputBox = await inputLocator.boundingBox();
-  if (inputBox) {
-    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
-    await humanClick(page);
-  }
-  await page.keyboard.type(config.prompt, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
+  const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
 
   // Move cursor over the Language panel on the left
   await sleep(1500);
-  const langElement = page.locator('strong:has-text("spanish"), strong:has-text("english"), h1:has-text("Your main content")').first();
+  const langElement = page
+    .locator('strong:has-text("spanish"), strong:has-text("english"), h1:has-text("Your main content")')
+    .first();
   if (await langElement.isVisible({ timeout: 4000 }).catch(() => false)) {
     const leBox = await langElement.boundingBox();
     if (leBox) {
@@ -43,8 +34,7 @@ export const runSharedStateReadAction: PageActionHandler = async (
     }
   }
 
-  // Actively wait for streaming response to finish
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
 };
 
 export const runSharedStateWriteAction: PageActionHandler = async (
@@ -76,7 +66,6 @@ export const runSharedStateWriteAction: PageActionHandler = async (
     }
   }
 
-  // Actively wait for streaming response from sample_agent
+  // This page re-runs the agent from a button, so there is no prompt to send.
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
 };
-

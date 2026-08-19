@@ -1,25 +1,14 @@
 import { type Page } from 'playwright';
-import { humanClick, humanGlide, sleep } from '../overlays/cursor';
+import { humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { waitForAgentResponseCompletion } from './index';
+import { sendPrompt, waitForAgentResponseCompletion } from './index';
 
 export const runToolRenderingAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
   console.log(`   [Tool Rendering] Prompting for weather to trigger custom renderer...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
-  const inputBox = await inputLocator.boundingBox();
-  if (inputBox) {
-    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
-    await humanClick(page);
-  }
-  await page.keyboard.type(config.prompt, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
+  const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
 
   console.log(`   ⏳ Actively detecting AI agent response & custom tool rendering...`);
   // Look for custom weather tool rendered element and glide cursor over it
@@ -38,6 +27,5 @@ export const runToolRenderingAction: PageActionHandler = async (
     }
   }
 
-  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
 };
-

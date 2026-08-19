@@ -1,26 +1,17 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
-import { type PageActionHandler } from '../types';
-import { waitForAgentResponseCompletion } from './index';
+import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from './index';
 
-export const runPrebuiltAction: PageActionHandler = async (page: Page) => {
+export const runPrebuiltAction: PageActionHandler = async (
+  page: Page,
+  config: PageRecordConfig,
+) => {
   // 1/3: CopilotChat tab
   console.log(`   [Prebuilt] 1/3: Demonstrating CopilotChat...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ timeout: 8000 });
-  const inputBox = await inputLocator.boundingBox();
-  if (inputBox) {
-    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
-    await humanClick(page);
-  }
-  const prompt1 = 'What is CopilotKit?';
-  await page.keyboard.type(prompt1, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
+  const msgCount = await sendPrompt(page, promptsFor(config)[0], { timeoutMs: 8000 });
   console.log(`   Waiting for CopilotChat response...`);
-  await waitForAgentResponseCompletion(page, 1500);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 1500, msgCount);
 
   // 2/3: CopilotSidebar tab
   console.log(`   [Prebuilt] 2/3: Switching to CopilotSidebar tab...`);
@@ -32,7 +23,7 @@ export const runPrebuiltAction: PageActionHandler = async (page: Page) => {
   }
   await sleep(1000);
 
-  // Focus and type in sidebar input if visible
+  // Focus the sidebar input if visible
   const sidebarInput = page
     .locator('textarea, input[type="text"], [contenteditable="true"]')
     .first();

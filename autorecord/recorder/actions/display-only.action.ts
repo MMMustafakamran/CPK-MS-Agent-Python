@@ -1,24 +1,14 @@
 import { type Page } from 'playwright';
-import { humanClick, humanGlide, sleep } from '../overlays/cursor';
+import { humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { sendPrompt } from './index';
 
 export const runDisplayOnlyAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
   console.log(`   [Display Only Component] Prompting agent to render WeatherCard component...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
-  const inputBox = await inputLocator.boundingBox();
-  if (inputBox) {
-    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
-    await humanClick(page);
-  }
-  await page.keyboard.type(config.prompt, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
+  await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
 
   console.log(`   Waiting for generative WeatherCard to render inline in chat...`);
   const weatherCard = page.locator('div:has-text("Tokyo"), div:has-text("77°F")').last();
@@ -38,4 +28,3 @@ export const runDisplayOnlyAction: PageActionHandler = async (
   await humanGlide(page, 960, 500, 25);
   await sleep(config.waitAfterPromptMs ?? 6000);
 };
-

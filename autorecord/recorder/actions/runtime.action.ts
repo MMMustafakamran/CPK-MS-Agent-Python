@@ -1,31 +1,21 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
-import { getAssistantMessageCount, waitForAgentResponseCompletion } from './index';
+import { promptsFor, sendPrompt, waitForAgentResponseCompletion } from './index';
 
 export const runRuntimeAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
-  // 1. Send message to my_agent
-  console.log(`   [Copilot Runtime] 1/3: Testing 'my_agent' routing...`);
-  const inputLocator = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  await inputLocator.waitFor({ state: 'visible', timeout: 12000 });
-  const msgCount1 = await getAssistantMessageCount(page);
-  const inputBox = await inputLocator.boundingBox();
-  if (inputBox) {
-    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 20);
-    await humanClick(page);
-  }
-  await page.keyboard.type(config.prompt, { delay: 35 });
-  await sleep(300);
-  await page.keyboard.press('Enter');
-  console.log(`   Waiting for 'my_agent' response...`);
-  await waitForAgentResponseCompletion(page, 1500, msgCount1);
+  const prompts = promptsFor(config);
 
-  // 2. Switch to sample_agent tab
+  // 1/3: my_agent
+  console.log(`   [Copilot Runtime] 1/3: Testing 'my_agent' routing...`);
+  const msgCount1 = await sendPrompt(page, prompts[0], { timeoutMs: 12000 });
+  console.log(`   Waiting for 'my_agent' response...`);
+  await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 1500, msgCount1);
+
+  // 2/3: sample_agent
   console.log(`   [Copilot Runtime] 2/3: Switching to 'sample_agent' tab...`);
   const sampleTab = page.locator('button:has-text("sample_agent")').first();
   if (await sampleTab.isVisible().catch(() => false)) {
@@ -37,25 +27,12 @@ export const runRuntimeAction: PageActionHandler = async (
     }
   }
 
-  // Type a short prompt to sample_agent
-  const sampleInput = page
-    .locator('textarea, input[type="text"], [contenteditable="true"]')
-    .first();
-  if (await sampleInput.isVisible().catch(() => false)) {
-    const msgCount2 = await getAssistantMessageCount(page);
-    const siBox = await sampleInput.boundingBox();
-    if (siBox) {
-      await humanGlide(page, siBox.x + 80, siBox.y + siBox.height / 2, 20);
-      await humanClick(page);
-      const prompt2 = 'Switch to Spanish';
-      await page.keyboard.type(prompt2, { delay: 35 });
-      await sleep(300);
-      await page.keyboard.press('Enter');
-      await waitForAgentResponseCompletion(page, 1500, msgCount2);
-    }
+  if (prompts[1]) {
+    const msgCount2 = await sendPrompt(page, prompts[1], { timeoutMs: 8000 });
+    await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 1500, msgCount2);
   }
 
-  // 3. Switch to search_agent tab
+  // 3/3: search_agent
   console.log(`   [Copilot Runtime] 3/3: Switching to 'search_agent' tab...`);
   const searchTab = page.locator('button:has-text("search_agent")').first();
   if (await searchTab.isVisible().catch(() => false)) {
@@ -70,4 +47,3 @@ export const runRuntimeAction: PageActionHandler = async (
   await humanGlide(page, 960, 500, 25);
   await sleep(1500);
 };
-

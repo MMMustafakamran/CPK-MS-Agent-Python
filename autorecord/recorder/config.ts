@@ -30,6 +30,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 104,
     demoUrl: 'http://localhost:3000/prebuilt-components/demo-chat',
     prompt: 'What is CopilotKit?',
+    prompts: ['What is CopilotKit?'],
     waitAfterPromptMs: 1500,
   },
   {
@@ -41,7 +42,12 @@ export const PAGES: PageRecordConfig[] = [
     startLine: 66,
     endLine: 116,
     demoUrl: 'http://localhost:3000/custom-look-and-feel/slots/demo-chat',
-    prompt: 'Hello from customized slots!',
+    prompt: 'Hello from customized slots level 1!',
+    prompts: [
+      'Hello from customized slots level 1!',
+      'Hello from slot level 2 props override!',
+      'Hello from slot level 3 custom component!',
+    ],
     waitAfterPromptMs: 1500,
   },
   {
@@ -198,6 +204,7 @@ export const PAGES: PageRecordConfig[] = [
     endLine: 43,
     demoUrl: 'http://localhost:3000/copilot-runtime/demo-chat',
     prompt: "What's the weather in Tokyo?",
+    prompts: ["What's the weather in Tokyo?", 'Switch to Spanish'],
     waitAfterPromptMs: 1500,
   },
   {

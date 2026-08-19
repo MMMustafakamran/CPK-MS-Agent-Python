@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../types';
+import { sendPrompt } from './index';
 
 export const runProgrammaticAction: PageActionHandler = async (
   page: Page,
@@ -19,28 +20,14 @@ export const runProgrammaticAction: PageActionHandler = async (
   }
 
   console.log(`   [Programmatic Control] 2/2: Sending draft message and running agent explicitly...`);
-  const inputLocator = page.locator('input[placeholder="Message to send"]').first();
-  if (await inputLocator.isVisible()) {
-    const inBox = await inputLocator.boundingBox();
-    if (inBox) {
-      await humanGlide(page, inBox.x + 80, inBox.y + inBox.height / 2, 20);
-      await humanClick(page);
-    }
-    // Clear and type
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.type(config.prompt, { delay: 35 });
-    await sleep(300);
-  }
-
-  const runBtn = page.locator('button:has-text("Run agent")').first();
-  const rbBox = await runBtn.boundingBox();
-  if (rbBox) {
-    await humanGlide(page, rbBox.x + rbBox.width / 2, rbBox.y + rbBox.height / 2, 18);
-    await humanClick(page);
-  } else {
-    await page.keyboard.press('Enter');
-  }
+  // The draft box arrives pre-populated and submitting means clicking "Run agent",
+  // which is the whole point of the page -- copilotkit.runAgent, not a chat submit.
+  await sendPrompt(page, config.prompt, {
+    inputSelector: 'input[placeholder="Message to send"]',
+    submitSelector: 'button:has-text("Run agent")',
+    clearFirst: true,
+    timeoutMs: 12000,
+  });
 
   console.log(`   Waiting for Programmatic Control run to complete...`);
   await humanGlide(page, 960, 500, 25);
