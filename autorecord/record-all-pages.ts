@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { PAGES } from './recorder/config';
 import { checkServicesHealth } from './recorder/diagnostics';
 import { RecordingEngine } from './recorder/engine';
+import { verifyConfig } from './recorder/verify';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -54,7 +55,16 @@ async function assertServicesUp(force: boolean): Promise<void> {
 }
 
 /** Global switches that must never be mistaken for a page id or filter query. */
-const GLOBAL_FLAGS = new Set(['--force', '--list', '-l', 'list', '--help', '-h']);
+const GLOBAL_FLAGS = new Set([
+  '--force',
+  '--list',
+  '-l',
+  'list',
+  '--help',
+  '-h',
+  '--verify-config',
+  '--verify',
+]);
 
 async function main(): Promise<void> {
   const rawArgs = process.argv.slice(2);
@@ -67,6 +77,11 @@ async function main(): Promise<void> {
     rawArgs.includes('list') ||
     rawArgs.includes('--help') ||
     rawArgs.includes('-h');
+
+  // Static config check -- no browser, no services needed.
+  if (rawArgs.includes('--verify-config') || rawArgs.includes('--verify')) {
+    process.exit(verifyConfig(ROOT));
+  }
 
   if (isListMode) {
     console.log(`\n📋 REGISTERED RECORDING ROUTES (${PAGES.length} total):\n`);

@@ -99,6 +99,7 @@ autorecord/
     ├── config.ts              # Page registry with 17 routes, file paths & line numbers
     ├── engine.ts              # Playwright browser lifecycle manager & recording coordinator
     ├── diagnostics.ts         # Pre-flight service health checks & error pattern matcher
+    ├── verify.ts              # Static registry check: files, ranges, marker drift
     ├── ide/
     │   └── generator.ts       # VS Code Dark+ simulator; Shiki-highlighted, read from disk
     ├── overlays/
@@ -171,6 +172,29 @@ Every command works from `autorecord/` **or** from the repo root — the root
 | `<id>` | Positional form — `npm run record quickstart`. |
 | `--filter=<query>` | Record every route whose id or name contains `<query>`. |
 | `--force` | Record even when the pre-flight health check fails. |
+| `--verify-config` | Static check of the page registry. No browser, no services. |
+
+### Checking the registry (`--verify-config`)
+
+```bash
+npm run record -- --verify-config     # or: npm run record:verify (from the repo root)
+```
+
+`config.ts` anchors every IDE snippet to hardcoded line numbers, so inserting a
+line into a demo page silently highlights the wrong code — no error, the video
+just shows the wrong thing. This checks, per page:
+
+- the `ideFile` and every `extraTabs` file exists
+- `startLine`/`endLine` are ordered and within the file
+- page ids and output filenames are unique (a duplicate filename means one
+  recording silently overwrites another)
+- `prompts[0]` still agrees with `prompt`
+- **drift** — where a file carries `[!code highlight]` or `#region` markers, the
+  configured range still covers at least one of them, and it names the markers'
+  current lines when it does not
+
+Exits 1 on errors, 0 on warnings. Worth running after touching anything under
+`frontend/src/app/`.
 
 ### Pre-flight gate
 
