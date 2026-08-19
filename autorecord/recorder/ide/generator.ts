@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { createHighlighter, type Highlighter } from 'shiki';
 
 export interface IdeTabConfig {
   filePath: string;
@@ -17,119 +18,91 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-function highlightSyntax(line: string, ext: string): string {
-  const isPython = ext === 'py';
-  const isJson = ext === 'json';
-  const isTsx = ext === 'tsx' || ext === 'ts' || ext === 'js' || ext === 'jsx';
+/**
+ * Per-line syntax tokens from Shiki's real TextMate grammars.
+ *
+ * This replaced a hand-rolled regex highlighter. That version ran its keyword,
+ * prop and number passes over markup it had already emitted, so a rule would
+ * rewrite the `style` attribute of a span produced by an earlier rule --
+ * `<span <span style="...">style</span>="color:...">` -- leaking raw CSS into
+ * the rendered code pane on 642 lines across 16 of the 17 configured pages.
+ *
+ * Tokenizing first and escaping only token *content* makes that class of bug
+ * structurally impossible: no pattern ever sees generated HTML.
+ */
+const SHIKI_THEME = 'dark-plus';
 
-  if (!line.trim()) return '&nbsp;';
+/** Grammars preloaded once; must cover every extension langFor() can return. */
+const SHIKI_LANGS = ['tsx', 'typescript', 'javascript', 'json', 'python', 'markdown'] as const;
 
-  // 1. Full line comments
-  const trimmed = line.trimStart();
-  if (
-    trimmed.startsWith('//') ||
-    (isPython && trimmed.startsWith('#')) ||
-    trimmed.startsWith('/*') ||
-    trimmed.startsWith('*')
-  ) {
-    return `<span style="color:#6a9955;font-style:italic;">${escapeHtml(line)}</span>`;
-  }
+let highlighterPromise: Promise<Highlighter> | null = null;
 
-  // 2. JSON highlighting
-  if (isJson) {
-    const jsonMatch = line.match(/^(\s*)(".*?")(\s*:\s*)(.*)$/);
-    if (jsonMatch) {
-      const [, indent, key, colon, val] = jsonMatch;
-      let valHtml = escapeHtml(val);
-      if (val.trim().startsWith('"')) {
-        valHtml = `<span style="color:#ce9178;">${escapeHtml(val)}</span>`;
-      } else if (/^-?\d+(\.\d+)?/.test(val.trim())) {
-        valHtml = `<span style="color:#b5cea8;">${escapeHtml(val)}</span>`;
-      } else if (/^(true|false|null)/.test(val.trim())) {
-        valHtml = `<span style="color:#569cd6;">${escapeHtml(val)}</span>`;
-      }
-      return `${escapeHtml(indent)}<span style="color:#9cdcfe;">${escapeHtml(key)}</span>${escapeHtml(colon)}${valHtml}`;
-    }
-  }
-
-  // 3. Robust tokenizer with string & comment placeholders to avoid collisions
-  const strings: string[] = [];
-  const comments: string[] = [];
-
-  // Protect strings
-  let processed = line.replace(/(["'`])((?:\\.|[^\\])*?)\1/g, (match) => {
-    strings.push(match);
-    return `___STR_${strings.length - 1}___`;
+function getHighlighter(): Promise<Highlighter> {
+  highlighterPromise ??= createHighlighter({
+    themes: [SHIKI_THEME],
+    langs: [...SHIKI_LANGS],
   });
+  return highlighterPromise;
+}
 
-  // Protect inline comments
-  if (isPython) {
-    processed = processed.replace(/(#.*)$/g, (match) => {
-      comments.push(match);
-      return `___COMM_${comments.length - 1}___`;
+function langFor(ext: string): (typeof SHIKI_LANGS)[number] | null {
+  if (ext === 'tsx' || ext === 'jsx') return 'tsx';
+  if (ext === 'ts') return 'typescript';
+  if (ext === 'js' || ext === 'mjs' || ext === 'cjs') return 'javascript';
+  if (ext === 'json') return 'json';
+  if (ext === 'py') return 'python';
+  if (ext === 'md') return 'markdown';
+  return null;
+}
+
+/** Shiki's fontStyle is a bitmask: 1 italic, 2 bold, 4 underline. */
+function fontStyleCss(fontStyle: number | undefined): string {
+  if (!fontStyle) return '';
+  let css = '';
+  if (fontStyle & 1) css += 'font-style:italic;';
+  if (fontStyle & 2) css += 'font-weight:bold;';
+  if (fontStyle & 4) css += 'text-decoration:underline;';
+  return css;
+}
+
+/**
+ * @returns One HTML string per source line, already escaped and safe to embed.
+ *   Falls back to plain escaped text when the language has no grammar, so an
+ *   unknown extension renders readable code rather than nothing.
+ */
+async function highlightLines(code: string, ext: string): Promise<string[]> {
+  const rawLines = code.split('\n');
+  const plain = (): string[] =>
+    rawLines.map((l) => (l.trim() ? escapeHtml(l) : '&nbsp;'));
+
+  const lang = langFor(ext);
+  if (!lang) return plain();
+
+  try {
+    const highlighter = await getHighlighter();
+    const { tokens } = highlighter.codeToTokens(code, {
+      lang,
+      theme: SHIKI_THEME,
     });
-  } else {
-    processed = processed.replace(/(\/\/.*)$/g, (match) => {
-      comments.push(match);
-      return `___COMM_${comments.length - 1}___`;
+
+    return rawLines.map((raw, idx) => {
+      if (!raw.trim()) return '&nbsp;';
+      const lineTokens = tokens[idx];
+      if (!lineTokens) return escapeHtml(raw);
+
+      return lineTokens
+        .map(
+          (t) =>
+            `<span style="color:${t.color ?? '#d4d4d4'};${fontStyleCss(
+              t.fontStyle,
+            )}">${escapeHtml(t.content)}</span>`,
+        )
+        .join('');
     });
+  } catch {
+    // Never let a highlighting failure blank out the IDE pane.
+    return plain();
   }
-
-  // HTML Escape before syntax styling
-  let escaped = escapeHtml(processed);
-
-  if (isPython) {
-    // Python Keywords
-    const pyControl = /\b(import|from|return|if|elif|else|for|while|try|except|finally|with|as|yield|raise|pass|break|continue)\b/g;
-    const pyDefs = /\b(def|class|async|await|lambda)\b/g;
-    const pyConstants = /\b(True|False|None|self)\b/g;
-    const pyDecorators = /(@[\w.]+)/g;
-    const pyBuiltins = /\b(print|len|range|str|int|dict|list|set|tuple|type|isinstance|open)\b/g;
-    const pyFunctions = /\b([a-zA-Z_]\w*)(?=\s*\()/g;
-
-    escaped = escaped.replace(pyControl, '<span style="color:#c586c0;">$1</span>');
-    escaped = escaped.replace(pyDefs, '<span style="color:#569cd6;">$1</span>');
-    escaped = escaped.replace(pyConstants, '<span style="color:#569cd6;">$1</span>');
-    escaped = escaped.replace(pyDecorators, '<span style="color:#dcdcaa;">$1</span>');
-    escaped = escaped.replace(pyBuiltins, '<span style="color:#4ec9b0;">$1</span>');
-    escaped = escaped.replace(pyFunctions, '<span style="color:#dcdcaa;">$1</span>');
-  } else if (isTsx) {
-    // TS/JS Keywords
-    const tsControl = /\b(import|export|from|return|if|else|for|while|switch|case|default|try|catch|finally|throw|break|continue)\b/g;
-    const tsDefs = /\b(const|let|var|function|type|interface|class|enum|extends|implements|async|await|new)\b/g;
-    const tsConstants = /\b(true|false|null|undefined|void|any|number|string|boolean|object)\b/g;
-    const tsReact = /\b(useAgent|useCopilotKit|useComponent|useHumanInTheLoop|useRenderTool|useDefaultRenderTool|useFrontendTool|useAgentContext|CopilotChat|CopilotSidebar|CopilotPopup|CopilotKitProvider|CopilotKit)\b/g;
-    const tsTags = /(&lt;\/?)([A-Z]\w*)/g;
-    const tsHtmlTags = /(&lt;\/?)(div|span|button|input|main|h1|h2|h3|h4|h5|h6|pre|code|p|ul|ol|li|section|article|header|footer|nav|form|label|textarea|select|option|table|tr|td|th|tbody|thead|svg|path|circle|rect|line)\b/g;
-    const tsFunctions = /\b([a-zA-Z_]\w*)(?=\s*\()/g;
-    const tsProps = /\b([a-zA-Z_]\w*)(?=\s*=\s*)/g;
-
-    escaped = escaped.replace(tsControl, '<span style="color:#c586c0;">$1</span>');
-    escaped = escaped.replace(tsDefs, '<span style="color:#569cd6;">$1</span>');
-    escaped = escaped.replace(tsConstants, '<span style="color:#4ec9b0;">$1</span>');
-    escaped = escaped.replace(tsReact, '<span style="color:#4ec9b0;font-weight:600;">$1</span>');
-    escaped = escaped.replace(tsTags, '$1<span style="color:#4ec9b0;">$2</span>');
-    escaped = escaped.replace(tsHtmlTags, '$1<span style="color:#569cd6;">$2</span>');
-    escaped = escaped.replace(tsProps, '<span style="color:#9cdcfe;">$1</span>');
-    escaped = escaped.replace(tsFunctions, '<span style="color:#dcdcaa;">$1</span>');
-  }
-
-  // Restore numbers
-  escaped = escaped.replace(/\b(\d+)\b/g, '<span style="color:#b5cea8;">$1</span>');
-
-  // Restore strings
-  escaped = escaped.replace(/___STR_(\d+)___/g, (_, idx) => {
-    const rawStr = strings[Number(idx)];
-    return `<span style="color:#ce9178;">${escapeHtml(rawStr)}</span>`;
-  });
-
-  // Restore comments
-  escaped = escaped.replace(/___COMM_(\d+)___/g, (_, idx) => {
-    const rawComm = comments[Number(idx)];
-    return `<span style="color:#6a9955;font-style:italic;">${escapeHtml(rawComm)}</span>`;
-  });
-
-  return escaped;
 }
 
 function getFileIcon(ext: string): string {
@@ -162,18 +135,32 @@ function getLangLabel(ext: string): string {
   return 'Plain Text';
 }
 
-export function generateIdeHtml(
+export async function generateIdeHtml(
   rootDir: string,
   primaryFilePath: string,
   startLine = 1,
   endLine = 30,
   extraTabs: IdeTabConfig[] = [],
   activeTabIdx = 0,
-): string {
+): Promise<string> {
   const tabsList: IdeTabConfig[] = [
     { filePath: primaryFilePath, startLine, endLine },
     ...extraTabs,
   ];
+
+  // Read and tokenize every tab up front; the render below stays synchronous.
+  const tabSources = await Promise.all(
+    tabsList.map(async (tab) => {
+      const fullPath = join(rootDir, tab.filePath);
+      const raw = existsSync(fullPath)
+        ? readFileSync(fullPath, 'utf-8')
+        : '// File not found';
+      // Normalize CRLF so a stray \r never lands inside a rendered code line.
+      const code = raw.replace(/\r\n/g, '\n');
+      const ext = basename(tab.filePath).split('.').pop() ?? '';
+      return { code, ext, lines: await highlightLines(code, ext) };
+    }),
+  );
 
   // Render tab headers
   const tabHeadersHtml = tabsList
@@ -205,14 +192,9 @@ export function generateIdeHtml(
   // Render file viewports for all tabs
   const tabBodiesHtml = tabsList
     .map((tab, idx) => {
-      const fullPath = join(rootDir, tab.filePath);
-      let code = '// File not found';
-      if (existsSync(fullPath)) {
-        code = readFileSync(fullPath, 'utf-8');
-      }
+      const { code, ext, lines: highlightedLines } = tabSources[idx];
 
       const fileName = basename(tab.filePath);
-      const ext = fileName.split('.').pop() ?? '';
       const normalizedPath = tab.filePath.replace(/\\/g, '/');
       const pathParts = normalizedPath.split('/');
       const codeLines = code.split('\n');
@@ -223,7 +205,7 @@ export function generateIdeHtml(
           const isHighlighted =
             lineNum >= tab.startLine && lineNum <= tab.endLine;
           const isCaretLine = lineNum === tab.startLine;
-          const highlightedContent = highlightSyntax(line, ext);
+          const highlightedContent = highlightedLines[lIdx] ?? '&nbsp;';
 
           const lineClass = isHighlighted
             ? 'code-line highlighted'
