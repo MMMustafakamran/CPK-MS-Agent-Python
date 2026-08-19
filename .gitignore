@@ -31,3 +31,8 @@ doc-snapshot/reports/
 
 # Autorecorder scratch
 autorecorder/videos/.temp_chunks/
+
+# Autorecorder output. Recordings are build artifacts, reproducible via
+# `npm run record`; see autorecorder/videos/.gitignore for why.
+autorecorder/videos/*.webm
+autorecorder/videos/.temp_chunks/

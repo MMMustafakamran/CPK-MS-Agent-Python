@@ -49,6 +49,12 @@ npm run record            # all pages, in order
 Videos land in `videos/` as `<videoPrefix>-<NN>-<name>.webm`, 1920×1080, ~25fps
 (Playwright's capture rate; it is not configurable).
 
+**`videos/` is gitignored on purpose.** Recordings are build output — reproducible
+from this folder plus `npm run record` — and committing them is expensive: 17 clips
+at ~5MB, rewritten on every re-record, took one repo's `.git` to 348MB before its
+history had to be rewritten. Publish them as release assets or to a bucket. Keep
+this policy when you copy the folder into another repo.
+
 ---
 
 ## Reading the summary
