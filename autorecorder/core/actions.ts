@@ -50,8 +50,15 @@ export async function waitForAgentResponseCompletion(
         if (bCount > 0 && msgs.length <= bCount) {
           return { started: false, len: 0 };
         }
-        const lastMsg = msgs[msgs.length - 1];
-        const txt = (lastMsg.textContent || '').trim();
+        // Scan back for the newest message that actually has text. Some pages
+        // render an empty trailing node after the real reply -- reading the last
+        // match blindly then sees "" forever and reports that the agent never
+        // answered while the answer is on screen.
+        let txt = '';
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          const t = (msgs[i].textContent || '').trim();
+          if (t) { txt = t; break; }
+        }
         return { started: txt.length > 2, len: txt.length };
       }, { bCount: baseCount, sel: messageSelector })
       .catch(() => ({ started: false, len: 0 }));
@@ -75,11 +82,16 @@ export async function waitForAgentResponseCompletion(
         .evaluate((sel) => {
           const msgs = document.querySelectorAll(sel);
           if (msgs.length === 0) return '';
-          const lastMsg = msgs[msgs.length - 1];
-          return (lastMsg.textContent || '').trim();
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const t = (msgs[i].textContent || '').trim();
+            if (t) return `${msgs.length}:${t}`;
+          }
+          return '';
         }, messageSelector)
         .catch(() => '');
 
+      // The count is part of the compared value, so a new message arriving
+      // restarts the stability window instead of looking like "no change".
       if (currentText.length > 0 && currentText === previousText) {
         stableCount++;
         // If text is stable for 4 consecutive checks (1.6s), streaming has finished
