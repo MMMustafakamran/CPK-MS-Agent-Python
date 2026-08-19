@@ -143,35 +143,57 @@ export async function humanClick(page: Page): Promise<void> {
 }
 
 /**
- * Smooth, natural human scroll down the documentation page (~85-90% depth)
- * Dispatches smooth ease-in-out wheel increments to both the browser compositor and DOM scrollers.
- * Calibrated for a relaxed, 50% slower reading velocity.
+ * Smooth, natural human scroll down the documentation page.
+ *
+ * Drives exactly ONE scroller per tick. Sending a wheel event *and* nudging
+ * `scrollTop` (as this used to) makes the page travel roughly twice the
+ * requested distance, which is what forced the depth target so low.
+ * Travel is clamped to 75% of the page so the glide never bottoms out into
+ * the footer or an overscroll bounce.
  */
 export async function humanScrollDown(
   page: Page,
-  totalPixels: number = 1100,
+  totalPixels: number = 1600,
   durationMs: number = 3200,
 ): Promise<void> {
-  // 1. Determine the actual max scrollable distance of the main layout
+  // Resolve the scroller once and stash it, so every tick moves the same element.
   const actualTarget = (await page
     .evaluate((requestedPixels) => {
-      const layout =
-        document.getElementById('nd-docs-layout') ||
-        document.querySelector('main') ||
-        document.documentElement;
-      const maxScroll = Math.max(
-        0,
-        layout.scrollHeight - layout.clientHeight,
-        document.documentElement.scrollHeight - window.innerHeight,
-      );
-      // Clamp to at most 75% of page depth so it never hits the bottom footer or triggers overscroll
+      const candidates = [
+        document.getElementById('nd-docs-layout'),
+        document.querySelector('main'),
+        document.querySelector('article'),
+      ];
+      const nested = candidates.find(
+        (el) => el instanceof HTMLElement && el.scrollHeight > el.clientHeight + 40,
+      ) as HTMLElement | undefined;
+
+      (window as any).__autorecordScroller = nested ?? null;
+
+      const maxScroll = nested
+        ? nested.scrollHeight - nested.clientHeight
+        : Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+
       return Math.min(requestedPixels, Math.max(300, Math.floor(maxScroll * 0.75)));
     }, totalPixels)
     .catch(() => totalPixels)) as number;
 
+  const readPos = (): Promise<number> =>
+    page
+      .evaluate(() => {
+        const el = (window as any).__autorecordScroller as HTMLElement | null;
+        return el ? el.scrollTop : window.scrollY;
+      })
+      .catch(() => 0);
+
   const steps = 50;
   const interval = Math.max(25, Math.floor(durationMs / steps));
   let previousProgress = 0;
+
+  // Native wheel keeps the compositor's own smoothing, so it is preferred.
+  // Some doc layouts swallow it; the first tick proves which applies.
+  let useWheel = true;
+  let wheelProven = false;
 
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
@@ -182,23 +204,29 @@ export async function humanScrollDown(
     previousProgress = currentProgress;
 
     if (deltaY > 0) {
-      // Direct wheel scroll
-      await page.mouse.wheel(0, deltaY);
+      if (useWheel) {
+        const before = wheelProven ? 0 : await readPos();
+        await page.mouse.wheel(0, deltaY);
 
-      // Increment main scroll container directly
-      await page
-        .evaluate((dy) => {
-          const layout =
-            document.getElementById('nd-docs-layout') ||
-            document.querySelector('main') ||
-            document.documentElement;
-          if (layout && layout.scrollHeight > layout.clientHeight) {
-            layout.scrollTop += dy;
-          } else {
-            window.scrollBy(0, dy);
+        if (!wheelProven) {
+          const after = await readPos();
+          wheelProven = true;
+          if (after <= before) {
+            // Wheel did nothing — fall back to programmatic scrolling for the rest.
+            useWheel = false;
           }
-        }, deltaY)
-        .catch(() => {});
+        }
+      }
+
+      if (!useWheel) {
+        await page
+          .evaluate((dy) => {
+            const el = (window as any).__autorecordScroller as HTMLElement | null;
+            if (el) el.scrollTop += dy;
+            else window.scrollBy(0, dy);
+          }, deltaY)
+          .catch(() => {});
+      }
     }
 
     await sleep(interval);
@@ -206,4 +234,3 @@ export async function humanScrollDown(
 
   await sleep(300);
 }
-
