@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.58",
-    "@copilotkit/react-core": "^1.68.1",
-    "@copilotkit/runtime": "^1.68.1",
+    "@copilotkit/react-core": "^1.68.2",
+    "@copilotkit/runtime": "^1.68.2",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",

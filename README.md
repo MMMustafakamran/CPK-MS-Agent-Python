@@ -85,22 +85,27 @@ git clone <this-repo> ms-agent-framework-pt && cd ms-agent-framework-pt
 cd frontend && npm install && cd ..
 ```
 
-To upgrade all frontend dependencies to their latest versions:
+To upgrade frontend dependencies to their latest releases:
 
 ```bash
 cd frontend
 npx npm-check-updates -u
 npm install
 cd ..
-
-npm update #updates packages with current semver ranges
-
 ```
 
 **3. Install backend deps**
 
 ```bash
 cd backend && uv sync --prerelease=allow && cd ..
+```
+
+To upgrade backend dependencies to their latest releases:
+
+```bash
+cd backend
+uv add --prerelease=allow agent-framework-ag-ui@latest agent-framework-azure-ai@latest agent-framework-openai@latest fastapi@latest uvicorn@latest
+cd ..
 ```
 
 **4. Configure the environment**
