@@ -201,7 +201,7 @@ export const PAGES = definePages([
     id: 'readables',
     name: 'Readables',
     videoName: 'Readables',
-    docPath: 'readables',
+    docPath: 'agent-app-context',
     route: 'readables',
     ideFile: 'frontend/src/app/readables/demo-chat/page.tsx',
     startLine: 18,

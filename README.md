@@ -264,7 +264,7 @@ The code on a page is never a re-typed approximation: each page reads real files
 | `/ms-agent-python/frontend-tools`                             | `/frontend-tools`                             | ✅ Working   |                                                                            |
 | `/ms-agent-python/shared-state/in-app-agent-read`             | `/shared-state/in-app-agent-read`             | ✅ Working   | Seeded via server `default_state` — see §9.                                |
 | `/ms-agent-python/shared-state/in-app-agent-write`            | `/shared-state/in-app-agent-write`            | ✅ Working   |                                                                            |
-| `/ms-agent-python/readables`                                  | `/readables`                                  | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
+| `/ms-agent-python/agent-app-context`                          | `/readables`                                  | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
 | `/ms-agent-python/auth`                                       | `/auth`                                       | ✅ Working   | Demo reports live auth state on both sides and sends a request through it. |
 | `/ms-agent-python/copilot-runtime`                            | `/copilot-runtime`                            | ✅ Working   |                                                                            |
 | `/ms-agent-python/ag-ui`                                      | `/ag-ui`                                      | ✅ Working   |                                                                            |
@@ -422,7 +422,7 @@ The nav, every route header, the demo links, and the status table all derive fro
 
 **App Control** — [Frontend Tools](https://docs.copilotkit.ai/ms-agent-python/frontend-tools)
 
-**Shared State** — [Reading agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read) · [Writing agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write) · [Readables](https://docs.copilotkit.ai/ms-agent-python/readables)
+**Shared State** — [Reading agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read) · [Writing agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write) · [Readables](https://docs.copilotkit.ai/ms-agent-python/agent-app-context)
 
 **Microsoft Agent Framework** — [Authentication](https://docs.copilotkit.ai/ms-agent-python/auth)
 

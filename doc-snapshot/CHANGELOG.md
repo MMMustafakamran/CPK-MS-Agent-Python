@@ -14,7 +14,7 @@ weeks between changes does not expire anything.
 
 **Low — Readables** · _local snapshot edit, not an upstream change_
 
-`/ms-agent-python/readables` · route `/readables` · under “Implementation”
+`/ms-agent-python/agent-app-context` · route `/readables` · under “Implementation”
 
 3 prose lines changed.
 

@@ -219,7 +219,7 @@ export const NAV: NavGroup[] = [
         path: "/readables",
         hasDemo: true,
         title: "Readables",
-        docPath: "/ms-agent-python/readables",
+        docPath: "/ms-agent-python/agent-app-context",
         summary:
           "Sharing app state with the agent via useAgentContext, forwarded as ag_ui_context.",
         status: "working",
