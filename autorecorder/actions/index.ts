@@ -29,7 +29,7 @@ import { runStandardAction } from '../core/actions';
 import { type Page } from 'playwright';
 
 import { runAgUiAction } from './ag-ui.action';
-import { runAgentAppContextAction } from './agent-app-context.action';
+import { runReadablesAction } from './readables.action';
 import { runAuthAction } from './auth.action';
 import { runDisplayOnlyAction } from './display-only.action';
 import { runFrontendToolsAction } from './frontend-tools.action';
@@ -62,7 +62,7 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   'frontend-tools': runFrontendToolsAction,
   'in-app-agent-read': runSharedStateReadAction,
   'in-app-agent-write': runSharedStateWriteAction,
-  'agent-app-context': runAgentAppContextAction,
+  readables: runReadablesAction,
   auth: runAuthAction,
   'copilot-runtime': runRuntimeAction,
   'ag-ui': runAgUiAction,

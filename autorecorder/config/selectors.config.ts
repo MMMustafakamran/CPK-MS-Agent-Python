@@ -56,10 +56,14 @@ export interface SelectorContract {
 }
 
 export const SELECTORS: SelectorContract = {
-  chatInput: 'textarea, input[type="text"], [contenteditable="true"]',
+  chatInput:
+    '[data-testid="copilot-chat-textarea"], textarea, input[type="text"], [contenteditable="true"]',
 
+  // CopilotKit v2 ships `data-testid` hooks on the composer, and the send
+  // button is disabled until React holds the typed text -- so this doubles as
+  // the "is it actually interactive yet" signal sendPrompt waits on.
   chatSubmit:
-    'button[type="submit"], button:has-text("Send"), .copilotKitSendButton, button[aria-label*="Send"]',
+    '[data-testid="copilot-send-button"], button[type="submit"], button:has-text("Send"), .copilotKitSendButton, button[aria-label*="Send"]',
 
   assistantMessage:
     '.copilotKitAssistantMessage, [data-message-role="assistant"], .copilotKitMessage:not(:first-child), [class*="assistant"]',

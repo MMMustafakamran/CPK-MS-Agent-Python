@@ -230,7 +230,7 @@ The code on a page is never a re-typed approximation: each page reads real files
 
 **`/shared-state/in-app-agent-write`** — `agent.setState`, with and without a re-run. **Pass:** Toggle flips the value immediately and the agent acknowledges on your next message; Toggle + re-run makes it respond straight away.
 
-**`/agent-app-context`** — `useAgentContext`. **Try:** `Who are my colleagues?` **Pass:** the agent answers from the list on the left, which it was never told in a message. **Fail:** it says it has no such information.
+**`/readables`** — `useAgentContext`. **Try:** `Who are my colleagues?` **Pass:** the agent answers from the list on the left, which it was never told in a message. **Fail:** it says it has no such information.
 
 ### Microsoft Agent Framework
 
@@ -264,7 +264,7 @@ The code on a page is never a re-typed approximation: each page reads real files
 | `/ms-agent-python/frontend-tools`                             | `/frontend-tools`                             | ✅ Working   |                                                                            |
 | `/ms-agent-python/shared-state/in-app-agent-read`             | `/shared-state/in-app-agent-read`             | ✅ Working   | Seeded via server `default_state` — see §9.                                |
 | `/ms-agent-python/shared-state/in-app-agent-write`            | `/shared-state/in-app-agent-write`            | ✅ Working   |                                                                            |
-| `/ms-agent-python/agent-app-context`                          | `/agent-app-context`                          | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
+| `/ms-agent-python/readables`                                  | `/readables`                                  | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
 | `/ms-agent-python/auth`                                       | `/auth`                                       | ✅ Working   | Demo reports live auth state on both sides and sends a request through it. |
 | `/ms-agent-python/copilot-runtime`                            | `/copilot-runtime`                            | ✅ Working   |                                                                            |
 | `/ms-agent-python/ag-ui`                                      | `/ag-ui`                                      | ✅ Working   |                                                                            |
@@ -307,7 +307,7 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 `uv add` fails without `--prerelease=allow`; the docs' install commands omit it.
 
 **10. Readables: the agent does not always pick up shared context**
-On `/agent-app-context`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
+On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
 
 ---
 
@@ -422,7 +422,7 @@ The nav, every route header, the demo links, and the status table all derive fro
 
 **App Control** — [Frontend Tools](https://docs.copilotkit.ai/ms-agent-python/frontend-tools)
 
-**Shared State** — [Reading agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read) · [Writing agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write) · [Readables](https://docs.copilotkit.ai/ms-agent-python/agent-app-context)
+**Shared State** — [Reading agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read) · [Writing agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write) · [Readables](https://docs.copilotkit.ai/ms-agent-python/readables)
 
 **Microsoft Agent Framework** — [Authentication](https://docs.copilotkit.ai/ms-agent-python/auth)
 

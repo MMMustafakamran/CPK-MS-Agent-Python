@@ -5,7 +5,7 @@ import { Callout, Panel, TryIt } from "@/components/ui";
 export default function Page() {
   return (
     <>
-      <RouteHeader path="/agent-app-context" />
+      <RouteHeader path="/readables" />
 
       <Panel title="What it demonstrates">
         <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
@@ -39,7 +39,7 @@ export default function Page() {
       </Callout>
 
       <Panel title="Source">
-        <SourceCode file="frontend/src/app/agent-app-context/demo-chat/page.tsx" />
+        <SourceCode file="frontend/src/app/readables/demo-chat/page.tsx" />
       </Panel>
     </>
   );

@@ -33,7 +33,7 @@ export default function Page() {
 
   return (
     <DemoFrame
-      parentPath="/agent-app-context"
+      parentPath="/readables"
       subtitle="useAgentContext — forwarded as ag_ui_context"
     >
       <div className="grid h-full grid-cols-1 lg:grid-cols-2">

@@ -1,13 +1,33 @@
 import { type Page } from 'playwright';
 import { humanGlide, sleep } from '../core/overlays/cursor';
+import {
+  closeNotepad,
+  openNotepad,
+  typeInNotepad,
+} from '../core/overlays/notepad';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 
-export const runAgentAppContextAction: PageActionHandler = async (
+/**
+ * The defect this page records: the colleagues list is registered and goes out
+ * on run_started, but the agent answers as if it has no context. Written out in
+ * Notepad at the end of the take so the video carries the report with it.
+ */
+const ISSUE_NOTE = [
+  'Readables - ms-agent-framework-python',
+  '',
+  'Using the exact useAgentContext example from the docs. The colleagues list',
+  'is registered and gets senton run_started, but the agent still asks which',
+  'colleagues I meanit does not know Jane Smith is one of them.',
+  '',
+  'copilotkit 1.66.2 (react-core, react-ui, runtime,shared',
+].join('\n');
+
+export const runReadablesAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
-  console.log(`   [Agent App Context] Sending prompt "${config.prompt}"...`);
+  console.log(`   [Readables] Sending prompt "${config.prompt}"...`);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
 
   // Glide cursor over the shared context list on the left
@@ -24,4 +44,10 @@ export const runAgentAppContextAction: PageActionHandler = async (
 
   // Actively wait for assistant response citing colleagues context
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
+
+  console.log(`   [Readables] Writing the issue note in Notepad...`);
+  await sleep(1200);
+  await openNotepad(page, 'readables-issue.txt');
+  await typeInNotepad(page, ISSUE_NOTE);
+  await closeNotepad(page);
 };

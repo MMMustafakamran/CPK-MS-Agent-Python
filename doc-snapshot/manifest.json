@@ -28,13 +28,13 @@
       "age": 0,
       "date": "Mon, 17 Aug 2026 13:46:40 GMT"
     },
-    "/ms-agent-python/agent-app-context": {
-      "file": "ms-agent-python__agent-app-context.md",
+    "/ms-agent-python/readables": {
+      "file": "ms-agent-python__readables.md",
       "sha256": "ad05c6573505a2225f850295f9281275cd8d8affd4550a366c81f7827324ce34",
       "bytes": 7644,
       "lines": 173,
       "routes": [
-        "/agent-app-context"
+        "/readables"
       ],
       "status": "ok",
       "age": 0,

@@ -129,6 +129,17 @@ Two details worth knowing, because both were bugs once:
   Router page. `ensureOverlays` installs a MutationObserver that re-attaches them
   if a render pass deletes them, and step 1 waits for hydration before scrolling
   so a remount cannot snap the page back to the top.
+- Native `window.alert` dialogs are browser chrome, so video capture never sees
+  them (and Playwright auto-dismisses them). The Frontend Tools page needs its
+  alert visible to prove the handler ran in the browser, so its action installs
+  a DOM replica of Chrome's dialog via `core/overlays/alert-dialog.ts` and
+  clicks OK with the virtual cursor. Opt-in — no other page is affected.
+
+- The Readables take ends with a simulated Windows 11 Notepad window
+  (`core/overlays/notepad.ts`), opened from the taskbar and typed into
+  character-by-character at human rhythm, holding the issue report for that
+  page. Also opt-in per action.
+
 - Playwright starts recording when the page is created, so the first navigation
   is dead footage. The doc URL is warmed in a throwaway page first, which cuts
   it roughly in half; removing the rest would need an ffmpeg trim in post.
