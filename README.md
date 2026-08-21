@@ -30,7 +30,8 @@ Tracks: **<https://docs.copilotkit.ai/ms-agent-python>**
 ```
 Browser (React 19)
   │  @copilotkit/react-core/v2 — CopilotKitProvider, CopilotChat, hooks
-  │  POST /api/copilotkit
+  │  POST /api/copilotkit            ← every route except /threads
+  │  GET|POST /api/copilotkit-threads/*   ← /threads only
   ▼
 Next.js 16 App Router  ·  localhost:3000
   │  Copilot Runtime  (@copilotkit/runtime)
@@ -48,6 +49,7 @@ Three points worth noting:
 - **No framework-specific adapter.** Agent Framework speaks AG-UI natively, so the runtime binds a plain `HttpAgent` — unlike integrations that ship their own agent class.
 - **Three agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc.
 - **The model key never reaches the browser.** Only the Python process holds it.
+- **Two runtime endpoints, on purpose.** `/api/copilotkit` is the runtime exactly as the docs write it. Thread routes do not exist on it — `copilotRuntimeNextJSAppRouterEndpoint` delegates to `createCopilotEndpointSingleRoute`, and single-route mode dispatches with `threadEndpointsEnabled: false`. `/api/copilotkit-threads` is a second, multi-route endpoint added for `/threads` alone, so the documented one stays byte-for-byte comparable against the doc sample.
 
 ### The three agents
 
@@ -126,8 +128,16 @@ Then edit `backend/.env`:
 | `AUTH_BEARER_TOKEN`                 | `backend/.env`        | Enables the bearer-token middleware. Unset by default.                                     |
 | `MS_AGENT_URL`                      | `frontend/.env.local` | Where the runtime finds the agent. Defaults to `http://localhost:8000`.                    |
 | `NEXT_PUBLIC_AUTH_BEARER_TOKEN`     | `frontend/.env.local` | The token the provider forwards. Must match the backend's.                                 |
+| `COPILOTKIT_LICENSE_TOKEN`          | `frontend/.env.local` | `/threads` only. Signed license, verified offline — no login, no network call.              |
+| `INTELLIGENCE_API_KEY`              | `frontend/.env.local` | `/threads` only. Project key for the managed thread store.                                  |
+| `INTELLIGENCE_API_URL`              | `frontend/.env.local` | `/threads` only. Managed Intelligence REST endpoint.                                        |
+| `INTELLIGENCE_GATEWAY_WS_URL`       | `frontend/.env.local` | `/threads` only. Managed realtime endpoint — a different host from the REST one.             |
 
 > Next.js does not read the repo-root `.env`. Frontend variables belong in `frontend/.env.local`. In practice you only need `OPENAI_API_KEY`.
+
+> Porting this to another framework repo? [THREADS-AUTH.md](THREADS-AUTH.md) is the standalone procedure — it assumes no knowledge of this repo and covers the three gates, the two files to add, and what to verify.
+
+The four `/threads` variables are the only credentials in this repo that are not optional for the feature they serve — thread storage lives in CopilotKit's managed Intelligence platform, not in the agent or the runtime. `npx copilotkit@latest init` mints all four; this repo's values were copied from the project it scaffolded under `1cli-testing/`. Leave them unset and `/threads` degrades rather than breaking: the read-only thread routes still answer from the runtime's in-memory fallback, mutations return 422, and the prebuilt drawer renders locked.
 
 **Default ports:** frontend **3000**, backend **8000**.
 
@@ -236,6 +246,20 @@ The code on a page is never a re-typed approximation: each page reads real files
 
 **`/auth`** — Forwarding and validating a bearer token. The demo reports whether the agent demands a token and whether the provider sends one, then gives you a chat to send through it. **Try:** send a message with auth off (the baseline), then set `AUTH_BEARER_TOKEN` on the backend only and restart the agent. **Pass:** the second attempt fails — the runtime never reaches the agent. Adding a matching `NEXT_PUBLIC_AUTH_BEARER_TOKEN` and restarting the app makes it stream again. **Fail:** messages stream identically in all three states, meaning the middleware is not enforcing.
 
+### Rich Threads
+
+Four routes, one per doc page. All share the Intelligence-backed runtime at `/api/copilotkit-threads` and the `default` agent, so a thread created on one shows up on the others.
+
+**`/threads`** — Orientation and credentials. No demo; it explains what the other three need and links to them. **Pass:** the four env variables are described and the two source panels render. **Fail:** nothing to fail — if the others are broken, this page says why.
+
+**`/threads/drawer`** — The drop-in `<CopilotThreadsDrawer>`, in two tabs: the doc's zero-prop integration, and the same drawer with `renderRow`, `limit`, and label overrides. **Try:** `Can you tell me a joke?`, then hit "New Conversation" and send another. **Pass:** two rows appear, auto-named; clicking the first replays its transcript with no selection state written by us. **Fail:** a "requires a license" panel instead of a list.
+
+**`/threads/headless`** — The same data through `useThreads`, driving a sidebar this repo writes. **Try:** send a message, then Rename the row and reload. **Pass:** the new name survives the reload (it round-tripped through the platform, not just optimistic state); Archive hides the row until you tick Archived; Delete asks first, then removes it permanently. **Fail:** rows list but mutations error — mutations need the Intelligence runtime, unlike the read-only routes.
+
+**`/threads/lifecycle`** — The lifecycle made observable. **Try:** send a message, hit "New chat", then click the conversation you just made under "Open a known conversation". **Pass:** `hasExplicitThreadId` reads `false` on the fresh chat and flips to `true` on the picked one, whose transcript replays and whose messages appear in the `agent.messages` readout. **Fail:** the id changes but the transcript stays empty — replay needs a server-side store, so check `/threads` first.
+
+All three are recorded by the autorecorder (`npm run record -- --threads-drawer`, `--threads-headless`, `--threads-lifecycle`). Note that each run leaves a real thread on the Intelligence project, so the list grows one row per recording against the free tier's 200-thread cap.
+
 ### Backend
 
 **`/copilot-runtime`** — Live routing across all three agent ids. **Pass:** all three stream, each with its own conversation. **Fail:** one errors with agent-not-found.
@@ -268,10 +292,14 @@ The code on a page is never a re-typed approximation: each page reads real files
 | `/ms-agent-python/auth`                                       | `/auth`                                       | ✅ Working   | Demo reports live auth state on both sides and sends a request through it. |
 | `/ms-agent-python/copilot-runtime`                            | `/copilot-runtime`                            | ✅ Working   |                                                                            |
 | `/ms-agent-python/ag-ui`                                      | `/ag-ui`                                      | ✅ Working   |                                                                            |
+| `/ms-agent-python/threads`                                    | `/threads`                                    | ⚠️ Partial   | Overview + credentials. Free-tier license expires 2026-09-12.              |
+| `/ms-agent-python/prebuilt-components/copilot-threads-drawer` | `/threads/drawer`                             | ⚠️ Partial   | Slots escape hatch unusable in 1.68.2 — see §9 #12. Rename absent by design. |
+| `/ms-agent-python/headless-threads`                           | `/threads/headless`                           | ⚠️ Partial   | All four doc steps. Mutations need the license.                            |
+| `/ms-agent-python/threads-lifecycle`                          | `/threads/lifecycle`                          | ⚠️ Partial   | "Thread via your own API on first message" not implemented — see §9 #11.   |
 
 **Legend:** ✅ Working · ⚠️ Partial · 📖 Reference · 🚧 Not started · ❌ Broken
 
-Out of scope by request: CLI, Build with agents, Rich Threads, MCP Apps, A2UI, Intelligence Platform, Troubleshooting.
+Out of scope by request: CLI, Build with agents, MCP Apps, A2UI, Intelligence Platform, Troubleshooting. Also out of scope: `/ms-agent-python/threads-import` (Import & Synchronize Thread History) — it migrates existing LangGraph/ADK conversations into the platform store, and there is nothing here to migrate from.
 
 ---
 
@@ -308,6 +336,26 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 
 **10. Readables: the agent does not always pick up shared context**
 On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
+
+**11. The documented runtime helper cannot serve threads**
+No threads doc page says this, and all four of them assume it works. `copilotRuntimeNextJSAppRouterEndpoint` — the helper the Quickstart and Copilot Runtime pages use — delegates to `createCopilotEndpointSingleRoute`, and `fetch-handler.mjs` dispatches single-route requests with `threadEndpointsEnabled: false`. Thread routes are only reachable in multi-route mode, which needs a `[[...slug]]` catch-all route file *and* `useSingleEndpoint={false}` on the provider. Neither appears in any doc sample. That is why this repo has a second endpoint at `/api/copilotkit-threads` rather than threads simply working on `/api/copilotkit`.
+
+A second, related gate: `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime was constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. The headless `useThreads` hook is not gated this way.
+
+Also not implemented: the lifecycle page's "create a thread with your own API on the first message". It needs a backend that mints thread rows, which this harness does not have, so it is left out rather than faked.
+
+**12. The Threads Drawer's `slot` customization does not work through the React wrapper**
+[The drawer page](https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer) documents three escape hatches, the first being "project children with a `slot` attribute (`header`, `empty`, `footer`, `memories`, `launcher-icon`)" with this sample:
+
+```tsx
+<CopilotThreadsDrawer>
+  <span slot="header">My conversations</span>
+</CopilotThreadsDrawer>
+```
+
+The underlying `<copilotkit-threads-drawer>` web component does declare all five slots. But the React wrapper in `@copilotkit/react-core` 1.68.2 declares no `children` on `CopilotThreadsDrawerProps` (so the sample is a type error) and renders the element as `React.createElement(TAG, props, rowChildren)` — where `rowChildren` is derived solely from `renderRow`. Any other child is dropped. `renderRow`, `limit`, `label`, and `recentLabel` all work; `/threads/drawer` uses those four and reports the omission rather than working around it.
+
+Verified against `@copilotkit/runtime` and `@copilotkit/react-core` 1.68.2.
 
 ---
 
@@ -359,6 +407,7 @@ CPK-MS-Agent-Python/
 ├── CLAUDE.md
 ├── README.md
 ├── project-context.md         # how docs/ and code relate; rules for changing either
+├── THREADS-AUTH.md            # ★ portable: adding Rich Threads auth to any framework repo
 ├── .env.example
 │
 ├── frontend/                  # Next.js 16 app — also hosts the Copilot Runtime
@@ -367,12 +416,16 @@ CPK-MS-Agent-Python/
 │       │   ├── layout.tsx             # providers + chrome; imports v2 styles
 │       │   ├── page.tsx               # / — intro + connection check
 │       │   ├── status/page.tsx        # status overview table
-│       │   ├── api/copilotkit/route.ts   # ★ CopilotRuntime + 3 HttpAgents
+│       │   ├── api/copilotkit/route.ts   # ★ CopilotRuntime + 3 HttpAgents (as documented)
+│       │   ├── api/copilotkit-threads/[[...slug]]/route.ts
+│       │   │                          # ★ 2nd runtime: multi-route + Intelligence, /threads only
+│       │   ├── threads/               # ★ 4 routes: overview, drawer, headless, lifecycle
 │       │   └── <doc route>/
 │       │       ├── page.tsx           # notes + exact source (server component)
 │       │       └── demo-chat/page.tsx # ★ the running feature, chrome-free
 │       ├── components/
 │       │   ├── providers.tsx          # ★ CopilotKitProvider, inspector, auth header
+│       │   ├── threads-provider.tsx   # ★ /threads provider: threads runtime + REST transport
 │       │   ├── source-code.tsx        # ★ renders a repo file verbatim
 │       │   ├── app-chrome.tsx         # sidebar layout, skipped on /demo-chat
 │       │   ├── demo-frame.tsx         # thin bar + back link for demo routes
@@ -400,6 +453,7 @@ CPK-MS-Agent-Python/
 │   ├── ADAPT.md               # ★ how to port this folder to another framework
 │   ├── config/                # ★ the entire adaptation surface (3 files)
 │   ├── actions/               # ★ per-page interaction scripts + registry
+│   │   └── threads.action.ts  # ★ the 3 Rich Threads handlers
 │   ├── core/                  # frozen: engine, IDE simulator, overlays, doctor
 │   └── videos/                # exported .webm, one per doc page
 │
@@ -426,8 +480,12 @@ The nav, every route header, the demo links, and the status table all derive fro
 
 **Microsoft Agent Framework** — [Authentication](https://docs.copilotkit.ai/ms-agent-python/auth)
 
+**Rich Threads** — [Overview](https://docs.copilotkit.ai/ms-agent-python/threads) · [Threads Drawer](https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer) · [Headless Threads](https://docs.copilotkit.ai/ms-agent-python/headless-threads) · [Thread & History Lifecycle](https://docs.copilotkit.ai/ms-agent-python/threads-lifecycle) · [Import & Synchronize History](https://docs.copilotkit.ai/ms-agent-python/threads-import) ‡
+
 **Backend** — [Copilot Runtime](https://docs.copilotkit.ai/ms-agent-python/copilot-runtime) · [AG-UI](https://docs.copilotkit.ai/ms-agent-python/ag-ui)
 
 **External** — [Microsoft Agent Framework docs](https://learn.microsoft.com/en-us/agent-framework/) · [AG-UI protocol](https://ag-ui.com) · [AG-UI event types](https://docs.ag-ui.com/concepts/events)
 
 † Resolves but is absent from the doc sidebar as of the sync date.
+
+‡ Tracked for reference but not implemented — see §8.

@@ -241,6 +241,51 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    title: "Rich Threads",
+    routes: [
+      {
+        path: "/threads",
+        title: "Overview",
+        docPath: "/ms-agent-python/threads",
+        summary:
+          "What Rich Threads persist, and the credentials this section needs before any of it works.",
+        status: "partial",
+        statusNote:
+          "Runs on its own Intelligence-backed runtime endpoint, on a free-tier license that expires 2026-09-12.",
+      },
+      {
+        path: "/threads/drawer",
+        hasDemo: true,
+        title: "Threads Drawer",
+        docPath: "/ms-agent-python/prebuilt-components/copilot-threads-drawer",
+        summary:
+          "The drop-in conversation sidebar, in both its zero-prop form and with all three documented escape hatches.",
+        status: "partial",
+        statusNote: "Requires the license above. Rename is absent by design.",
+      },
+      {
+        path: "/threads/headless",
+        hasDemo: true,
+        title: "Headless Threads",
+        docPath: "/ms-agent-python/headless-threads",
+        summary:
+          "A thread sidebar built from scratch on useThreads: rename, archive, delete, switching, and pagination.",
+        status: "partial",
+        statusNote: "Requires the license above for mutations.",
+      },
+      {
+        path: "/threads/lifecycle",
+        hasDemo: true,
+        title: "Thread & History Lifecycle",
+        docPath: "/ms-agent-python/threads-lifecycle",
+        summary:
+          "Mint, replay, switch: how a threadId comes to exist and what makes history hydrate into the view.",
+        status: "partial",
+        statusNote: "Requires the license above for server-side replay.",
+      },
+    ],
+  },
+  {
     title: "Backend",
     routes: [
       {

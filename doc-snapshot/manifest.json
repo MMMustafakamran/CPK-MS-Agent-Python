@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "docsRoot": "https://docs.copilotkit.ai/ms-agent-python",
-  "syncedAt": "2026-08-17T13:46:40.286Z",
+  "syncedAt": "2026-08-20T11:18:16.768Z",
   "pages": {
     "/ms-agent-python": {
       "file": "ms-agent-python.md",
@@ -148,6 +148,18 @@
       "age": 0,
       "date": "Mon, 17 Aug 2026 13:46:41 GMT"
     },
+    "/ms-agent-python/headless-threads": {
+      "file": "ms-agent-python__headless-threads.md",
+      "sha256": "ddf2ddfa76e07e5e5cf856603d66c3705ae2408ee7704aedde8cf9a978ccdf36",
+      "bytes": 10619,
+      "lines": 202,
+      "routes": [
+        "/threads/headless"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Thu, 20 Aug 2026 11:18:16 GMT"
+    },
     "/ms-agent-python/inspector": {
       "file": "ms-agent-python__inspector.md",
       "sha256": "9402936383a73adf7d2b381071891796c2b51bd74e3b6822c174590fa950dedc",
@@ -171,6 +183,18 @@
       "status": "ok",
       "age": 0,
       "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/prebuilt-components/copilot-threads-drawer": {
+      "file": "ms-agent-python__prebuilt-components__copilot-threads-drawer.md",
+      "sha256": "3286d556acd2bf7956f1434c5a3b59ba5ab7209abd4ddd1873da4e3a9b1eb57b",
+      "bytes": 6293,
+      "lines": 142,
+      "routes": [
+        "/threads/drawer"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Thu, 20 Aug 2026 11:18:17 GMT"
     },
     "/ms-agent-python/programmatic-control": {
       "file": "ms-agent-python__programmatic-control.md",
@@ -219,6 +243,30 @@
       "status": "ok",
       "age": 0,
       "date": "Mon, 17 Aug 2026 13:46:41 GMT"
+    },
+    "/ms-agent-python/threads": {
+      "file": "ms-agent-python__threads.md",
+      "sha256": "263b9bee54d74968e43693e45e03d6daded11e50e80d7407ab85f4e4a782d77f",
+      "bytes": 12565,
+      "lines": 213,
+      "routes": [
+        "/threads"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Thu, 20 Aug 2026 11:18:16 GMT"
+    },
+    "/ms-agent-python/threads-lifecycle": {
+      "file": "ms-agent-python__threads-lifecycle.md",
+      "sha256": "a93391e9f90c5835c187fa2adb91a2cd80380e12a961eb65358810413ade2cb6",
+      "bytes": 15163,
+      "lines": 244,
+      "routes": [
+        "/threads/lifecycle"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Thu, 20 Aug 2026 11:18:16 GMT"
     }
   },
   "sitemap": {

@@ -45,6 +45,11 @@ import {
 } from './shared-state.action';
 import { runSlotsAction } from './slots.action';
 import { runStateRenderingAction } from './state-rendering.action';
+import {
+  runThreadsDrawerAction,
+  runThreadsHeadlessAction,
+  runThreadsLifecycleAction,
+} from './threads.action';
 import { runToolRenderingAction } from './tool-rendering.action';
 
 /** Keys are page ids from `config/pages.config.ts`. Doctor flags any orphans. */
@@ -64,6 +69,9 @@ export const ACTION_MAP: Record<string, PageActionHandler> = {
   'in-app-agent-write': runSharedStateWriteAction,
   readables: runReadablesAction,
   auth: runAuthAction,
+  'threads-drawer': runThreadsDrawerAction,
+  'threads-headless': runThreadsHeadlessAction,
+  'threads-lifecycle': runThreadsLifecycleAction,
   'copilot-runtime': runRuntimeAction,
   'ag-ui': runAgUiAction,
 };
