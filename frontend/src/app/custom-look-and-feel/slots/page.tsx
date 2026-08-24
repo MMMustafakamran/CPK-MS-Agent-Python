@@ -1,6 +1,6 @@
 import { RouteHeader } from "@/components/route-header";
 import { SourceCode } from "@/components/source-code";
-import { Callout, Panel, TryIt } from "@/components/ui";
+import { Panel, TryIt } from "@/components/ui";
 
 const ROOT_SLOTS: [string, string][] = [
   ["messageView", "The message list container."],

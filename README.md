@@ -44,12 +44,41 @@ FastAPI + agent-framework-ag-ui  ·  localhost:8000     ← Python
 OpenAI or Azure OpenAI  (gpt-4o-mini by default)
 ```
 
-Three points worth noting:
+Four points worth noting:
 
 - **No framework-specific adapter.** Agent Framework speaks AG-UI natively, so the runtime binds a plain `HttpAgent` — unlike integrations that ship their own agent class.
 - **Three agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc.
 - **The model key never reaches the browser.** Only the Python process holds it.
-- **Two runtime endpoints, on purpose.** `/api/copilotkit` is the runtime exactly as the docs write it. Thread routes do not exist on it — `copilotRuntimeNextJSAppRouterEndpoint` delegates to `createCopilotEndpointSingleRoute`, and single-route mode dispatches with `threadEndpointsEnabled: false`. `/api/copilotkit-threads` is a second, multi-route endpoint added for `/threads` alone, so the documented one stays byte-for-byte comparable against the doc sample.
+- **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler exactly as the v2 docs write it. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with Enterprise Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
+
+### Request lifecycle
+
+```
+1. User sends message
+       │
+       ▼
+2. [CopilotRuntime Handler] (Next.js receives POST /api/copilotkit)
+       │
+       ▼
+3. [InMemoryAgentRunner]
+   ├─► Identifies the target agent ("my_agent")
+   ├─► Opens an HTTP connection to Python: http://localhost:8000/
+   ├─► Pipes user messages into the Python AG-UI server
+   │
+   ▼
+4. [Python Agent Framework]
+   ├─► Calls OpenAI / LLM
+   ├─► Runs tools (e.g. get_weather)
+   └─► Streams back AG-UI events (RUN_STARTED, TEXT_MESSAGE_CONTENT, etc.)
+       │
+       ▼
+5. [InMemoryAgentRunner]
+   ├─► Holds active stream state in Node.js process memory
+   └─► Forwards SSE chunks directly to the React frontend
+       │
+       ▼
+6. Browser renders streaming response word-by-word
+```
 
 ### The three agents
 
@@ -337,10 +366,8 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 **10. Readables: the agent does not always pick up shared context**
 On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
 
-**11. The documented runtime helper cannot serve threads**
-No threads doc page says this, and all four of them assume it works. `copilotRuntimeNextJSAppRouterEndpoint` — the helper the Quickstart and Copilot Runtime pages use — delegates to `createCopilotEndpointSingleRoute`, and `fetch-handler.mjs` dispatches single-route requests with `threadEndpointsEnabled: false`. Thread routes are only reachable in multi-route mode, which needs a `[[...slug]]` catch-all route file *and* `useSingleEndpoint={false}` on the provider. Neither appears in any doc sample. That is why this repo has a second endpoint at `/api/copilotkit-threads` rather than threads simply working on `/api/copilotkit`.
-
-A second, related gate: `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime was constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. The headless `useThreads` hook is not gated this way.
+**11. Thread serving requires Enterprise Intelligence and multi-route configuration**
+Upstream docs have transitioned runtime examples to `@copilotkit/runtime/v2` with `createCopilotRuntimeHandler` on catch-all `[[...slug]]` routes. For full thread features, `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime is constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. This repo isolates thread configurations in `/api/copilotkit-threads/[[...slug]]`.
 
 Also not implemented: the lifecycle page's "create a thread with your own API on the first message". It needs a backend that mints thread rows, which this harness does not have, so it is left out rather than faked.
 
@@ -416,7 +443,7 @@ CPK-MS-Agent-Python/
 │       │   ├── layout.tsx             # providers + chrome; imports v2 styles
 │       │   ├── page.tsx               # / — intro + connection check
 │       │   ├── status/page.tsx        # status overview table
-│       │   ├── api/copilotkit/route.ts   # ★ CopilotRuntime + 3 HttpAgents (as documented)
+│       │   ├── api/copilotkit/[[...slug]]/route.ts   # ★ CopilotRuntime + 3 HttpAgents (as documented)
 │       │   ├── api/copilotkit-threads/[[...slug]]/route.ts
 │       │   │                          # ★ 2nd runtime: multi-route + Intelligence, /threads only
 │       │   ├── threads/               # ★ 4 routes: overview, drawer, headless, lifecycle

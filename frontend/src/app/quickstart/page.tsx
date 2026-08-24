@@ -40,7 +40,7 @@ export default function Page() {
       >
         <SourceCodeGroup
           files={[
-            { file: "frontend/src/app/api/copilotkit/route.ts" },
+            { file: "frontend/src/app/api/copilotkit/[[...slug]]/route.ts" },
             { file: "backend/main.py" },
           ]}
           note={

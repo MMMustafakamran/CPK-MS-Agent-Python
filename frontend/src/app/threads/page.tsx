@@ -71,13 +71,11 @@ export default function Page() {
         </p>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
           <li>
-            <strong>Multi-route transport.</strong> Thread routes are dispatched
-            only in multi-route mode. The documented{" "}
-            <code>copilotRuntimeNextJSAppRouterEndpoint</code> used by{" "}
-            <code>/api/copilotkit</code> delegates to{" "}
-            <code>createCopilotEndpointSingleRoute</code>, and single-route mode
-            hard-codes <code>threadEndpointsEnabled: false</code>. Hence the
-            separate <code>[[...slug]]</code> endpoint below.
+            <strong>Multi-route Intelligence endpoint.</strong> Thread routes are
+            served via the catch-all runtime handler. While{" "}
+            <code>/api/copilotkit</code> serves the core agents with in-memory
+            running, <code>/api/copilotkit-threads</code> is configured with the
+            managed Enterprise Intelligence platform to persist conversations.
           </li>
           <li>
             <strong>An Intelligence runtime.</strong> Without one, the runtime

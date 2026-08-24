@@ -69,11 +69,10 @@ differently:
 | 2 | **An Intelligence runtime** | Routes answer, but mutations → `422 Missing CopilotKitIntelligence configuration`, and `/info` has no `licenseStatus`. | Steps 3 + 5 |
 | 3 | **A valid license token** | Everything answers, but `<CopilotThreadsDrawer>` renders a locked panel and never issues a network call. | Step 3 |
 
-**Gate 1 is the one no doc page mentions.** `copilotRuntimeNextJSAppRouterEndpoint`
-— the helper every Quickstart shows — delegates to
-`createCopilotEndpointSingleRoute`, and single-route mode dispatches with
-`threadEndpointsEnabled: false` hardcoded. Thread routes exist *only* in
-multi-route mode.
+**Gate 1 is the one no doc page mentions.** In single-route mode or legacy
+helpers, single-route dispatch hard-codes `threadEndpointsEnabled: false`.
+Thread routes exist *only* in multi-route mode (`[[...slug]]` routes served via
+`createCopilotRuntimeHandler` or `createCopilotEndpoint`).
 
 Confirm it in your own repo rather than trusting this file:
 
@@ -425,7 +424,7 @@ Everything above is identical across repos. These are the only lines to adjust:
 
 | What | Where | How to find the right value |
 |---|---|---|
-| Agent URL env var | `AGENT_URL` in the route | Copy what your existing `/api/copilotkit/route.ts` uses (`MS_AGENT_URL`, `AGNO_AGENT_URL`, …). |
+| Agent URL env var | `AGENT_URL` in the route | Copy what your existing route uses (`MS_AGENT_URL`, `AGNO_AGENT_URL`, …). |
 | Agent ids and endpoints | `agents: {}` | Mirror your existing route, then **add `default`**. |
 | Agent class | `new HttpAgent({ url })` | Frameworks speaking AG-UI natively use `HttpAgent`. If your existing route imports a framework-specific agent class, use that same one here. |
 | Bearer header | `ThreadsProvider` | Only if your backend has auth middleware. |

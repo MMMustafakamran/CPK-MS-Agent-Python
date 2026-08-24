@@ -7,14 +7,11 @@ import {
 import { HttpAgent } from "@ag-ui/client";
 
 /**
- * A second runtime endpoint, for the Rich Threads pages only.
+ * A dedicated runtime endpoint for the Rich Threads pages.
  *
- * `/api/copilotkit` stays exactly as the Quickstart and Copilot Runtime docs
- * write it, and cannot serve threads: `copilotRuntimeNextJSAppRouterEndpoint`
- * delegates to `createCopilotEndpointSingleRoute`, and single-route mode
- * dispatches with `threadEndpointsEnabled: false`. Thread routes exist only in
- * multi-route mode, which is why this file is a `[[...slug]]` catch-all and why
- * `ThreadsProvider` passes `useSingleEndpoint={false}`.
+ * While `/api/copilotkit` serves the standard agent features with in-memory
+ * execution, `/api/copilotkit-threads` is configured with Enterprise Intelligence
+ * to persist and manage thread histories across sessions.
  *
  * The three credentials below come from `frontend/.env.local`, copied from the
  * project `copilotkit init` scaffolded under `1cli-testing/`. Nothing here logs

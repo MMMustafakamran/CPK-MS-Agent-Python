@@ -277,7 +277,7 @@ export const PAGES = definePages([
     videoName: 'CopilotRuntime',
     docPath: 'copilot-runtime',
     route: 'copilot-runtime',
-    ideFile: 'frontend/src/app/api/copilotkit/route.ts',
+    ideFile: 'frontend/src/app/api/copilotkit/[[...slug]]/route.ts',
     startLine: 20,
     endLine: 43,
     prompt: "What's the weather in Tokyo?",

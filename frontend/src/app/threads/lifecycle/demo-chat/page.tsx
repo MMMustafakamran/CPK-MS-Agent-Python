@@ -7,7 +7,7 @@ import {
   useCopilotChatConfiguration,
   useThreads,
 } from "@copilotkit/react-core/v2";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { DemoFrame } from "@/components/demo-frame";
 import { ThreadsProvider } from "@/components/threads-provider";
@@ -39,8 +39,11 @@ function LifecyclePanel() {
   // An auto-minted id is a `randomUUID()` computed during render, so the server
   // and the client mint different ones and printing it directly is a hydration
   // mismatch. Nothing else here is non-deterministic on first render.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   return (
     <div className="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-slate-200 p-3 text-xs dark:border-slate-800">
