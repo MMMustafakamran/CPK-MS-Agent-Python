@@ -15,6 +15,14 @@
   />
 </div>
 
+<Callout type="info" title="See this in Inspector">
+  Open Inspector on localhost. Stay on **Threads** (it is the default).
+  Real threads appear when Intelligence is on. Enable Intelligence appears when it is off.
+
+  More detail: [Inspector](/ms-agent-python/inspector).
+</Callout>
+
+
 ## Get started
 
 Create a new CopilotKit app connected to cloud-hosted Enterprise Intelligence. Your application and CopilotKit Runtime run locally while Enterprise Intelligence stores and synchronizes Rich Threads.
@@ -192,17 +200,9 @@ Threads capture new CopilotKit conversations once your app uses Enterprise Intel
 
 CopilotKit Threads are separate from native framework session or checkpoint stores. Your backend can keep a stable mapping when the agent framework also needs its own conversation identifier.
 
-<WhenFrameworkHas flag="thread_persistence_pattern" equals="langgraph">
-  <Callout type="info" title="LangGraph thread IDs">
-    CopilotKit passes the active `threadId` to your LangGraph backend through AG-UI. You can use it directly or persist a mapping to a LangGraph thread or checkpoint identifier. LangGraph Platform thread IDs must be UUIDs.
-  </Callout>
-</WhenFrameworkHas>
 
-<WhenFrameworkHas flag="thread_persistence_pattern" equals="adk-session">
-  <Callout type="info" title="ADK sessions">
-    CopilotKit passes the active `threadId` to your ADK backend through AG-UI. Keep a stable mapping when you also use a durable ADK session service; CopilotKit thread lifecycle actions do not mutate the native ADK session store.
-  </Callout>
-</WhenFrameworkHas>
+
+
 
 ## Next steps
 

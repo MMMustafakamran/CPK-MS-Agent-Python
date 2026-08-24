@@ -2,6 +2,7 @@
 
 > Turn your Microsoft Agent Framework agent into an agent-native application in 10 minutes.
 
+
 <OpsPlatformCTA
   variant="card"
   title="Ship Microsoft Agent Framework to production"
@@ -318,20 +319,18 @@ Before you begin, you'll need the following:
                 CopilotKit requires a Copilot Runtime endpoint to safely communicate with your agent. This can be served
                 anywhere that Node.js can run, but for this example we'll use Next.js.
 
-                Create a new API route at `app/api/copilotkit/route.ts`:
+                Create a new API route at `app/api/copilotkit/[[...slug]]/route.ts`:
 
-                ```tsx title="app/api/copilotkit/route.ts"
+                ```tsx title="app/api/copilotkit/[[...slug]]/route.ts" doctest="component"
                 import {
                   CopilotRuntime,
-                  ExperimentalEmptyAdapter,
-                  copilotRuntimeNextJSAppRouterEndpoint,
-                } from "@copilotkit/runtime";
+                  createCopilotRuntimeHandler,
+                  InMemoryAgentRunner,
+                } from "@copilotkit/runtime/v2";
                 import { HttpAgent } from "@ag-ui/client";
-                import { NextRequest } from "next/server";
 
                 // 1. You can use any service adapter here for multi-agent support. We use
                 //    the empty adapter since we're only using one agent.
-                const serviceAdapter = new ExperimentalEmptyAdapter();
 
                 // 2. Create the CopilotRuntime instance and utilize the Microsoft Agent Framework
                 //    AG-UI integration to setup the connection.
@@ -340,18 +339,17 @@ Before you begin, you'll need the following:
                   agents: {
                     my_agent: new HttpAgent({ url: "http://localhost:8000/" }),
                   },
+                  runner: new InMemoryAgentRunner(),
                 });
 
                 // 3. Build a Next.js API route that handles the CopilotKit runtime requests.
-                export const POST = async (req: NextRequest) => {
-                  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-                    runtime,
-                    serviceAdapter,
-                    endpoint: "/api/copilotkit",
-                  });
+                const handler = createCopilotRuntimeHandler({
+                  runtime,
+                  basePath: "/api/copilotkit",
+                });
 
-                  return handleRequest(req);
-                };
+                export const GET = handler;
+                export const POST = handler;
                 ```
             </Step>
             <Step>
@@ -370,7 +368,7 @@ Before you begin, you'll need the following:
                     <html lang="en">
                       <body>
                         {/* [!code highlight:3] */}
-                        <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent">
+                        <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent" useSingleEndpoint={false}>
                           {children}
                         </CopilotKit>
                       </body>
@@ -488,6 +486,20 @@ Before you begin, you'll need the following:
         </Accordions>
 
     </Step>
+
+    <Step>
+        ### Open Inspector and confirm setup
+
+On localhost, click the Inspector button in the corner of the app.
+
+1. Open **Agents**, then **Agent**. Your agent is listed.
+2. Send a chat message. Open **Agents**, then **AG-UI Events**. Events are moving.
+3. Open **Threads**. The list is unlocked (Intelligence is on), or locked with Enable Intelligence (Intelligence is off).
+
+More detail: [Inspector](/ms-agent-python/inspector).
+
+    </Step>
+
 </Steps>
 
 ## What's next?
