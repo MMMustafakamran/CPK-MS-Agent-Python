@@ -48,11 +48,11 @@ export default function Page() {
         title="This repo's runtime"
         description="Read from disk — diff it against the doc's single-agent sample."
       >
-        <SourceCode file="frontend/src/app/api/copilotkit/route.ts" />
+        <SourceCode file="frontend/src/app/api/copilotkit/[[...slug]]/route.ts" />
         <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-          <code>ExperimentalEmptyAdapter</code> is used because the agents call
-          the model themselves — the service adapter only matters when the
-          runtime talks to a provider directly.
+          <code>InMemoryAgentRunner</code> is used with{" "}
+          <code>createCopilotRuntimeHandler</code> in v2 because the agents call
+          the model themselves over AG-UI.
         </p>
       </Panel>
 

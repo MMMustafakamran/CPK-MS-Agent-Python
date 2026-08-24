@@ -24,6 +24,8 @@ export function AuthDemoChat({
   authRequired: boolean;
   tokenConfigured: boolean;
 }) {
+  // [1] authentication: provider chat
+  // [!code highlight]
   // The four combinations of "server demands a token" and "provider sends one".
   const verdict = authRequired
     ? tokenConfigured

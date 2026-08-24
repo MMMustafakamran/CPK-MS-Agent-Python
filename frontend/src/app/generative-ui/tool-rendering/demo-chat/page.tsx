@@ -21,6 +21,8 @@ import { DemoFrame } from "@/components/demo-frame";
  * to CopilotKit's built-in rendering everywhere else in the app.
  */
 export default function Page() {
+  // [1] tool rendering: named renderer
+  // [!code highlight]
   useRenderTool(
     {
       name: "get_weather",
@@ -41,6 +43,8 @@ export default function Page() {
     [],
   );
 
+  // [2] tool rendering: default renderer
+  // [!code highlight]
   // Catch-all for tools without a dedicated renderer.
   useDefaultRenderTool({
     render: ({ name, status, result }) => (

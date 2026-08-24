@@ -16,12 +16,16 @@ import { DemoFrame } from "@/components/demo-frame";
  * The colleagues list is the doc's sample data.
  */
 export default function Page() {
+  // [1] readable: context values
+  // [!code highlight]
   const [colleagues] = useState([
     { id: 1, name: "John Doe", role: "Developer" },
     { id: 2, name: "Jane Smith", role: "Designer" },
     { id: 3, name: "Bob Wilson", role: "Product Manager" },
   ]);
 
+  // [2] readable: register context
+  // [!code highlight]
   useAgentContext({
     description: "The current user's colleagues",
     value: colleagues,
@@ -29,7 +33,7 @@ export default function Page() {
 
   return (
     <DemoFrame
-      parentPath="/agent-app-context"
+      parentPath="/readables"
       subtitle="useAgentContext — forwarded as ag_ui_context"
     >
       <div className="grid h-full grid-cols-1 lg:grid-cols-2">

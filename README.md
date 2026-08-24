@@ -2,14 +2,14 @@
 
 A navigable, working test harness for the CopilotKit Microsoft Agent Framework Python integration — each doc page is a route that actually runs the thing it describes.
 
-| | |
-|---|---|
-| **Doc sync date** | Machine-maintained — `doc-snapshot/manifest.json` → `syncedAt`, rewritten on every sync |
-| **CopilotKit packages** | `@copilotkit/react-core` 1.66.2 · `@copilotkit/runtime` 1.66.2 |
-| **AG-UI package** | `@ag-ui/client` 0.0.57 |
-| **Frontend** | Next.js 16.3.0 (App Router) · React 19.2 · TypeScript · Tailwind 4 |
-| **Backend** | Python 3.12 · `agent-framework-core` 1.13.0 · `agent-framework-ag-ui` 1.0.1 · FastAPI |
-| **Build status** | No CI. Lint ✅. **Typecheck currently failing** in `custom-look-and-feel/slots/demo-chat` — see Known issues #5. |
+|                         |                                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Doc sync date**       | Machine-maintained — `doc-snapshot/manifest.json` → `syncedAt`, rewritten on every sync                          |
+| **CopilotKit packages** | `@copilotkit/react-core` 1.68.1 · `@copilotkit/runtime` 1.68.1                                                   |
+| **AG-UI package**       | `@ag-ui/client` 0.0.58                                                                                           |
+| **Frontend**            | Next.js 16.3.1 (App Router) · React 19.2 · TypeScript · Tailwind 4                                               |
+| **Backend**             | Python 3.12 · `agent-framework-core` 1.13.0 · `agent-framework-ag-ui` 1.0.1 · FastAPI                            |
+| **Build status**        | No CI. Lint ✅. **Typecheck currently failing** in `custom-look-and-feel/slots/demo-chat` — see Known issues #5. |
 
 ---
 
@@ -30,7 +30,8 @@ Tracks: **<https://docs.copilotkit.ai/ms-agent-python>**
 ```
 Browser (React 19)
   │  @copilotkit/react-core/v2 — CopilotKitProvider, CopilotChat, hooks
-  │  POST /api/copilotkit
+  │  POST /api/copilotkit            ← every route except /threads
+  │  GET|POST /api/copilotkit-threads/*   ← /threads only
   ▼
 Next.js 16 App Router  ·  localhost:3000
   │  Copilot Runtime  (@copilotkit/runtime)
@@ -43,31 +44,61 @@ FastAPI + agent-framework-ag-ui  ·  localhost:8000     ← Python
 OpenAI or Azure OpenAI  (gpt-4o-mini by default)
 ```
 
-Three points worth noting:
+Four points worth noting:
 
 - **No framework-specific adapter.** Agent Framework speaks AG-UI natively, so the runtime binds a plain `HttpAgent` — unlike integrations that ship their own agent class.
 - **Three agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc.
 - **The model key never reaches the browser.** Only the Python process holds it.
+- **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler exactly as the v2 docs write it. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with Enterprise Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
+
+### Request lifecycle
+
+```
+1. User sends message
+       │
+       ▼
+2. [CopilotRuntime Handler] (Next.js receives POST /api/copilotkit)
+       │
+       ▼
+3. [InMemoryAgentRunner]
+   ├─► Identifies the target agent ("my_agent")
+   ├─► Opens an HTTP connection to Python: http://localhost:8000/
+   ├─► Pipes user messages into the Python AG-UI server
+   │
+   ▼
+4. [Python Agent Framework]
+   ├─► Calls OpenAI / LLM
+   ├─► Runs tools (e.g. get_weather)
+   └─► Streams back AG-UI events (RUN_STARTED, TEXT_MESSAGE_CONTENT, etc.)
+       │
+       ▼
+5. [InMemoryAgentRunner]
+   ├─► Holds active stream state in Node.js process memory
+   └─► Forwards SSE chunks directly to the React frontend
+       │
+       ▼
+6. Browser renders streaming response word-by-word
+```
 
 ### The three agents
 
-| Runtime id | Endpoint | Tool | Serves |
-|---|---|---|---|
-| `my_agent` | `:8000/` | `get_weather` | Quickstart, Tool Rendering, and every route with no state schema |
-| `sample_agent` | `:8000/sample_agent` | `update_language` | Shared State read/write, Readables |
-| `search_agent` | `:8000/search_agent` | `update_searches` | State Rendering |
+| Runtime id     | Endpoint             | Tool              | Serves                                                           |
+| -------------- | -------------------- | ----------------- | ---------------------------------------------------------------- |
+| `my_agent`     | `:8000/`             | `get_weather`     | Quickstart, Tool Rendering, and every route with no state schema |
+| `sample_agent` | `:8000/sample_agent` | `update_language` | Shared State read/write, Readables                               |
+| `search_agent` | `:8000/search_agent` | `update_searches` | State Rendering                                                  |
 
 ---
 
 ## 4. Prerequisites
 
-| Requirement | Version | Notes |
-|---|---|---|
-| Node.js | 20+ | Next.js 16 requires 20+. |
-| npm | 10+ | Or pnpm/yarn/bun. |
-| Python | 3.12 | |
-| [`uv`](https://docs.astral.sh/uv/) | 0.11+ | The agent-framework packages are pre-release, so `--prerelease=allow` is needed. |
-| OpenAI **or** Azure OpenAI key | — | Required. |
+| Requirement                        | Version | Notes                                                                            |
+| ---------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| Node.js                            | 20+     | Next.js 16 requires 20+.                                                         |
+| npm                                | 10+     | Or pnpm/yarn/bun.                                                                |
+| Python                             | 3.12    |                                                                                  |
+| [`uv`](https://docs.astral.sh/uv/) | 0.11+   | The agent-framework packages are pre-release, so `--prerelease=allow` is needed. |
+| OpenAI **or** Azure OpenAI key     | —       | Required.                                                                        |
 
 ---
 
@@ -85,10 +116,27 @@ git clone <this-repo> ms-agent-framework-pt && cd ms-agent-framework-pt
 cd frontend && npm install && cd ..
 ```
 
+To upgrade frontend dependencies to their latest releases:
+
+```bash
+cd frontend
+npx npm-check-updates -u
+npm install
+cd ..
+```
+
 **3. Install backend deps**
 
 ```bash
 cd backend && uv sync --prerelease=allow && cd ..
+```
+
+To upgrade backend dependencies to their latest releases:
+
+```bash
+cd backend
+uv add --prerelease=allow agent-framework-ag-ui@latest agent-framework-azure-ai@latest agent-framework-openai@latest fastapi@latest uvicorn@latest
+cd ..
 ```
 
 **4. Configure the environment**
@@ -99,18 +147,26 @@ cp .env.example backend/.env
 
 Then edit `backend/.env`:
 
-| Variable | Where | What it does |
-|---|---|---|
-| `OPENAI_API_KEY` | `backend/.env` | **Required** (unless using Azure). The backend refuses to start with neither provider set. |
-| `OPENAI_CHAT_MODEL_ID` | `backend/.env` | Model id. Defaults to `gpt-4o-mini`. |
-| `AZURE_OPENAI_ENDPOINT` | `backend/.env` | Use Azure instead. Takes precedence when set. |
-| `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` | `backend/.env` | Azure deployment name. |
-| `AGENT_PORT` | `backend/.env` | Defaults to `8000`. |
-| `AUTH_BEARER_TOKEN` | `backend/.env` | Enables the bearer-token middleware. Unset by default. |
-| `MS_AGENT_URL` | `frontend/.env.local` | Where the runtime finds the agent. Defaults to `http://localhost:8000`. |
-| `NEXT_PUBLIC_AUTH_BEARER_TOKEN` | `frontend/.env.local` | The token the provider forwards. Must match the backend's. |
+| Variable                            | Where                 | What it does                                                                               |
+| ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| `OPENAI_API_KEY`                    | `backend/.env`        | **Required** (unless using Azure). The backend refuses to start with neither provider set. |
+| `OPENAI_CHAT_MODEL_ID`              | `backend/.env`        | Model id. Defaults to `gpt-4o-mini`.                                                       |
+| `AZURE_OPENAI_ENDPOINT`             | `backend/.env`        | Use Azure instead. Takes precedence when set.                                              |
+| `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` | `backend/.env`        | Azure deployment name.                                                                     |
+| `AGENT_PORT`                        | `backend/.env`        | Defaults to `8000`.                                                                        |
+| `AUTH_BEARER_TOKEN`                 | `backend/.env`        | Enables the bearer-token middleware. Unset by default.                                     |
+| `MS_AGENT_URL`                      | `frontend/.env.local` | Where the runtime finds the agent. Defaults to `http://localhost:8000`.                    |
+| `NEXT_PUBLIC_AUTH_BEARER_TOKEN`     | `frontend/.env.local` | The token the provider forwards. Must match the backend's.                                 |
+| `COPILOTKIT_LICENSE_TOKEN`          | `frontend/.env.local` | `/threads` only. Signed license, verified offline — no login, no network call.              |
+| `INTELLIGENCE_API_KEY`              | `frontend/.env.local` | `/threads` only. Project key for the managed thread store.                                  |
+| `INTELLIGENCE_API_URL`              | `frontend/.env.local` | `/threads` only. Managed Intelligence REST endpoint.                                        |
+| `INTELLIGENCE_GATEWAY_WS_URL`       | `frontend/.env.local` | `/threads` only. Managed realtime endpoint — a different host from the REST one.             |
 
 > Next.js does not read the repo-root `.env`. Frontend variables belong in `frontend/.env.local`. In practice you only need `OPENAI_API_KEY`.
+
+> Porting this to another framework repo? [THREADS-AUTH.md](THREADS-AUTH.md) is the standalone procedure — it assumes no knowledge of this repo and covers the three gates, the two files to add, and what to verify.
+
+The four `/threads` variables are the only credentials in this repo that are not optional for the feature they serve — thread storage lives in CopilotKit's managed Intelligence platform, not in the agent or the runtime. `npx copilotkit@latest init` mints all four; this repo's values were copied from the project it scaffolded under `1cli-testing/`. Leave them unset and `/threads` degrades rather than breaking: the read-only thread routes still answer from the runtime's in-memory fallback, mutations return 422, and the prebuilt drawer renders locked.
 
 **Default ports:** frontend **3000**, backend **8000**.
 
@@ -145,6 +201,19 @@ npm run dev
 
 Open **<http://localhost:3000>**. The home page probes the agent server-side and shows a connection panel — check it first if anything misbehaves.
 
+**Optional — record the demos.** With both processes up, `autorecorder/` drives a real browser through every route and saves a screen capture per doc page:
+
+```bash
+npm run record:doctor             # is the recorder configured correctly?
+npm run record -- --list          # every registered route
+npm run record -- --quickstart    # one page
+npm run record                    # all 17, sequentially
+```
+
+It refuses to start if either service is down (`--force` overrides). Output lands in `autorecorder/videos/`.
+
+`autorecorder/` is written to be copied into the other CopilotKit framework repos and adapted — see [`autorecorder/README.md`](autorecorder/README.md) to run it and [`autorecorder/ADAPT.md`](autorecorder/ADAPT.md) to port it.
+
 ---
 
 ## 7. What to expect — walkthrough per section
@@ -153,9 +222,9 @@ Open **<http://localhost:3000>**. The home page probes the agent server-side and
 
 Routes with a live feature are split in two:
 
-| | |
-|---|---|
-| **`<route>`** | Notes, pass/fail criteria, and **the exact source** of the implementation, read off disk at render time. No live chat. |
+|                         |                                                                                                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`<route>`**           | Notes, pass/fail criteria, and **the exact source** of the implementation, read off disk at render time. No live chat.                                                                    |
 | **`<route>/demo-chat`** | Just the running feature, no sidebar or page chrome — built for screen recording. Reached via **Open demo ↗** in the route header, which always opens in a new tab so the notes stay put. |
 
 The code on a page is never a re-typed approximation: each page reads real files from the repo via `frontend/src/lib/source.ts`, so what you compare against the doc is what actually runs. Some excerpts use `#region` markers, which stay visible in the source and are labelled with line numbers.
@@ -172,9 +241,9 @@ The code on a page is never a re-typed approximation: each page reads real files
 
 ### Custom Look and Feel
 
-**`/custom-look-and-feel/slots`** *(live but absent from the doc sidebar)* — Three override levels. **Pass:** level 1 tints the message area, level 2 auto-focuses the input, level 3 shows a custom header, layout, and cursor. **Fail:** all three tabs look identical.
+**`/custom-look-and-feel/slots`** _(live but absent from the doc sidebar)_ — Three override levels. **Pass:** level 1 tints the message area, level 2 auto-focuses the input, level 3 shows a custom header, layout, and cursor. **Fail:** all three tabs look identical.
 
-**`/custom-look-and-feel/headless-ui`** *(live but absent from the sidebar)* — A chat with zero CopilotKit chrome. **Try:** `Tell me a joke`. **Pass:** messages stream into hand-written bubbles. **Fail:** Send does nothing.
+**`/custom-look-and-feel/headless-ui`** _(live but absent from the sidebar)_ — A chat with zero CopilotKit chrome. **Try:** `Tell me a joke`. **Pass:** messages stream into hand-written bubbles. **Fail:** Send does nothing.
 
 **`/programmatic-control`** — Drives the agent with no chat component. **Pass:** status flips to Running, the transcript grows, Stop halts it mid-stream.
 
@@ -200,11 +269,25 @@ The code on a page is never a re-typed approximation: each page reads real files
 
 **`/shared-state/in-app-agent-write`** — `agent.setState`, with and without a re-run. **Pass:** Toggle flips the value immediately and the agent acknowledges on your next message; Toggle + re-run makes it respond straight away.
 
-**`/agent-app-context`** — `useAgentContext`. **Try:** `Who are my colleagues?` **Pass:** the agent answers from the list on the left, which it was never told in a message. **Fail:** it says it has no such information.
+**`/readables`** — `useAgentContext`. **Try:** `Who are my colleagues?` **Pass:** the agent answers from the list on the left, which it was never told in a message. **Fail:** it says it has no such information.
 
 ### Microsoft Agent Framework
 
 **`/auth`** — Forwarding and validating a bearer token. The demo reports whether the agent demands a token and whether the provider sends one, then gives you a chat to send through it. **Try:** send a message with auth off (the baseline), then set `AUTH_BEARER_TOKEN` on the backend only and restart the agent. **Pass:** the second attempt fails — the runtime never reaches the agent. Adding a matching `NEXT_PUBLIC_AUTH_BEARER_TOKEN` and restarting the app makes it stream again. **Fail:** messages stream identically in all three states, meaning the middleware is not enforcing.
+
+### Rich Threads
+
+Four routes, one per doc page. All share the Intelligence-backed runtime at `/api/copilotkit-threads` and the `default` agent, so a thread created on one shows up on the others.
+
+**`/threads`** — Orientation and credentials. No demo; it explains what the other three need and links to them. **Pass:** the four env variables are described and the two source panels render. **Fail:** nothing to fail — if the others are broken, this page says why.
+
+**`/threads/drawer`** — The drop-in `<CopilotThreadsDrawer>`, in two tabs: the doc's zero-prop integration, and the same drawer with `renderRow`, `limit`, and label overrides. **Try:** `Can you tell me a joke?`, then hit "New Conversation" and send another. **Pass:** two rows appear, auto-named; clicking the first replays its transcript with no selection state written by us. **Fail:** a "requires a license" panel instead of a list.
+
+**`/threads/headless`** — The same data through `useThreads`, driving a sidebar this repo writes. **Try:** send a message, then Rename the row and reload. **Pass:** the new name survives the reload (it round-tripped through the platform, not just optimistic state); Archive hides the row until you tick Archived; Delete asks first, then removes it permanently. **Fail:** rows list but mutations error — mutations need the Intelligence runtime, unlike the read-only routes.
+
+**`/threads/lifecycle`** — The lifecycle made observable. **Try:** send a message, hit "New chat", then click the conversation you just made under "Open a known conversation". **Pass:** `hasExplicitThreadId` reads `false` on the fresh chat and flips to `true` on the picked one, whose transcript replays and whose messages appear in the `agent.messages` readout. **Fail:** the id changes but the transcript stays empty — replay needs a server-side store, so check `/threads` first.
+
+All three are recorded by the autorecorder (`npm run record -- --threads-drawer`, `--threads-headless`, `--threads-lifecycle`). Note that each run leaves a real thread on the Intelligence project, so the list grows one row per recording against the free tier's 200-thread cap.
 
 ### Backend
 
@@ -218,30 +301,34 @@ The code on a page is never a re-typed approximation: each page reads real files
 
 ## 8. Testing checklist / current status
 
-| Doc page | Route | Status | Notes |
-|---|---|---|---|
-| `/ms-agent-python` | `/` | 📖 Reference | Server-side agent probe. |
-| `/ms-agent-python/quickstart?agent=bring-your-own` | `/quickstart` | ✅ Working | |
-| `/ms-agent-python/prebuilt-components` | `/prebuilt-components` | ✅ Working | Doc page is a 191-byte component stub. |
-| `/ms-agent-python/custom-look-and-feel/slots` | `/custom-look-and-feel/slots` | ✅ Working | **Not in the doc sidebar**, but resolves. |
-| `/ms-agent-python/custom-look-and-feel/headless-ui` | `/custom-look-and-feel/headless-ui` | ✅ Working | **Not in the doc sidebar**; resolves. |
-| `/ms-agent-python/programmatic-control` | `/programmatic-control` | ✅ Working | |
-| `/ms-agent-python/inspector` | `/inspector` | ✅ Working | Dev-only by design. |
-| `/ms-agent-python/generative-ui/your-components/display-only` | `/generative-ui/your-components/display-only` | ✅ Working | Needs no backend declaration. |
-| `/ms-agent-python/generative-ui/your-components/interactive` | `/generative-ui/your-components/interactive` | ✅ Working | `useHumanInTheLoop` approval gate. Needs no backend declaration. |
-| `/ms-agent-python/generative-ui/tool-rendering` | `/generative-ui/tool-rendering` | ✅ Working | |
-| `/ms-agent-python/generative-ui/state-rendering` | `/generative-ui/state-rendering` | ✅ Working | Uses `search_agent`. |
-| `/ms-agent-python/frontend-tools` | `/frontend-tools` | ✅ Working | |
-| `/ms-agent-python/shared-state/in-app-agent-read` | `/shared-state/in-app-agent-read` | ✅ Working | Seeded via server `default_state` — see §9. |
-| `/ms-agent-python/shared-state/in-app-agent-write` | `/shared-state/in-app-agent-write` | ✅ Working | |
-| `/ms-agent-python/agent-app-context` | `/agent-app-context` | ✅ Working | |
-| `/ms-agent-python/auth` | `/auth` | ✅ Working | Demo reports live auth state on both sides and sends a request through it. |
-| `/ms-agent-python/copilot-runtime` | `/copilot-runtime` | ✅ Working | |
-| `/ms-agent-python/ag-ui` | `/ag-ui` | ✅ Working | |
+| Doc page                                                      | Route                                         | Status       | Notes                                                                      |
+| ------------------------------------------------------------- | --------------------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| `/ms-agent-python`                                            | `/`                                           | 📖 Reference | Server-side agent probe.                                                   |
+| `/ms-agent-python/quickstart?agent=bring-your-own`            | `/quickstart`                                 | ✅ Working   |                                                                            |
+| `/ms-agent-python/prebuilt-components`                        | `/prebuilt-components`                        | ✅ Working   | Doc page is a 191-byte component stub.                                     |
+| `/ms-agent-python/custom-look-and-feel/slots`                 | `/custom-look-and-feel/slots`                 | ✅ Working   | **Not in the doc sidebar**, but resolves.                                  |
+| `/ms-agent-python/custom-look-and-feel/headless-ui`           | `/custom-look-and-feel/headless-ui`           | ✅ Working   | **Not in the doc sidebar**; resolves.                                      |
+| `/ms-agent-python/programmatic-control`                       | `/programmatic-control`                       | ✅ Working   |                                                                            |
+| `/ms-agent-python/inspector`                                  | `/inspector`                                  | ✅ Working   | Dev-only by design.                                                        |
+| `/ms-agent-python/generative-ui/your-components/display-only` | `/generative-ui/your-components/display-only` | ✅ Working   | Needs no backend declaration.                                              |
+| `/ms-agent-python/generative-ui/your-components/interactive`  | `/generative-ui/your-components/interactive`  | ✅ Working   | `useHumanInTheLoop` approval gate. Needs no backend declaration.           |
+| `/ms-agent-python/generative-ui/tool-rendering`               | `/generative-ui/tool-rendering`               | ✅ Working   |                                                                            |
+| `/ms-agent-python/generative-ui/state-rendering`              | `/generative-ui/state-rendering`              | ✅ Working   | Uses `search_agent`.                                                       |
+| `/ms-agent-python/frontend-tools`                             | `/frontend-tools`                             | ✅ Working   |                                                                            |
+| `/ms-agent-python/shared-state/in-app-agent-read`             | `/shared-state/in-app-agent-read`             | ✅ Working   | Seeded via server `default_state` — see §9.                                |
+| `/ms-agent-python/shared-state/in-app-agent-write`            | `/shared-state/in-app-agent-write`            | ✅ Working   |                                                                            |
+| `/ms-agent-python/agent-app-context`                          | `/readables`                                  | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
+| `/ms-agent-python/auth`                                       | `/auth`                                       | ✅ Working   | Demo reports live auth state on both sides and sends a request through it. |
+| `/ms-agent-python/copilot-runtime`                            | `/copilot-runtime`                            | ✅ Working   |                                                                            |
+| `/ms-agent-python/ag-ui`                                      | `/ag-ui`                                      | ✅ Working   |                                                                            |
+| `/ms-agent-python/threads`                                    | `/threads`                                    | ⚠️ Partial   | Overview + credentials. Free-tier license expires 2026-09-12.              |
+| `/ms-agent-python/prebuilt-components/copilot-threads-drawer` | `/threads/drawer`                             | ⚠️ Partial   | Slots escape hatch unusable in 1.68.2 — see §9 #12. Rename absent by design. |
+| `/ms-agent-python/headless-threads`                           | `/threads/headless`                           | ⚠️ Partial   | All four doc steps. Mutations need the license.                            |
+| `/ms-agent-python/threads-lifecycle`                          | `/threads/lifecycle`                          | ⚠️ Partial   | "Thread via your own API on first message" not implemented — see §9 #11.   |
 
 **Legend:** ✅ Working · ⚠️ Partial · 📖 Reference · 🚧 Not started · ❌ Broken
 
-Out of scope by request: CLI, Build with agents, Rich Threads, MCP Apps, A2UI, Intelligence Platform, Troubleshooting.
+Out of scope by request: CLI, Build with agents, MCP Apps, A2UI, Intelligence Platform, Troubleshooting. Also out of scope: `/ms-agent-python/threads-import` (Import & Synchronize Thread History) — it migrates existing LangGraph/ADK conversations into the platform store, and there is nothing here to migrate from.
 
 ---
 
@@ -256,7 +343,7 @@ Both Shared State pages seed the starting value with `useAgent({ agentId, initia
 Frontend Tools, Tool Rendering, and State Rendering all `from agent_framework.azure import AzureOpenAIChatClient`. That symbol is not exported by `agent-framework-azure-ai` 1.0.0rc6 — `agent_framework.azure` contains durable-agent and AI-Search types only. The Quickstart and Shared State pages instead use `OpenAIChatClient(..., azure_endpoint=...)`, which does exist; this repo follows that form.
 
 **3. `useDefaultRenderTool` sample destructures `args`**
-The wildcard sample on Tool Rendering reads `({ name, args, status, result })`. The shipped `DefaultRenderProps` provides `name`, `toolCallId`, `parameters`, `status`, and `result` — there is no `args`. (The *named* `useRenderTool` sample on the same page is correct and already uses `parameters`, which is worth noting since the equivalent page for some other frameworks still shows the older form.)
+The wildcard sample on Tool Rendering reads `({ name, args, status, result })`. The shipped `DefaultRenderProps` provides `name`, `toolCallId`, `parameters`, `status`, and `result` — there is no `args`. (The _named_ `useRenderTool` sample on the same page is correct and already uses `parameters`, which is worth noting since the equivalent page for some other frameworks still shows the older form.)
 
 **4. The Inspector's on/off prop depends on which provider you use**
 The doc says the inspector is on by default and `enableInspector={false}` disables it. That is true of `<CopilotKit>`. `<CopilotKitProvider>` has no `enableInspector` prop — it reads `showDevConsole`, which **defaults to false**. Also, the provider already mounts the inspector itself; a hand-mounted `<CopilotKitInspector />` forwards `core ?? null` and renders "CopilotKit core not attached".
@@ -276,20 +363,41 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 **9. The agent-framework packages are pre-release**
 `uv add` fails without `--prerelease=allow`; the docs' install commands omit it.
 
+**10. Readables: the agent does not always pick up shared context**
+On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
+
+**11. Thread serving requires Enterprise Intelligence and multi-route configuration**
+Upstream docs have transitioned runtime examples to `@copilotkit/runtime/v2` with `createCopilotRuntimeHandler` on catch-all `[[...slug]]` routes. For full thread features, `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime is constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. This repo isolates thread configurations in `/api/copilotkit-threads/[[...slug]]`.
+
+Also not implemented: the lifecycle page's "create a thread with your own API on the first message". It needs a backend that mints thread rows, which this harness does not have, so it is left out rather than faked.
+
+**12. The Threads Drawer's `slot` customization does not work through the React wrapper**
+[The drawer page](https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer) documents three escape hatches, the first being "project children with a `slot` attribute (`header`, `empty`, `footer`, `memories`, `launcher-icon`)" with this sample:
+
+```tsx
+<CopilotThreadsDrawer>
+  <span slot="header">My conversations</span>
+</CopilotThreadsDrawer>
+```
+
+The underlying `<copilotkit-threads-drawer>` web component does declare all five slots. But the React wrapper in `@copilotkit/react-core` 1.68.2 declares no `children` on `CopilotThreadsDrawerProps` (so the sample is a type error) and renders the element as `React.createElement(TAG, props, rowChildren)` — where `rowChildren` is derived solely from `renderRow`. Any other child is dropped. `renderRow`, `limit`, `label`, and `recentLabel` all work; `/threads/drawer` uses those four and reports the omission rather than working around it.
+
+Verified against `@copilotkit/runtime` and `@copilotkit/react-core` 1.68.2.
+
 ---
 
 ## 10. Troubleshooting
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| Chat sends, nothing streams back | Agent process down, or `MS_AGENT_URL` wrong | Check the home page connection panel; run `uv run --prerelease=allow main.py`. |
-| Every chat fails with 401 | `AUTH_BEARER_TOKEN` set without a matching frontend token | Set `NEXT_PUBLIC_AUTH_BEARER_TOKEN` too and restart both, or unset both. |
-| Tool runs but custom UI never renders | Renderer name ≠ tool name | `useRenderTool({ name })` must equal the Python tool name exactly. |
-| State panel stays empty | State key and tool argument disagree | Check `predict_state_config` maps the tool argument onto the state key. |
-| `uv add` fails on pre-release markers | Pre-releases not enabled | Add `--prerelease=allow`. |
-| Backend exits: "No model provider configured" | No key set | Copy `.env.example` → `backend/.env`. Failing fast is intentional. |
-| Inspector never appears | Production build | It is disabled unconditionally in production. Use `npm run dev`. |
-| Connection errors mentioning `localhost` | DNS resolving to IPv6 while the server binds IPv4 | Use `127.0.0.1` in `MS_AGENT_URL`. |
+| Symptom                                       | Cause                                                     | Fix                                                                            |
+| --------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Chat sends, nothing streams back              | Agent process down, or `MS_AGENT_URL` wrong               | Check the home page connection panel; run `uv run --prerelease=allow main.py`. |
+| Every chat fails with 401                     | `AUTH_BEARER_TOKEN` set without a matching frontend token | Set `NEXT_PUBLIC_AUTH_BEARER_TOKEN` too and restart both, or unset both.       |
+| Tool runs but custom UI never renders         | Renderer name ≠ tool name                                 | `useRenderTool({ name })` must equal the Python tool name exactly.             |
+| State panel stays empty                       | State key and tool argument disagree                      | Check `predict_state_config` maps the tool argument onto the state key.        |
+| `uv add` fails on pre-release markers         | Pre-releases not enabled                                  | Add `--prerelease=allow`.                                                      |
+| Backend exits: "No model provider configured" | No key set                                                | Copy `.env.example` → `backend/.env`. Failing fast is intentional.             |
+| Inspector never appears                       | Production build                                          | It is disabled unconditionally in production. Use `npm run dev`.               |
+| Connection errors mentioning `localhost`      | DNS resolving to IPv6 while the server binds IPv4         | Use `127.0.0.1` in `MS_AGENT_URL`.                                             |
 
 ---
 
@@ -322,9 +430,11 @@ Commit `doc-snapshot/` — `pages/`, `manifest.json` and `CHANGELOG.md` are the 
 ## 11. Project structure
 
 ```
-ms-agent-framework-pt/
+CPK-MS-Agent-Python/
 ├── CLAUDE.md
 ├── README.md
+├── project-context.md         # how docs/ and code relate; rules for changing either
+├── THREADS-AUTH.md            # ★ portable: adding Rich Threads auth to any framework repo
 ├── .env.example
 │
 ├── frontend/                  # Next.js 16 app — also hosts the Copilot Runtime
@@ -333,12 +443,16 @@ ms-agent-framework-pt/
 │       │   ├── layout.tsx             # providers + chrome; imports v2 styles
 │       │   ├── page.tsx               # / — intro + connection check
 │       │   ├── status/page.tsx        # status overview table
-│       │   ├── api/copilotkit/route.ts   # ★ CopilotRuntime + 3 HttpAgents
+│       │   ├── api/copilotkit/[[...slug]]/route.ts   # ★ CopilotRuntime + 3 HttpAgents (as documented)
+│       │   ├── api/copilotkit-threads/[[...slug]]/route.ts
+│       │   │                          # ★ 2nd runtime: multi-route + Intelligence, /threads only
+│       │   ├── threads/               # ★ 4 routes: overview, drawer, headless, lifecycle
 │       │   └── <doc route>/
 │       │       ├── page.tsx           # notes + exact source (server component)
 │       │       └── demo-chat/page.tsx # ★ the running feature, chrome-free
 │       ├── components/
 │       │   ├── providers.tsx          # ★ CopilotKitProvider, inspector, auth header
+│       │   ├── threads-provider.tsx   # ★ /threads provider: threads runtime + REST transport
 │       │   ├── source-code.tsx        # ★ renders a repo file verbatim
 │       │   ├── app-chrome.tsx         # sidebar layout, skipped on /demo-chat
 │       │   ├── demo-frame.tsx         # thin bar + back link for demo routes
@@ -351,11 +465,26 @@ ms-agent-framework-pt/
 │           ├── source.ts              # ★ server-only reader behind SourceCode
 │           └── health.ts              # server-only agent probe
 │
-└── backend/                   # Python — FastAPI + agent-framework-ag-ui
-    ├── pyproject.toml
-    ├── main.py                # ★ app, CORS, auth middleware, 3 endpoint mounts
-    ├── agents.py              # ★ the 3 doc-defined agents, tools, state schemas
-    └── chat_client.py         # OpenAI / Azure OpenAI client construction
+├── backend/                   # Python — FastAPI + agent-framework-ag-ui
+│   ├── pyproject.toml
+│   ├── main.py                # ★ app, CORS, auth middleware, 3 endpoint mounts
+│   ├── agents.py              # ★ the 3 doc-defined agents, tools, state schemas
+│   └── chat_client.py         # OpenAI / Azure OpenAI client construction
+│
+├── doc-snapshot/              # synced copy of the live docs; the drift baseline
+│   ├── pages/                 # one .md per doc page
+│   ├── manifest.json          # ★ syncedAt — the doc-sync date in the header above
+│   └── CHANGELOG.md           # what changed upstream, written at discovery
+│
+├── autorecorder/              # portable screen-recording suite (Node/TS)
+│   ├── ADAPT.md               # ★ how to port this folder to another framework
+│   ├── config/                # ★ the entire adaptation surface (3 files)
+│   ├── actions/               # ★ per-page interaction scripts + registry
+│   │   └── threads.action.ts  # ★ the 3 Rich Threads handlers
+│   ├── core/                  # frozen: engine, IDE simulator, overlays, doctor
+│   └── videos/                # exported .webm, one per doc page
+│
+└── 1cli-testing/              # scratch space for CopilotKit CLI experiments
 ```
 
 The nav, every route header, the demo links, and the status table all derive from `frontend/src/lib/nav-config.ts`.
@@ -378,8 +507,12 @@ The nav, every route header, the demo links, and the status table all derive fro
 
 **Microsoft Agent Framework** — [Authentication](https://docs.copilotkit.ai/ms-agent-python/auth)
 
+**Rich Threads** — [Overview](https://docs.copilotkit.ai/ms-agent-python/threads) · [Threads Drawer](https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer) · [Headless Threads](https://docs.copilotkit.ai/ms-agent-python/headless-threads) · [Thread & History Lifecycle](https://docs.copilotkit.ai/ms-agent-python/threads-lifecycle) · [Import & Synchronize History](https://docs.copilotkit.ai/ms-agent-python/threads-import) ‡
+
 **Backend** — [Copilot Runtime](https://docs.copilotkit.ai/ms-agent-python/copilot-runtime) · [AG-UI](https://docs.copilotkit.ai/ms-agent-python/ag-ui)
 
 **External** — [Microsoft Agent Framework docs](https://learn.microsoft.com/en-us/agent-framework/) · [AG-UI protocol](https://ag-ui.com) · [AG-UI event types](https://docs.ag-ui.com/concepts/events)
 
 † Resolves but is absent from the doc sidebar as of the sync date.
+
+‡ Tracked for reference but not implemented — see §8.

@@ -26,6 +26,8 @@ type AgentState = {
 };
 
 export default function Page() {
+  // [1] state rendering: read state
+  // [!code highlight]
   const { agent } = useAgent({ agentId: "search_agent" });
   const state = agent.state as AgentState | undefined;
 
@@ -64,6 +66,8 @@ export default function Page() {
           <h2 className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Raw agent.state
           </h2>
+          {/* [2] state rendering: display state */}
+          {/* [!code highlight] */}
           <pre className="mt-2 max-h-56 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
             {JSON.stringify(agent.state ?? {}, null, 2)}
           </pre>

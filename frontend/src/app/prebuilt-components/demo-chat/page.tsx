@@ -56,6 +56,8 @@ export default function Page() {
         </div>
 
         <div className="min-h-0 flex-1">
+          {/* [1] prebuilt: CopilotChat */}
+          {/* [!code highlight] */}
           {variant === "chat" && (
             <CopilotChat
               agentId="my_agent"
@@ -63,6 +65,8 @@ export default function Page() {
             />
           )}
 
+          {/* [2] prebuilt: CopilotSidebar */}
+          {/* [!code highlight] */}
           {variant === "sidebar" && (
             <>
               <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-500">
@@ -79,6 +83,8 @@ export default function Page() {
             </>
           )}
 
+          {/* [3] prebuilt: CopilotPopup */}
+          {/* [!code highlight] */}
           {variant === "popup" && (
             <>
               <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-500">

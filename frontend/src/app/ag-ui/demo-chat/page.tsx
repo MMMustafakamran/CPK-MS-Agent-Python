@@ -67,6 +67,8 @@ export default function Page() {
       return text.length > max ? `${text.slice(0, max)}…` : text;
     };
 
+    // [1] AG-UI: event subscription
+    // [!code highlight]
     const subscription = agent.subscribe({
       onRunStartedEvent: () => push("RUN_STARTED", ""),
       onRunFinishedEvent: () => push("RUN_FINISHED", ""),

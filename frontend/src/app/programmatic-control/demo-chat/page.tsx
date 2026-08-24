@@ -25,9 +25,13 @@ import { DemoFrame } from "@/components/demo-frame";
  *     and the doc's `agent.state.user_theme` throws on the initial render.
  */
 function ThemeSelector() {
+  // [1] programmatic control: access agent
+  // [!code highlight]
   const { agent } = useAgent({ agentId: "my_agent" });
   const state = agent.state as { user_theme?: string } | undefined;
 
+  // [2] programmatic control: set state
+  // [!code highlight]
   const updateTheme = (theme: string) => {
     agent.setState({
       ...agent.state,
@@ -76,16 +80,22 @@ function ThemeSelector() {
 }
 
 export default function Page() {
+  // [3] programmatic control: access agent
+  // [!code highlight]
   const { agent } = useAgent({ agentId: "my_agent" });
   const { copilotkit } = useCopilotKit();
   const [draft, setDraft] = useState("What's the weather in Tokyo?");
 
+  // [4] programmatic control: run function
+  // [!code highlight]
   const run = async () => {
     agent.addMessage({
       id: crypto.randomUUID(),
       role: "user",
       content: draft,
     });
+    // [5] programmatic control: run agent
+    // [!code highlight]
     await copilotkit.runAgent({ agent });
   };
 
@@ -101,20 +111,20 @@ export default function Page() {
           </h2>
           <dl className="mt-2 grid grid-cols-[minmax(0,8rem)_1fr] gap-x-4 gap-y-1.5 text-sm">
             <dt className="text-slate-500">Agent ID</dt>
-            <dd className="break-all">
-              <code>{agent.agentId ?? "—"}</code>
-            </dd>
-            <dt className="text-slate-500">Thread ID</dt>
-            <dd className="break-all">
-              <code>{agent.threadId ?? "—"}</code>
-            </dd>
-            <dt className="text-slate-500">Status</dt>
-            <dd>
-              <span className="inline-flex items-center gap-2">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    agent.isRunning
-                      ? "animate-pulse bg-amber-500"
+              <dd className="break-all">
+                <code>{agent.agentId ?? "—"}</code>
+              </dd>
+              <dt className="text-slate-500">Thread ID</dt>
+              <dd className="break-all">
+                <code>{agent.threadId ?? "—"}</code>
+              </dd>
+              <dt className="text-slate-500">Status</dt>
+              <dd>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      agent.isRunning
+                        ? "animate-pulse bg-amber-500"
                       : "bg-emerald-500"
                   }`}
                 />
@@ -128,6 +138,8 @@ export default function Page() {
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
             agent.state
           </p>
+          {/* [6] programmatic control: read state */}
+          {/* [!code highlight] */}
           <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
             {JSON.stringify(agent.state ?? {}, null, 2)}
           </pre>

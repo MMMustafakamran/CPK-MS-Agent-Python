@@ -22,8 +22,17 @@ __pycache__/
 # Editor / OS
 .DS_Store
 *.log
+.temp_chunks/
 
 # Drift reports are derived data — regenerated on every /doc-sync run.
 # The snapshot itself (doc-snapshot/pages/, manifest.json, CHANGELOG.md)
 # IS committed; it is the baseline every diff is taken against.
 doc-snapshot/reports/
+
+# Autorecorder scratch
+autorecorder/videos/.temp_chunks/
+
+# Autorecorder output. Recordings are build artifacts, reproducible via
+# `npm run record`; see autorecorder/videos/.gitignore for why.
+autorecorder/videos/*.webm
+autorecorder/videos/.temp_chunks/

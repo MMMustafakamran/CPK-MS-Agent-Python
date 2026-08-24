@@ -6,27 +6,30 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "record": "npm --prefix ../autorecording run record"
   },
   "dependencies": {
-    "@ag-ui/client": "^0.0.57",
-    "@copilotkit/react-core": "^1.66.2",
-    "@copilotkit/runtime": "^1.66.2",
-    "next": "16.3.0",
+    "@ag-ui/client": "^0.0.58",
+    "@copilotkit/react-core": "^1.69.0",
+    "@copilotkit/runtime": "^1.69.0",
+    "next": "16.3.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
-    "shiki": "^4.4.2",
+    "shiki": "^4.4.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.2",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }

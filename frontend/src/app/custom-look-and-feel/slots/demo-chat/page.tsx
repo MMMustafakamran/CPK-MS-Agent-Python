@@ -64,6 +64,8 @@ export default function Page() {
         </div>
 
         <div className="min-h-0 flex-1">
+          {/* [1] slots: class overrides */}
+          {/* [!code highlight] */}
           {level === "classes" && (
             <CopilotChat
               agentId="my_agent"
@@ -80,6 +82,8 @@ export default function Page() {
             />
           )}
 
+          {/* [2] slots: prop overrides */}
+          {/* [!code highlight] */}
           {level === "props" && (
             <CopilotChat
               agentId="my_agent"
@@ -95,6 +99,8 @@ export default function Page() {
             />
           )}
 
+          {/* [3] slots: custom component */}
+          {/* [!code highlight] */}
           {level === "component" && (
             <CopilotChat
               agentId="my_agent"

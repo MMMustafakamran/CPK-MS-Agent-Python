@@ -28,6 +28,8 @@ const AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_BEARER_TOKEN;
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
+    // [1] quickstart / inspector / authentication: provider
+    // [!code highlight]
     <CopilotKitProvider
       runtimeUrl={RUNTIME_URL}
       {...(LICENSE_KEY ? { publicLicenseKey: LICENSE_KEY } : {})}

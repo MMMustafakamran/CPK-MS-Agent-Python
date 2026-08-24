@@ -25,6 +25,8 @@ export default function Page() {
         </p>
       </main>
 
+      {/* [1] quickstart: CopilotSidebar */}
+      {/* [!code highlight] */}
       <CopilotSidebar
         agentId="my_agent"
         labels={{
