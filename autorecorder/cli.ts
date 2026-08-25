@@ -231,6 +231,12 @@ async function main(): Promise<void> {
   }
 
   if (targetPages.length === 0) {
+    if (shardMatch) {
+      console.log(
+        `\nℹ️ [Matrix Sharding]: No pages assigned to this worker shard. Exiting cleanly.`,
+      );
+      process.exit(0);
+    }
     console.error(`❌ No matching page found for query: ${args.join(' ')}`);
     console.log(`Available page IDs: ${PAGES.map((p) => p.id).join(', ')}`);
     console.log(`Tip: run \`npm run record -- --list\` to view all routes.`);
