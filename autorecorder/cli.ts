@@ -66,13 +66,20 @@ const GLOBAL_FLAGS = new Set([
   '--doctor',
   '--verify-config',
   '--online',
+  '--limit',
+  '--first',
+  '--count',
 ]);
 
 async function main(): Promise<void> {
   const rawArgs = process.argv.slice(2);
   // Selection args only; `--force` etc. would otherwise fall through to the
   // substring filter below and match zero pages.
-  const args = rawArgs.filter((a) => !GLOBAL_FLAGS.has(a));
+  const args = rawArgs.filter((a) => {
+    if (GLOBAL_FLAGS.has(a)) return false;
+    if (a.startsWith('--limit=') || a.startsWith('--first=') || a.startsWith('--count=')) return false;
+    return true;
+  });
   const isListMode =
     rawArgs.includes('--list') ||
     rawArgs.includes('-l') ||
@@ -162,6 +169,28 @@ async function main(): Promise<void> {
     targetPages = PAGES.filter(
       (p) => p.id.toLowerCase().includes(query) || p.name.toLowerCase().includes(query),
     );
+  }
+
+  // 5. Check for limit flag: --limit=N or --first=N
+  let limitArg: number | undefined;
+  const limitMatch = rawArgs.find(
+    (a) => a.startsWith('--limit=') || a.startsWith('--first=') || a.startsWith('--count='),
+  );
+  if (limitMatch) {
+    const num = parseInt(limitMatch.split('=')[1], 10);
+    if (!isNaN(num) && num > 0) limitArg = num;
+  } else {
+    const limitIndex = rawArgs.findIndex(
+      (a) => a === '--limit' || a === '--first' || a === '--count',
+    );
+    if (limitIndex !== -1 && rawArgs[limitIndex + 1]) {
+      const num = parseInt(rawArgs[limitIndex + 1], 10);
+      if (!isNaN(num) && num > 0) limitArg = num;
+    }
+  }
+
+  if (limitArg && limitArg > 0) {
+    targetPages = targetPages.slice(0, limitArg);
   }
 
   if (targetPages.length === 0) {

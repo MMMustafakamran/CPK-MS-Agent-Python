@@ -110,32 +110,19 @@ Four points worth noting:
 git clone <this-repo> ms-agent-framework-pt && cd ms-agent-framework-pt
 ```
 
-**2. Install frontend deps**
-
-```bash
-cd frontend && npm install && cd ..
-```
-
-To upgrade frontend dependencies to their latest releases:
-
-```bash
-cd frontend
-npx npm-check-updates -u
-npm install
-cd ..
-```
-
-**3. Install backend deps**
-
-```bash
-cd backend && uv sync --prerelease=allow && cd ..
-```
-
-To upgrade backend dependencies to their latest releases:
+**2. Install Backend Dependencies**
 
 ```bash
 cd backend
-uv add --prerelease=allow agent-framework-ag-ui@latest agent-framework-azure-ai@latest agent-framework-openai@latest fastapi@latest uvicorn@latest
+uv sync --prerelease=allow
+cd ..
+```
+
+**3. Install Frontend Dependencies**
+
+```bash
+cd frontend
+npm install
 cd ..
 ```
 
@@ -144,6 +131,30 @@ cd ..
 ```bash
 cp .env.example backend/.env
 ```
+
+---
+
+### Upgrading Dependencies
+
+When upgrading frontend packages (especially `@copilotkit/*` and `@ag-ui/*`):
+
+```bash
+cd frontend
+
+# Upgrade all packages while safely respecting peer dependencies
+npx npm-check-updates -u -p
+
+# Or update only CopilotKit and AG-UI packages:
+npx npm-check-updates -u --filter "/copilotkit|ag-ui/"
+
+# Install updated versions and regenerate lockfile
+npm install
+
+# Verify build and type integrity
+npm run build
+```
+
+> **Note on `-p` (`--peer`):** The `-p` flag ensures `npm-check-updates` checks peer dependency compatibility before bumping versions, preventing `ERESOLVE` peer dependency conflicts.
 
 Then edit `backend/.env`:
 

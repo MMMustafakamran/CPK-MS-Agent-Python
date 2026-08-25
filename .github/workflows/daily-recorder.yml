@@ -1,0 +1,138 @@
+name: Daily Auto-Update and Demo Recording
+
+on:
+  schedule:
+    # Runs every day at 06:00 UTC (11:00 AM PKT / adjust as desired)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      upgrade_packages:
+        description: 'Upgrade CopilotKit & AG-UI packages before running'
+        required: false
+        type: boolean
+        default: false
+      record_args:
+        description: 'Autorecorder CLI arguments (e.g. --limit=3, --quickstart, or blank for all)'
+        required: false
+        type: string
+        default: '--limit=3'
+      fail_on_doc_drift:
+        description: 'Fail immediately if doc drift is detected'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  update-and-record:
+    name: Update, Test & Record Demos
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-4o-mini' }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: ${{ vars.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME }}
+      COPILOTKIT_LICENSE_TOKEN: ${{ secrets.COPILOTKIT_LICENSE_TOKEN }}
+      INTELLIGENCE_API_KEY: ${{ secrets.INTELLIGENCE_API_KEY }}
+      INTELLIGENCE_API_URL: ${{ vars.INTELLIGENCE_API_URL }}
+      INTELLIGENCE_GATEWAY_WS_URL: ${{ vars.INTELLIGENCE_GATEWAY_WS_URL }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            autorecorder/package-lock.json
+
+      - name: Install Playwright & System Chromium Dependencies
+        run: |
+          cd autorecorder
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Check Live Doc Drift Against doc-snapshot
+        id: doc-drift
+        run: |
+          set +e
+          node scripts/check-doc-drift.mjs
+          EXIT_CODE=$?
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::warning title=Doc Drift Detected::Upstream documentation has changed. Check the job log for details."
+            if [ "${{ inputs.fail_on_doc_drift }}" = "true" ]; then
+              echo "Failing pipeline because fail_on_doc_drift is true."
+              exit $EXIT_CODE
+            else
+              echo "Proceeding to test project services and demo recordings..."
+            fi
+          fi
+
+      - name: Install & Sync Backend Dependencies
+        run: |
+          cd backend
+          uv sync --prerelease=allow
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          if [ "${{ inputs.upgrade_packages }}" = "true" ]; then
+            echo "Upgrading CopilotKit and AG-UI packages..."
+            npx npm-check-updates -u --filter "/copilotkit|ag-ui/"
+          fi
+          npm install
+
+      - name: Start Backend Agent Server (Background)
+        run: |
+          cd backend
+          uv run --prerelease=allow main.py &
+
+      - name: Start Frontend Next.js Server (Background)
+        run: |
+          cd frontend
+          npm run dev &
+
+      - name: Wait for Services Readiness
+        run: |
+          echo "Waiting for Backend (http://localhost:8000/health) and Frontend (http://localhost:3000)..."
+          timeout 60s bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done'
+          timeout 60s bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 2; done'
+          echo "✅ Both Backend and Frontend are online and ready."
+
+      - name: Run Autorecorder Doctor Check
+        run: |
+          cd autorecorder
+          npm run doctor
+
+      - name: Run Autorecorder Suite
+        run: |
+          cd autorecorder
+          RECORD_ARGS="${{ inputs.record_args }}"
+          if [ -z "$RECORD_ARGS" ]; then
+            RECORD_ARGS="--limit=3"
+          fi
+          echo "Running autorecorder with args: $RECORD_ARGS"
+          npm run record -- $RECORD_ARGS
+
+      - name: Upload Recorded Video Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-recordings-${{ github.sha }}
+          path: autorecorder/videos/*.webm
+          if-no-files-found: ignore
+          retention-days: 14
