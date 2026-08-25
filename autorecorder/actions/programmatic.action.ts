@@ -1,14 +1,14 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
-import { sendPrompt } from '../core/actions';
+import { waitForAgentResponseCompletion } from '../core/actions';
 
 export const runProgrammaticAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
 ) => {
   console.log(`   [Programmatic Control] 1/2: Toggling Dark Mode in agent.state...`);
-  const darkModeBtn = page.locator('button:has-text("Dark Mode")').first();
+  const darkModeBtn = page.getByRole('button', { name: 'Dark Mode' }).first();
   if (await darkModeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     const dmBox = await darkModeBtn.boundingBox();
     if (dmBox) {
@@ -19,18 +19,43 @@ export const runProgrammaticAction: PageActionHandler = async (
     }
   }
 
-  console.log(`   [Programmatic Control] 2/2: Sending draft message and running agent explicitly...`);
-  // The draft box arrives pre-populated and submitting means clicking "Run agent",
-  // which is the whole point of the page -- copilotkit.runAgent, not a chat submit.
-  await sendPrompt(page, config.prompt, {
-    inputSelector: 'input[placeholder="Message to send"]',
-    submitSelector: 'button:not([disabled])',
-    clearFirst: true,
-    timeoutMs: 12000,
-    expectInputToEmpty: false,
-  });
+  console.log(`   [Programmatic Control] 2/2: Typing prompt & clicking 'Run agent'...`);
+  const inputLocator = page.locator('[data-testid="programmatic-input"], input[placeholder="Message to send"]').first();
+  await inputLocator.waitFor({ state: 'visible', timeout: 10000 });
+  const inputBox = await inputLocator.boundingBox();
+  if (inputBox) {
+    await humanGlide(page, inputBox.x + 80, inputBox.y + inputBox.height / 2, 18);
+    await humanClick(page);
+  } else {
+    await inputLocator.click();
+  }
+  await sleep(200);
 
-  console.log(`   Waiting for Programmatic Control run to complete...`);
-  await humanGlide(page, 960, 500, 25);
-  await sleep(config.waitAfterPromptMs ?? 1500);
+  // Clear and type prompt
+  await page.keyboard.press('Control+A');
+  await page.keyboard.press('Backspace');
+  await page.keyboard.type(config.prompt, { delay: 25 });
+  await sleep(300);
+
+  // Click "Run agent" button explicitly
+  const runBtn = page.locator('[data-testid="run-agent-btn"], button:has-text("Run agent")').first();
+  await runBtn.waitFor({ state: 'visible', timeout: 5000 });
+  const runBox = await runBtn.boundingBox();
+  if (runBox) {
+    await humanGlide(page, runBox.x + runBox.width / 2, runBox.y + runBox.height / 2, 16);
+    await humanClick(page);
+    console.log(`   Clicked 'Run agent'!`);
+  } else {
+    await runBtn.click();
+  }
+
+  console.log(`   Waiting for Programmatic Control AI response...`);
+  await waitForAgentResponseCompletion(
+    page,
+    config.waitAfterPromptMs ?? 3000,
+    0,
+    'section div p.whitespace-pre-wrap, section div.rounded-lg',
+  ).catch(async () => {
+    await sleep(config.waitAfterPromptMs ?? 3000);
+  });
 };

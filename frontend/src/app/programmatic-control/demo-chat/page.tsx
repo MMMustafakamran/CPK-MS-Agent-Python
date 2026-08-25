@@ -149,6 +149,7 @@ export default function Page() {
 
         <div className="flex flex-wrap gap-2">
           <input
+            data-testid="programmatic-input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800"
@@ -156,6 +157,7 @@ export default function Page() {
           />
           <button
             type="button"
+            data-testid="run-agent-btn"
             onClick={() => void run()}
             disabled={agent.isRunning || !draft.trim()}
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
