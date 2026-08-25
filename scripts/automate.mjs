@@ -272,7 +272,10 @@ async function main() {
 
     // 2. Dependency updates
     if (!skipInstall) {
-      runSync('uv sync --prerelease=allow', path.join(ROOT_DIR, 'backend'), 'Syncing Backend Dependencies (uv sync)');
+      const uvSyncCmd = shouldUpgrade
+        ? 'uv sync --prerelease=allow --upgrade'
+        : 'uv sync --prerelease=allow';
+      runSync(uvSyncCmd, path.join(ROOT_DIR, 'backend'), 'Syncing Backend Dependencies (uv sync)');
 
       if (shouldUpgrade) {
         runSync('npx npm-check-updates -u --filter "/copilotkit|ag-ui/"', path.join(ROOT_DIR, 'frontend'), 'Upgrading CopilotKit & AG-UI frontend dependencies');
