@@ -69,6 +69,7 @@ const GLOBAL_FLAGS = new Set([
   '--limit',
   '--first',
   '--count',
+  '--shard',
 ]);
 
 async function main(): Promise<void> {
@@ -77,7 +78,14 @@ async function main(): Promise<void> {
   // substring filter below and match zero pages.
   const args = rawArgs.filter((a) => {
     if (GLOBAL_FLAGS.has(a)) return false;
-    if (a.startsWith('--limit=') || a.startsWith('--first=') || a.startsWith('--count=')) return false;
+    if (
+      a.startsWith('--limit=') ||
+      a.startsWith('--first=') ||
+      a.startsWith('--count=') ||
+      a.startsWith('--shard=')
+    ) {
+      return false;
+    }
     return true;
   });
   const isListMode =
@@ -202,6 +210,24 @@ async function main(): Promise<void> {
 
   if (limitArg && limitArg > 0) {
     targetPages = targetPages.slice(0, limitArg);
+  }
+
+  // 6. Check for shard flag: --shard=K/N (e.g. --shard=1/3, --shard=2/3)
+  const shardMatch = rawArgs.find((a) => a.startsWith('--shard='));
+  if (shardMatch) {
+    const val = shardMatch.split('=')[1] || '';
+    const parts = val.split('/');
+    if (parts.length === 2) {
+      const curr = parseInt(parts[0], 10);
+      const total = parseInt(parts[1], 10);
+      if (!isNaN(curr) && !isNaN(total) && total > 0 && curr > 0 && curr <= total) {
+        const chunkSize = Math.ceil(targetPages.length / total);
+        const start = (curr - 1) * chunkSize;
+        const end = Math.min(start + chunkSize, targetPages.length);
+        targetPages = targetPages.slice(start, end);
+        console.log(`\n🧩 [Matrix Sharding]: Worker Shard ${curr}/${total} -> Recording ${targetPages.length} pages (index ${start + 1} to ${end})`);
+      }
+    }
   }
 
   if (targetPages.length === 0) {
