@@ -126,7 +126,7 @@ jobs:
             RECORD_ARGS="--limit=3"
           fi
           echo "Running autorecorder with args: $RECORD_ARGS"
-          npm run record -- $RECORD_ARGS
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run record -- $RECORD_ARGS
 
       - name: Upload Recorded Video Artifacts
         if: always()
