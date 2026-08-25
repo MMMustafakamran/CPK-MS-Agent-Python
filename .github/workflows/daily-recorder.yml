@@ -83,11 +83,21 @@ jobs:
           echo "Running pipeline with flags: $EXTRA_FLAGS $RECORD_ARGS"
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" node scripts/automate.mjs $EXTRA_FLAGS $RECORD_ARGS
 
-      - name: Upload Recorded Video Artifacts
+      - name: Publish Run Report to GitHub Summary
+        if: always()
+        run: |
+          if [ -f "autorecorder/videos/RUN_REPORT.md" ]; then
+            cat autorecorder/videos/RUN_REPORT.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Recorded Video Artifacts & Run Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: demo-recordings-${{ github.sha }}
-          path: autorecorder/videos/*.webm
+          path: |
+            autorecorder/videos/*.webm
+            autorecorder/videos/RUN_REPORT.md
+            autorecorder/videos/RUN_REPORT.json
           if-no-files-found: ignore
           retention-days: 14
