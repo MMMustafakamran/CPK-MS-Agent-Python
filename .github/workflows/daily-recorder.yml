@@ -231,12 +231,29 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Download all shard artifacts
         uses: actions/download-artifact@v4
         with:
           path: all-recordings
           pattern: demo-recordings-shard-*
           merge-multiple: true
+
+      - name: Mux Voiceover Audio onto Readables Demo Video
+        run: |
+          if [ -f "autorecorder/audio/mspyreadables.m4a" ]; then
+            READABLE_VIDEO=$(ls all-recordings/*Readables*.webm 2>/dev/null | head -n 1 || true)
+            if [ -n "$READABLE_VIDEO" ]; then
+              echo "🎵 Muxing voiceover audio onto $READABLE_VIDEO..."
+              ffmpeg -y -i "$READABLE_VIDEO" -i autorecorder/audio/mspyreadables.m4a -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${READABLE_VIDEO}.temp.webm"
+              mv "${READABLE_VIDEO}.temp.webm" "$READABLE_VIDEO"
+              echo "✅ Successfully added voiceover audio to $READABLE_VIDEO"
+            else
+              echo "ℹ️ Readables video not in this run; skipping audio mux."
+            fi
+          fi
 
       - name: Upload Consolidated Demo Recordings Package
         uses: actions/upload-artifact@v4
