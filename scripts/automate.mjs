@@ -148,32 +148,25 @@ async function main() {
 
     // 3. Start Backend
     console.log('\n▶ [Step] Starting Backend Server (:8000)...');
-    backendProc = spawn('uv', ['run', '--prerelease=allow', 'main.py'], {
+    backendProc = spawn('uv run --prerelease=allow main.py', {
       cwd: path.join(ROOT_DIR, 'backend'),
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: 'ignore',
       shell: true,
       detached: !isWindows,
     });
 
-    backendProc.stdout.on('data', (d) => {
-      // Optional debug logging
-    });
-    backendProc.stderr.on('data', (d) => {
-      // Optional error logging
-    });
-
     // 4. Start Frontend
     console.log('▶ [Step] Starting Frontend Server (:3000)...');
-    frontendProc = spawn('npm', ['run', 'dev'], {
+    frontendProc = spawn('npm run dev', {
       cwd: path.join(ROOT_DIR, 'frontend'),
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: 'ignore',
       shell: true,
       detached: !isWindows,
     });
 
     // 5. Health Checks
-    await waitForHealth('http://localhost:8000/health', 'Backend Agent');
-    await waitForHealth('http://localhost:3000', 'Frontend Next.js App');
+    await waitForHealth('http://127.0.0.1:8000/health', 'Backend Agent', 45000);
+    await waitForHealth('http://127.0.0.1:3000', 'Frontend Next.js App', 60000);
 
     // 6. Run Autorecorder
     console.log('\n▶ [Step] Running Autorecorder...');
