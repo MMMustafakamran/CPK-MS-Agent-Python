@@ -6,19 +6,106 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
+      run_all_pages:
+        description: 'Record ALL 20 pages (default / uncheck to choose specific pages below)'
+        required: false
+        type: boolean
+        default: true
       upgrade_packages:
-        description: 'Upgrade CopilotKit & AG-UI packages before running'
+        description: 'Upgrade packages (ncu -u --peer & uv sync --upgrade)'
         required: false
         type: boolean
         default: false
-      record_args:
-        description: 'Autorecorder CLI arguments (e.g. --limit=3, --quickstart, or blank for all)'
-        required: false
-        type: string
-        default: '--limit=3'
       fail_on_doc_drift:
         description: 'Fail immediately if doc drift is detected'
         required: false
+        type: boolean
+        default: false
+      custom_args:
+        description: 'Or type custom CLI args (e.g. --limit=5)'
+        required: false
+        type: string
+        default: ''
+
+      # Individual Page Selection Checkboxes
+      page_quickstart:
+        description: 'Page 01: Quickstart'
+        type: boolean
+        default: false
+      page_prebuilt_components:
+        description: 'Page 02: Prebuilt Components'
+        type: boolean
+        default: false
+      page_slots:
+        description: 'Page 03: Custom Slots'
+        type: boolean
+        default: false
+      page_headless_ui:
+        description: 'Page 04: Headless UI'
+        type: boolean
+        default: false
+      page_programmatic_control:
+        description: 'Page 05: Programmatic Control'
+        type: boolean
+        default: false
+      page_custom_components:
+        description: 'Page 06: Custom Components'
+        type: boolean
+        default: false
+      page_agent_app_context:
+        description: 'Page 07: Agent App Context'
+        type: boolean
+        default: false
+      page_copilot_readable:
+        description: 'Page 08: Copilot Readable'
+        type: boolean
+        default: false
+      page_copilot_action:
+        description: 'Page 09: Copilot Action'
+        type: boolean
+        default: false
+      page_hitl:
+        description: 'Page 10: Human In The Loop'
+        type: boolean
+        default: false
+      page_shared_state:
+        description: 'Page 11: Shared State'
+        type: boolean
+        default: false
+      page_threads:
+        description: 'Page 12: Threads'
+        type: boolean
+        default: false
+      page_inspector:
+        description: 'Page 13: Dev Console / Inspector'
+        type: boolean
+        default: false
+      page_agent_mode:
+        description: 'Page 14: Agent Mode'
+        type: boolean
+        default: false
+      page_security:
+        description: 'Page 15: Security'
+        type: boolean
+        default: false
+      page_auth:
+        description: 'Page 16: Auth Bearer'
+        type: boolean
+        default: false
+      page_custom_ai_provider:
+        description: 'Page 17: Custom AI Provider'
+        type: boolean
+        default: false
+      page_copilot_runtime:
+        description: 'Page 18: Copilot Runtime'
+        type: boolean
+        default: false
+      page_custom_agent_runner:
+        description: 'Page 19: Custom Agent Runner'
+        type: boolean
+        default: false
+      page_multi_agent:
+        description: 'Page 20: Multi Agent Workflows'
         type: boolean
         default: false
 
@@ -26,7 +113,7 @@ jobs:
   update-and-record:
     name: Update, Test & Record Demos
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -67,9 +154,40 @@ jobs:
 
       - name: Run Automation Pipeline & Record Demos
         run: |
-          RECORD_ARGS="${{ inputs.record_args }}"
-          if [ -z "$RECORD_ARGS" ]; then
-            RECORD_ARGS="--limit=3"
+          # 1. Custom CLI args override everything if provided
+          if [ -n "${{ inputs.custom_args }}" ]; then
+            RECORD_ARGS="${{ inputs.custom_args }}"
+          else
+            # 2. Check if individual page checkboxes were selected
+            PAGES=()
+            [ "${{ inputs.page_quickstart }}" = "true" ] && PAGES+=("quickstart")
+            [ "${{ inputs.page_prebuilt_components }}" = "true" ] && PAGES+=("prebuilt-components")
+            [ "${{ inputs.page_slots }}" = "true" ] && PAGES+=("slots")
+            [ "${{ inputs.page_headless_ui }}" = "true" ] && PAGES+=("headless-ui")
+            [ "${{ inputs.page_programmatic_control }}" = "true" ] && PAGES+=("programmatic-control")
+            [ "${{ inputs.page_custom_components }}" = "true" ] && PAGES+=("custom-components")
+            [ "${{ inputs.page_agent_app_context }}" = "true" ] && PAGES+=("agent-app-context")
+            [ "${{ inputs.page_copilot_readable }}" = "true" ] && PAGES+=("copilot-readable")
+            [ "${{ inputs.page_copilot_action }}" = "true" ] && PAGES+=("copilot-action")
+            [ "${{ inputs.page_hitl }}" = "true" ] && PAGES+=("hitl")
+            [ "${{ inputs.page_shared_state }}" = "true" ] && PAGES+=("shared-state")
+            [ "${{ inputs.page_threads }}" = "true" ] && PAGES+=("threads")
+            [ "${{ inputs.page_inspector }}" = "true" ] && PAGES+=("inspector")
+            [ "${{ inputs.page_agent_mode }}" = "true" ] && PAGES+=("agent-mode")
+            [ "${{ inputs.page_security }}" = "true" ] && PAGES+=("security")
+            [ "${{ inputs.page_auth }}" = "true" ] && PAGES+=("auth")
+            [ "${{ inputs.page_custom_ai_provider }}" = "true" ] && PAGES+=("custom-ai-provider")
+            [ "${{ inputs.page_copilot_runtime }}" = "true" ] && PAGES+=("copilot-runtime")
+            [ "${{ inputs.page_custom_agent_runner }}" = "true" ] && PAGES+=("custom-agent-runner")
+            [ "${{ inputs.page_multi_agent }}" = "true" ] && PAGES+=("multi-agent")
+
+            if [ ${#PAGES[@]} -gt 0 ]; then
+              JOINED=$(IFS=,; echo "${PAGES[*]}")
+              RECORD_ARGS="--pages=$JOINED"
+            else
+              # If no individual checkboxes checked, check run_all_pages
+              RECORD_ARGS=""
+            fi
           fi
 
           EXTRA_FLAGS=""

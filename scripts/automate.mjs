@@ -278,7 +278,7 @@ async function main() {
       runSync(uvSyncCmd, path.join(ROOT_DIR, 'backend'), 'Syncing Backend Dependencies (uv sync)');
 
       if (shouldUpgrade) {
-        runSync('npx npm-check-updates -u --filter "/copilotkit|ag-ui/"', path.join(ROOT_DIR, 'frontend'), 'Upgrading CopilotKit & AG-UI frontend dependencies');
+        runSync('npx npm-check-updates -u --peer', path.join(ROOT_DIR, 'frontend'), 'Upgrading all frontend dependencies (ncu -u --peer)');
       }
 
       runSync('npm install', path.join(ROOT_DIR, 'frontend'), 'Installing Frontend Dependencies (npm install)');

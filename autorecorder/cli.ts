@@ -154,8 +154,17 @@ async function main(): Promise<void> {
     }
   }
 
+  // 4. Determine pages to record
+  const multiPagesArg = rawArgs.find((a) => a.startsWith('--pages=') || a.startsWith('--only='));
   let targetPages = PAGES;
-  if (pageArg) {
+
+  if (multiPagesArg) {
+    const ids = multiPagesArg
+      .split('=')[1]
+      .split(',')
+      .map((s) => s.trim().toLowerCase());
+    targetPages = PAGES.filter((p) => ids.includes(p.id.toLowerCase()));
+  } else if (pageArg) {
     targetPages = PAGES.filter(
       (p) => p.id.toLowerCase() === pageArg!.toLowerCase(),
     );
@@ -165,9 +174,11 @@ async function main(): Promise<void> {
       (p) => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
     );
   } else if (args.length > 0) {
-    const query = args[0].replace(/^-+/, '').toLowerCase();
-    targetPages = PAGES.filter(
-      (p) => p.id.toLowerCase().includes(query) || p.name.toLowerCase().includes(query),
+    const queries = args.map((a) => a.replace(/^-+/, '').toLowerCase());
+    targetPages = PAGES.filter((p) =>
+      queries.some(
+        (q) => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q),
+      ),
     );
   }
 
