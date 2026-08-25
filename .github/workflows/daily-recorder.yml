@@ -65,68 +65,23 @@ jobs:
           npm install
           npx playwright install --with-deps chromium
 
-      - name: Check Live Doc Drift Against doc-snapshot
-        id: doc-drift
+      - name: Run Automation Pipeline & Record Demos
         run: |
-          set +e
-          node scripts/check-doc-drift.mjs
-          EXIT_CODE=$?
-          set -e
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "::warning title=Doc Drift Detected::Upstream documentation has changed. Check the job log for details."
-            if [ "${{ inputs.fail_on_doc_drift }}" = "true" ]; then
-              echo "Failing pipeline because fail_on_doc_drift is true."
-              exit $EXIT_CODE
-            else
-              echo "Proceeding to test project services and demo recordings..."
-            fi
-          fi
-
-      - name: Install & Sync Backend Dependencies
-        run: |
-          cd backend
-          uv sync --prerelease=allow
-
-      - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          if [ "${{ inputs.upgrade_packages }}" = "true" ]; then
-            echo "Upgrading CopilotKit and AG-UI packages..."
-            npx npm-check-updates -u --filter "/copilotkit|ag-ui/"
-          fi
-          npm install
-
-      - name: Start Backend Agent Server (Background)
-        run: |
-          cd backend
-          uv run --prerelease=allow main.py &
-
-      - name: Start Frontend Next.js Server (Background)
-        run: |
-          cd frontend
-          npm run dev &
-
-      - name: Wait for Services Readiness
-        run: |
-          echo "Waiting for Backend (http://localhost:8000/health) and Frontend (http://localhost:3000)..."
-          timeout 60s bash -c 'until curl -s http://localhost:8000/health > /dev/null; do sleep 2; done'
-          timeout 60s bash -c 'until curl -s http://localhost:3000 > /dev/null; do sleep 2; done'
-          echo "✅ Both Backend and Frontend are online and ready."
-
-      - name: Run Autorecorder Doctor Check
-        run: |
-          cd autorecorder
-          npm run doctor
-
-      - name: Run Autorecorder Suite
-        run: |
-          cd autorecorder
           RECORD_ARGS="${{ inputs.record_args }}"
           if [ -z "$RECORD_ARGS" ]; then
             RECORD_ARGS="--limit=3"
           fi
-          echo "Running autorecorder with args: $RECORD_ARGS"
-          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" npm run record -- $RECORD_ARGS
+
+          EXTRA_FLAGS=""
+          if [ "${{ inputs.upgrade_packages }}" = "true" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS --upgrade"
+          fi
+          if [ "${{ inputs.fail_on_doc_drift }}" != "true" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS --ignore-doc-drift"
+          fi
+
+          echo "Running pipeline with flags: $EXTRA_FLAGS $RECORD_ARGS"
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" node scripts/automate.mjs $EXTRA_FLAGS $RECORD_ARGS
 
       - name: Upload Recorded Video Artifacts
         if: always()
