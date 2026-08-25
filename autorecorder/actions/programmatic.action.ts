@@ -24,9 +24,10 @@ export const runProgrammaticAction: PageActionHandler = async (
   // which is the whole point of the page -- copilotkit.runAgent, not a chat submit.
   await sendPrompt(page, config.prompt, {
     inputSelector: 'input[placeholder="Message to send"]',
-    submitSelector: 'button:has-text("Run agent")',
+    submitSelector: 'button:not([disabled])',
     clearFirst: true,
     timeoutMs: 12000,
+    expectInputToEmpty: false,
   });
 
   console.log(`   Waiting for Programmatic Control run to complete...`);
