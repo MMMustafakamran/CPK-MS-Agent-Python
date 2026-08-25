@@ -16,8 +16,8 @@ function sha256(text) {
   return crypto.createHash('sha256').update(normalizeText(text), 'utf8').digest('hex');
 }
 
-function normalizeText(text) {
-  return text.replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '').trim();
+function normalizeText(raw) {
+  return raw.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
 }
 
 function categorizeSeverity(oldText, newText) {
