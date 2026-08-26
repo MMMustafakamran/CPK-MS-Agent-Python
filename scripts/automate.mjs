@@ -227,6 +227,41 @@ function generateReport(data) {
   console.log(`\n📄 Execution report saved to: ${path.join(VIDEOS_DIR, 'RUN_REPORT.md')}`);
 }
 
+function muxAudioFiles() {
+  const audioDir = path.join(ROOT_DIR, 'autorecorder', 'audio');
+  const readablesAudio = path.join(audioDir, 'mspyreadables.m4a');
+  if (!fs.existsSync(readablesAudio)) return;
+
+  // Check if ffmpeg exists
+  try {
+    execSync('ffmpeg -version', { stdio: 'ignore' });
+  } catch {
+    console.log('ℹ️ ffmpeg not found in PATH; skipping local audio muxing.');
+    return;
+  }
+
+  if (!fs.existsSync(VIDEOS_DIR)) return;
+  const files = fs.readdirSync(VIDEOS_DIR);
+  const readablesVideo = files.find((f) => f.includes('Readables') && f.endsWith('.webm') && !f.startsWith('temp_'));
+  if (readablesVideo) {
+    const inputPath = path.join(VIDEOS_DIR, readablesVideo);
+    const tempPath = path.join(VIDEOS_DIR, `temp_${readablesVideo}`);
+    console.log(`\n🎵 [Audio Mux]: Adding voiceover ${path.basename(readablesAudio)} to ${readablesVideo}...`);
+    try {
+      execSync(
+        `ffmpeg -y -i "${inputPath}" -i "${readablesAudio}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
+        { stdio: 'ignore' },
+      );
+      fs.copyFileSync(tempPath, inputPath);
+      fs.unlinkSync(tempPath);
+      console.log(`✅ [Audio Mux]: Successfully added audio to ${readablesVideo}`);
+    } catch (err) {
+      console.warn(`⚠️ [Audio Mux Warning]: Could not mux audio:`, err.message || err);
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    }
+  }
+}
+
 async function main() {
   const reportData = {
     success: false,
@@ -328,6 +363,7 @@ async function main() {
     console.error('\n❌ Automation failed:', err.message || err);
     process.exitCode = 1;
   } finally {
+    muxAudioFiles();
     generateReport(reportData);
     cleanup();
   }
