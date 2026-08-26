@@ -1,113 +1,40 @@
 name: Daily Auto-Update and Demo Recording
 
+# Manual dispatch used to expose one checkbox per demo page. GitHub caps
+# workflow_dispatch at 10 inputs and this workflow declared 24, which made
+# every manual run fail before a job started. Page selection is now a single
+# comma-separated field; `npm run ci:pages` prints the valid ids.
+
 on:
   schedule:
-    # Runs every day at 06:00 UTC (11:00 AM PKT / adjust as desired)
+    # Every day at 06:00 UTC (11:00 AM PKT).
     - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
-      run_all_pages:
-        description: 'Record ALL 20 pages (default / uncheck to choose specific pages below)'
+      pages:
+        description: 'Pages to record (comma-separated ids, blank = all). Run `npm run ci:pages` for the list.'
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: ''
       upgrade_packages:
-        description: 'Upgrade packages (ncu -u --peer & uv sync --upgrade)'
+        description: 'Upgrade dependencies (ncu -u --peer & uv sync --upgrade)'
         required: false
         type: boolean
         default: false
       fail_on_doc_drift:
-        description: 'Fail immediately if doc drift is detected'
+        description: 'Fail immediately if the live docs have drifted'
         required: false
         type: boolean
         default: false
       custom_args:
-        description: 'Or type custom CLI args (e.g. --limit=5)'
+        description: 'Extra recorder args (e.g. --limit=5). Overrides the pages field.'
         required: false
         type: string
         default: ''
 
-      # Individual Page Selection Checkboxes
-      page_quickstart:
-        description: 'Page 01: Quickstart'
-        type: boolean
-        default: false
-      page_prebuilt_components:
-        description: 'Page 02: Prebuilt Components'
-        type: boolean
-        default: false
-      page_slots:
-        description: 'Page 03: Custom Slots'
-        type: boolean
-        default: false
-      page_headless_ui:
-        description: 'Page 04: Headless UI'
-        type: boolean
-        default: false
-      page_programmatic_control:
-        description: 'Page 05: Programmatic Control'
-        type: boolean
-        default: false
-      page_inspector:
-        description: 'Page 06: Inspector'
-        type: boolean
-        default: false
-      page_display_only:
-        description: 'Page 07: Generative UI - Display Only'
-        type: boolean
-        default: false
-      page_interactive:
-        description: 'Page 08: Generative UI - Interactive'
-        type: boolean
-        default: false
-      page_tool_rendering:
-        description: 'Page 09: Generative UI - Tool Rendering'
-        type: boolean
-        default: false
-      page_state_rendering:
-        description: 'Page 10: Generative UI - State Rendering'
-        type: boolean
-        default: false
-      page_frontend_tools:
-        description: 'Page 11: App Control - Frontend Tools'
-        type: boolean
-        default: false
-      page_in_app_agent_read:
-        description: 'Page 12: Shared State - In-App Agent Read'
-        type: boolean
-        default: false
-      page_in_app_agent_write:
-        description: 'Page 13: Shared State - In-App Agent Write'
-        type: boolean
-        default: false
-      page_readables:
-        description: 'Page 14: Readables'
-        type: boolean
-        default: false
-      page_auth:
-        description: 'Page 15: Auth Bearer'
-        type: boolean
-        default: false
-      page_threads_drawer:
-        description: 'Page 16: Rich Threads - Threads Drawer'
-        type: boolean
-        default: false
-      page_threads_headless:
-        description: 'Page 17: Rich Threads - Headless Threads'
-        type: boolean
-        default: false
-      page_threads_lifecycle:
-        description: 'Page 18: Rich Threads - Thread & History Lifecycle'
-        type: boolean
-        default: false
-      page_copilot_runtime:
-        description: 'Page 19: Backend - Copilot Runtime'
-        type: boolean
-        default: false
-      page_ag_ui:
-        description: 'Page 20: Backend - AG-UI Protocol Stream'
-        type: boolean
-        default: false
+concurrency:
+  group: daily-recorder-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   record-workers:
@@ -123,6 +50,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_CHAT_MODEL_ID: ${{ vars.OPENAI_CHAT_MODEL_ID || 'gpt-4o-mini' }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
       AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: ${{ vars.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME }}
       COPILOTKIT_LICENSE_TOKEN: ${{ secrets.COPILOTKIT_LICENSE_TOKEN }}
       INTELLIGENCE_API_KEY: ${{ secrets.INTELLIGENCE_API_KEY }}
@@ -156,54 +84,46 @@ jobs:
           npm install
           npx playwright install --with-deps chromium
 
-      - name: Run Automation Pipeline & Record Demos (Shard ${{ matrix.shard }}/3)
+      # ffmpeg lives here rather than in the consolidate job because muxing now
+      # happens once, in the worker that produced the video.
+      - name: Install FFmpeg
         run: |
-          # 1. Custom CLI args override everything if provided
-          if [ -n "${{ inputs.custom_args }}" ]; then
-            RECORD_ARGS="${{ inputs.custom_args }}"
-          else
-            # 2. Check if individual page checkboxes were selected
-            PAGES=()
-            [ "${{ inputs.page_quickstart }}" = "true" ] && PAGES+=("quickstart")
-            [ "${{ inputs.page_prebuilt_components }}" = "true" ] && PAGES+=("prebuilt-components")
-            [ "${{ inputs.page_slots }}" = "true" ] && PAGES+=("slots")
-            [ "${{ inputs.page_headless_ui }}" = "true" ] && PAGES+=("headless-ui")
-            [ "${{ inputs.page_programmatic_control }}" = "true" ] && PAGES+=("programmatic-control")
-            [ "${{ inputs.page_inspector }}" = "true" ] && PAGES+=("inspector")
-            [ "${{ inputs.page_display_only }}" = "true" ] && PAGES+=("display-only")
-            [ "${{ inputs.page_interactive }}" = "true" ] && PAGES+=("interactive")
-            [ "${{ inputs.page_tool_rendering }}" = "true" ] && PAGES+=("tool-rendering")
-            [ "${{ inputs.page_state_rendering }}" = "true" ] && PAGES+=("state-rendering")
-            [ "${{ inputs.page_frontend_tools }}" = "true" ] && PAGES+=("frontend-tools")
-            [ "${{ inputs.page_in_app_agent_read }}" = "true" ] && PAGES+=("in-app-agent-read")
-            [ "${{ inputs.page_in_app_agent_write }}" = "true" ] && PAGES+=("in-app-agent-write")
-            [ "${{ inputs.page_readables }}" = "true" ] && PAGES+=("readables")
-            [ "${{ inputs.page_auth }}" = "true" ] && PAGES+=("auth")
-            [ "${{ inputs.page_threads_drawer }}" = "true" ] && PAGES+=("threads-drawer")
-            [ "${{ inputs.page_threads_headless }}" = "true" ] && PAGES+=("threads-headless")
-            [ "${{ inputs.page_threads_lifecycle }}" = "true" ] && PAGES+=("threads-lifecycle")
-            [ "${{ inputs.page_copilot_runtime }}" = "true" ] && PAGES+=("copilot-runtime")
-            [ "${{ inputs.page_ag_ui }}" = "true" ] && PAGES+=("ag-ui")
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
-            if [ ${#PAGES[@]} -gt 0 ]; then
-              JOINED=$(IFS=,; echo "${PAGES[*]}")
-              RECORD_ARGS="--pages=$JOINED --shard=${{ matrix.shard }}/3"
-            else
-              # Default: split all 20 pages across 3 shards
-              RECORD_ARGS="--shard=${{ matrix.shard }}/3"
-            fi
+      - name: Validate page selection
+        if: inputs.pages != '' && inputs.custom_args == ''
+        run: node ci/validate-pages.mjs "${{ inputs.pages }}"
+
+      - name: Record demos (shard ${{ matrix.shard }}/3)
+        env:
+          INPUT_PAGES: ${{ inputs.pages }}
+          INPUT_CUSTOM_ARGS: ${{ inputs.custom_args }}
+          INPUT_UPGRADE: ${{ inputs.upgrade_packages }}
+          INPUT_FAIL_ON_DRIFT: ${{ inputs.fail_on_doc_drift }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_CUSTOM_ARGS:-}" ]; then
+            RECORD_ARGS="${INPUT_CUSTOM_ARGS}"
+          elif [ -n "${INPUT_PAGES:-}" ]; then
+            RECORD_ARGS="--pages=${INPUT_PAGES} --shard=${SHARD}/3"
+          else
+            RECORD_ARGS="--shard=${SHARD}/3"
           fi
 
           EXTRA_FLAGS=""
-          if [ "${{ inputs.upgrade_packages }}" = "true" ]; then
+          if [ "${INPUT_UPGRADE:-false}" = "true" ]; then
             EXTRA_FLAGS="$EXTRA_FLAGS --upgrade"
           fi
-          if [ "${{ inputs.fail_on_doc_drift }}" != "true" ]; then
+          if [ "${INPUT_FAIL_ON_DRIFT:-false}" != "true" ]; then
             EXTRA_FLAGS="$EXTRA_FLAGS --ignore-doc-drift"
           fi
 
-          echo "Running worker shard ${{ matrix.shard }}/3 with flags: $EXTRA_FLAGS $RECORD_ARGS"
-          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" node scripts/automate.mjs $EXTRA_FLAGS $RECORD_ARGS
+          echo "Shard ${SHARD}/3 flags: $EXTRA_FLAGS $RECORD_ARGS"
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            node ci/automate.mjs $EXTRA_FLAGS $RECORD_ARGS
 
       - name: Publish Shard Report to GitHub Summary
         if: always()
@@ -211,9 +131,11 @@ jobs:
           if [ -f "autorecorder/videos/RUN_REPORT.md" ]; then
             echo "### 🧩 Worker Shard ${{ matrix.shard }}/3 Summary" >> $GITHUB_STEP_SUMMARY
             cat autorecorder/videos/RUN_REPORT.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🧩 Worker Shard ${{ matrix.shard }}/3 produced no report" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Upload Shard Recorded Video Artifacts
+      - name: Upload Shard Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -222,6 +144,7 @@ jobs:
             autorecorder/videos/*.webm
             autorecorder/videos/RUN_REPORT.md
             autorecorder/videos/RUN_REPORT.json
+            autorecorder/videos/logs/*.log
           if-no-files-found: ignore
           retention-days: 14
 
@@ -231,34 +154,12 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
       - name: Download all shard artifacts
         uses: actions/download-artifact@v4
         with:
           path: all-recordings
           pattern: demo-recordings-shard-*
           merge-multiple: true
-
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ffmpeg
-
-      - name: Mux Voiceover Audio onto Readables Demo Video
-        run: |
-          if [ -f "autorecorder/audio/mspyreadables.m4a" ]; then
-            READABLE_VIDEO=$(ls all-recordings/*Readables*.webm 2>/dev/null | head -n 1 || true)
-            if [ -n "$READABLE_VIDEO" ]; then
-              echo "🎵 Muxing voiceover audio onto $READABLE_VIDEO..."
-              ffmpeg -y -i "$READABLE_VIDEO" -i autorecorder/audio/mspyreadables.m4a -c:v copy -c:a libopus -map 0:v:0 -map 1:a:0 -shortest "${READABLE_VIDEO}.temp.webm"
-              mv "${READABLE_VIDEO}.temp.webm" "$READABLE_VIDEO"
-              echo "✅ Successfully added voiceover audio to $READABLE_VIDEO"
-            else
-              echo "ℹ️ Readables video not in this run; skipping audio mux."
-            fi
-          fi
 
       - name: Upload Consolidated Demo Recordings Package
         uses: actions/upload-artifact@v4
