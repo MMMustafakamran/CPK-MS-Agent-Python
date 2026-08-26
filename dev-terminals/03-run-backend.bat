@@ -22,7 +22,7 @@ if not exist "main.py" (
 
 echo Starting FastAPI Agent server with uv run...
 echo.
-uv run --prerelease=allow main.py
+uv run main.py
 
 :END
 echo.
