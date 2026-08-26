@@ -6,11 +6,40 @@
     "automate": "node scripts/automate.mjs",
     "automate:pull": "node scripts/automate.mjs --pull",
     "automate:upgrade": "node scripts/automate.mjs --upgrade",
+    "deps:refresh": "node scripts/qa-refresh.mjs",
+    "deps:refresh:check": "node scripts/qa-refresh.mjs --dry-run",
     "dev": "npm --prefix frontend run dev",
     "record": "npm --prefix autorecorder run record --",
     "record:all": "npm --prefix autorecorder run record",
     "record:list": "npm --prefix autorecorder run record -- --list",
     "record:doctor": "npm --prefix autorecorder run doctor",
-    "record:doctor:online": "npm --prefix autorecorder run doctor:online"
+    "record:doctor:online": "npm --prefix autorecorder run doctor:online",
+    "drift": "node scripts/check-doc-drift.mjs",
+    "drift:sync": "node scripts/check-doc-drift.mjs --update",
+    "terminals": "dev-terminals\run-all-step-by-step.bat"
+  },
+  "qa": {
+    "_comment": "Which dependencies this repo is actually QA-ing. `scopes`/`packages` are refreshed to @latest by scripts/qa-refresh.mjs; everything else rides the lockfile. `freeze` is the scaffold whose churn would confound the test signal.",
+    "scopes": [
+      "@copilotkit",
+      "@ag-ui"
+    ],
+    "packages": [],
+    "freeze": [
+      "next",
+      "react",
+      "react-dom",
+      "eslint-config-next",
+      "typescript",
+      "@types/node",
+      "@types/react",
+      "@types/react-dom",
+      "tailwindcss",
+      "@tailwindcss/postcss",
+      "eslint"
+    ],
+    "pythonPackages": [
+      "agent-framework"
+    ]
   }
 }
