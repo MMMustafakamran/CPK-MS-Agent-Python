@@ -1,8 +1,8 @@
 # CopilotKit CLI Testing
-
 Quick guide to scaffold, install, and run Mastra starters across package managers (`npm`, `pnpm`, `yarn`, `bun`).
+# CopilotKit CLI Testing — Microsoft Agent Framework (Python)
+Quick guide to scaffold, install, and run Microsoft Agent Framework (Python) starters across package managers (`npm`, `pnpm`, `yarn`, `bun`).
 
----
 
 ## 1. Scaffold Projects
 
@@ -62,5 +62,7 @@ bun run dev
 ## Notes
 
 - **Environment**: Ensure `OPENAI_API_KEY` is set in `.env` (scripts automatically copy it to each app).
+- **Environment**: Ensure `OPENAI_API_KEY` is configured in your project `.env` / `agent/.env`.
 - **Cleanup**: Run `.\delete-projects.ps1` (or `delete-projects.bat`) to delete generated apps and reset the workspace.
+
 
