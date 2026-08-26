@@ -45,6 +45,8 @@ ci/
 ├── check-doc-drift.mjs   live-doc hash verifier
 ├── list-pages.mjs        prints valid page ids
 ├── validate-pages.mjs    rejects typos before a run
+├── resolve-selection.mjs expands section checkboxes + ids into a page list
+├── run-name.mjs          stamps artifact names with project + time
 └── lib/
     ├── config.mjs        paths, ports, warmup routes  ← main thing to edit
     ├── env.mjs           .env loading, matching the backend's precedence
@@ -124,29 +126,43 @@ if (targetPages.length === 0) {
 
 `workflow_dispatch` accepts **at most 10 inputs**. Exceeding it makes the
 workflow invalid and manual dispatch fails before any job starts. One checkbox
-per page does not scale past ~6 pages.
+per page therefore does not scale past a handful of pages.
 
-Use a single comma-separated field and validate it against the recorder's own
-config:
+The workable compromise: a checkbox per **doc section** plus a free-text field
+for exact ids, unioned. Six sections + four options = exactly 10.
 
 ```yaml
 inputs:
+  group_threads:
+    description: 'Rich Threads — Drawer, Headless, Lifecycle'
+    type: boolean
+    default: false
   pages:
-    description: 'Comma-separated page ids (blank = all)'
+    description: 'Exact page ids, comma-separated (added to ticked sections)'
     type: string
     default: ''
 ```
 
-```yaml
-- name: Validate page selection
-  if: inputs.pages != '' && inputs.custom_args == ''
-  run: node ci/validate-pages.mjs "${{ inputs.pages }}"
-```
+Resolve the selection once in a `prepare` job and hand the result to the shards,
+so a typo fails in seconds rather than after three servers boot. Keep the
+section→pages map beside the page list and assert every page belongs to a
+section, or a newly added page silently becomes unreachable from the form.
 
 Pass dispatch inputs through `env:` rather than interpolating `${{ }}` directly
 into a shell line — interpolation splices raw text into the script.
 
-### D. Mux once, where the video is made
+**Never name a shell variable `GROUPS`.** It is a built-in bash array holding the
+user's group ids, so `${GROUPS:+…}` expands to something like `197121` and the
+selection silently becomes garbage.
+
+### D. Name artifacts for humans
+
+`demo-recordings-all-<sha>` says nothing once downloaded. Stamp the project and
+the time instead — `MsPy-react-18Aug2026-0612UTC` — computed once in `prepare`
+and passed to every job so the shards and the merged folder agree. Artifact
+names cannot contain `" : < > | * ? / \` or newlines.
+
+### E. Mux once, where the video is made
 
 Muxing in both the worker and the consolidate job double-encodes: the worker
 produces an audio track, then consolidate muxes the same track onto the already
@@ -173,8 +189,8 @@ ffmpeg -y -i video.webm -i track.m4a -c:v copy -c:a libopus -map 0:v:0 -map 1:a:
 | **7** | Empty shard failure | Fewer pages than workers | `if (targetPages.length === 0 && isShard) process.exit(0)` |
 | **8** | React SSR hydration mismatch | Client-only ids differ between SSR and mount | `useSyncExternalStore(() => () => {}, () => true, () => false)` |
 | **9** | Doctor range drift | Edits shift highlighted line numbers | Run `npm run record:doctor` after touching demo files |
-| **10** | Voiceover muxing | WebM rejects AAC; ffmpeg absent on runners | Install ffmpeg, encode `libopus`, and mux in exactly one job (see Blueprint D) |
-| **11** | **Dispatch inputs over the cap** | `workflow_dispatch` allows 10 inputs; 24 were declared, so manual runs failed before any job started | One `pages` string input, validated against the recorder config |
+| **10** | Voiceover muxing | WebM rejects AAC; ffmpeg absent on runners | Install ffmpeg, encode `libopus`, and mux in exactly one job (see Blueprint E) |
+| **11** | **Dispatch inputs over the cap** | `workflow_dispatch` allows 10 inputs; 24 were declared, so manual runs failed before any job started | Checkbox per doc section + a `pages` field, validated against the recorder config |
 | **12** | **Two servers on one port** | Windows lets a second process bind a port another is listening on. A stale server holding an old API key answered requests beside the new one, so config fixes appeared to do nothing | Fail on a busy port before starting anything; `--allow-port-reuse` to opt out |
 | **13** | **Silent credential failure** | A placeholder `OPENAI_API_KEY` let all 20 pages record and fail on 401, discovered only at the end | Verify the credential in preflight — one request saves a 25-minute run |
 | **14** | **Env file shadowing** | `backend/.env` is loaded before the root `.env` with `override=False`; an uncommented placeholder there beats a real key at the root | Keep exactly one file defining a given key, and load with the same precedence in CI tooling (`ci/lib/env.mjs`) |
@@ -182,17 +198,28 @@ ffmpeg -y -i video.webm -i track.m4a -c:v copy -c:a libopus -map 0:v:0 -map 1:a:
 | **16** | **Orphaned recorder processes** | Stopping the npm wrapper left `tsx` and a Chromium tree running | Kill the process tree, not the wrapper |
 | **17** | **Scripts referencing files that do not exist** | `package.json` pointed at `scripts/qa-refresh.mjs`, which was never committed | Every `npm run` target must resolve to a real file |
 | **18** | **Backslashes in package.json scripts** | `"dev-terminals\run…"` — `\r` is a carriage return in JSON, silently corrupting the command | Avoid Windows paths in `scripts`; if unavoidable, escape as `\\` |
+| **19** | **`GROUPS` as a shell variable** | It is a built-in bash array of the user's group ids, so `${GROUPS:+…}` expanded to `197121` and the page selection became garbage | Never reuse bash built-in names; this repo uses `SEL_GROUPS` |
+| **20** | **Opaque artifact names** | `demo-recordings-all-<sha>` says nothing once downloaded | Stamp project + UTC time, computed once in `prepare` and shared by every job |
 
 ---
 
 ## 5. Porting steps
 
 1. Copy `ci/` and `.github/workflows/daily-recorder.yml`.
-2. Edit `ci/lib/config.mjs` — ports, directory names, warmup routes.
+2. Edit `ci/lib/config.mjs` — `PROJECT_SLUG` (artifact naming), ports, directory
+   names, warmup routes.
 3. Check `ci/lib/env.mjs` matches how the target backend loads its env.
-4. Point `ci/lib/pages.mjs` at the target's recorder config if the shape differs.
-5. Update `ci/lib/mux.mjs`'s `AUDIO_TRACKS` (or empty it if there is no voiceover).
-6. Add the `npm run` aliases to the root `package.json`.
-7. Configure repository secrets and variables (table in `ci/README.md`).
-8. Verify: `npm run ci:pages`, `npm run drift`, then
-   `node ci/automate.mjs --limit=1 --ignore-doc-drift`.
+4. Point `ci/lib/pages.mjs` at the target's recorder config if the shape differs,
+   and rewrite `PAGE_GROUPS` for that framework's doc sections.
+5. Update the dispatch checkboxes in the workflow to match those groups — keep
+   the total at 10 inputs or fewer.
+6. Update `ci/lib/mux.mjs`'s `AUDIO_TRACKS` (or empty it if there is no voiceover).
+7. Add the `npm run` aliases to the root `package.json`.
+8. Configure repository secrets and variables (table in `ci/README.md`).
+9. Verify locally:
+   - `npm run ci:pages` — page ids resolve
+   - `node ci/resolve-selection.mjs --groups=<a group>` — groups expand, and the
+     coverage assert passes
+   - `node ci/run-name.mjs` — artifact name looks right
+   - `npm run drift`
+   - `node ci/automate.mjs --limit=1 --ignore-doc-drift` — full pipeline

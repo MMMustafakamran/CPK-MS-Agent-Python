@@ -20,6 +20,13 @@ export const LOGS_DIR = path.join(VIDEOS_DIR, 'logs');
 
 export const isWindows = process.platform === 'win32';
 
+/**
+ * Prefix for CI artifact names. Matches the recorded video filenames
+ * (`MSPY-react-01-Quickstart.webm`) so a downloaded folder and the clips inside
+ * it read as the same thing.
+ */
+export const PROJECT_SLUG = 'MsPy-react';
+
 export const BACKEND_PORT = Number(process.env.AGENT_PORT || 8000);
 export const FRONTEND_PORT = Number(process.env.FRONTEND_PORT || 3000);
 

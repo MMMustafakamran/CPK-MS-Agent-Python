@@ -12,6 +12,8 @@ ci/
 ├── check-doc-drift.mjs   compares doc-snapshot/ against the live docs
 ├── list-pages.mjs        prints the recorder's page ids
 ├── validate-pages.mjs    rejects unknown ids before a run starts
+├── resolve-selection.mjs expands dispatch checkboxes + ids into a page list
+├── run-name.mjs          names the run's artifacts (MsPy-react-18Aug2026-0612UTC)
 └── lib/
     ├── config.mjs        paths, ports, URLs
     ├── env.mjs           loads .env files the way backend/main.py does
@@ -78,31 +80,69 @@ which is why the pipeline is a Node program and not a sequence of YAML steps.
 
 `autorecorder/config/pages.config.ts` is the single source of truth for which
 demos exist. `lib/pages.mjs` reads the ids from it, `list-pages.mjs` prints
-them, and `validate-pages.mjs` checks a dispatch selection against them.
+them, and `validate-pages.mjs` checks a selection against them.
 
 The workflow does **not** restate the list. It used to, in two more places, and
 they drifted whenever a page was renamed.
 
+### Choosing pages on a manual run
+
+The dispatch form has a checkbox per **doc section** plus a free-text field for
+exact ids. Tick sections, type ids, or both — the two are combined.
+
+| Checkbox | Pages |
+|---|---|
+| Getting Started | quickstart, prebuilt-components |
+| Custom Look & Feel | slots, headless-ui, programmatic-control, inspector |
+| Generative UI | display-only, interactive, tool-rendering, state-rendering |
+| App Control | frontend-tools, in-app-agent-read, in-app-agent-write, readables, auth |
+| Rich Threads | threads-drawer, threads-headless, threads-lifecycle |
+| Backend | copilot-runtime, ag-ui |
+
+Nothing ticked and nothing typed means **all pages** — what the nightly schedule
+does.
+
+**Why sections rather than one checkbox per page:** GitHub allows a
+`workflow_dispatch` at most **10 inputs**. Twenty page checkboxes plus the
+options came to 24, which made the workflow invalid — every manual run failed
+before a job started. Six section checkboxes plus four options is exactly 10, so
+the form is now at the cap: adding an input means removing one.
+
+The section map lives in `PAGE_GROUPS` in `lib/pages.mjs`, and a run fails if any
+page belongs to no section, so nothing can quietly become unreachable.
+
 ## Adding a page
 
-Add it to `autorecorder/config/pages.config.ts`. Nothing here needs editing —
-`npm run ci:pages` will show it, the workflow will accept it, and sharding will
-include it.
+1. Add it to `autorecorder/config/pages.config.ts`.
+2. Add its id to a section in `PAGE_GROUPS` (`ci/lib/pages.mjs`).
+
+Skipping step 2 fails the run with the page named, rather than silently dropping
+it from the form.
 
 ## CI shape
 
-Three parallel workers each record a third of the pages under `xvfb-run`, then a
-consolidate job merges the artifacts.
+`prepare` resolves the run name and page list once. Three workers each record a
+third of the pages under `xvfb-run`, then `consolidate-recordings` merges the
+artifacts.
 
 ```
-Worker 1/3 ─┐
-Worker 2/3 ─┼─→ consolidate-recordings → demo-recordings-all-<sha>
-Worker 3/3 ─┘
+            ┌─ Worker 1/3 ─┐
+prepare ────┼─ Worker 2/3 ─┼─→ consolidate-recordings
+            └─ Worker 3/3 ─┘
 ```
 
-Manual dispatch takes 4 inputs: `pages`, `upgrade_packages`, `fail_on_doc_drift`,
-`custom_args`. GitHub caps `workflow_dispatch` at **10 inputs** — worth
-remembering before adding more.
+## Artifact names
+
+Every artifact is named for the project and the moment the run started:
+
+```
+MsPy-react-18Aug2026-0612UTC             ← consolidated, all clips
+MsPy-react-18Aug2026-0612UTC-shard-1     ← one worker's output
+```
+
+`prepare` computes the stamp once (`ci/run-name.mjs`) and passes it to the other
+jobs, so all four names agree. Change the prefix via `PROJECT_SLUG` in
+`lib/config.mjs`.
 
 ## Secrets and variables
 
