@@ -48,64 +48,64 @@ on:
         description: 'Page 05: Programmatic Control'
         type: boolean
         default: false
-      page_custom_components:
-        description: 'Page 06: Custom Components'
-        type: boolean
-        default: false
-      page_agent_app_context:
-        description: 'Page 07: Agent App Context'
-        type: boolean
-        default: false
-      page_copilot_readable:
-        description: 'Page 08: Copilot Readable'
-        type: boolean
-        default: false
-      page_copilot_action:
-        description: 'Page 09: Copilot Action'
-        type: boolean
-        default: false
-      page_hitl:
-        description: 'Page 10: Human In The Loop'
-        type: boolean
-        default: false
-      page_shared_state:
-        description: 'Page 11: Shared State'
-        type: boolean
-        default: false
-      page_threads:
-        description: 'Page 12: Threads'
-        type: boolean
-        default: false
       page_inspector:
-        description: 'Page 13: Dev Console / Inspector'
+        description: 'Page 06: Inspector'
         type: boolean
         default: false
-      page_agent_mode:
-        description: 'Page 14: Agent Mode'
+      page_display_only:
+        description: 'Page 07: Generative UI - Display Only'
         type: boolean
         default: false
-      page_security:
-        description: 'Page 15: Security'
+      page_interactive:
+        description: 'Page 08: Generative UI - Interactive'
+        type: boolean
+        default: false
+      page_tool_rendering:
+        description: 'Page 09: Generative UI - Tool Rendering'
+        type: boolean
+        default: false
+      page_state_rendering:
+        description: 'Page 10: Generative UI - State Rendering'
+        type: boolean
+        default: false
+      page_frontend_tools:
+        description: 'Page 11: App Control - Frontend Tools'
+        type: boolean
+        default: false
+      page_in_app_agent_read:
+        description: 'Page 12: Shared State - In-App Agent Read'
+        type: boolean
+        default: false
+      page_in_app_agent_write:
+        description: 'Page 13: Shared State - In-App Agent Write'
+        type: boolean
+        default: false
+      page_readables:
+        description: 'Page 14: Readables'
         type: boolean
         default: false
       page_auth:
-        description: 'Page 16: Auth Bearer'
+        description: 'Page 15: Auth Bearer'
         type: boolean
         default: false
-      page_custom_ai_provider:
-        description: 'Page 17: Custom AI Provider'
+      page_threads_drawer:
+        description: 'Page 16: Rich Threads - Threads Drawer'
+        type: boolean
+        default: false
+      page_threads_headless:
+        description: 'Page 17: Rich Threads - Headless Threads'
+        type: boolean
+        default: false
+      page_threads_lifecycle:
+        description: 'Page 18: Rich Threads - Thread & History Lifecycle'
         type: boolean
         default: false
       page_copilot_runtime:
-        description: 'Page 18: Copilot Runtime'
+        description: 'Page 19: Backend - Copilot Runtime'
         type: boolean
         default: false
-      page_custom_agent_runner:
-        description: 'Page 19: Custom Agent Runner'
-        type: boolean
-        default: false
-      page_multi_agent:
-        description: 'Page 20: Multi Agent Workflows'
+      page_ag_ui:
+        description: 'Page 20: Backend - AG-UI Protocol Stream'
         type: boolean
         default: false
 
@@ -169,21 +169,21 @@ jobs:
             [ "${{ inputs.page_slots }}" = "true" ] && PAGES+=("slots")
             [ "${{ inputs.page_headless_ui }}" = "true" ] && PAGES+=("headless-ui")
             [ "${{ inputs.page_programmatic_control }}" = "true" ] && PAGES+=("programmatic-control")
-            [ "${{ inputs.page_custom_components }}" = "true" ] && PAGES+=("custom-components")
-            [ "${{ inputs.page_agent_app_context }}" = "true" ] && PAGES+=("agent-app-context")
-            [ "${{ inputs.page_copilot_readable }}" = "true" ] && PAGES+=("copilot-readable")
-            [ "${{ inputs.page_copilot_action }}" = "true" ] && PAGES+=("copilot-action")
-            [ "${{ inputs.page_hitl }}" = "true" ] && PAGES+=("hitl")
-            [ "${{ inputs.page_shared_state }}" = "true" ] && PAGES+=("shared-state")
-            [ "${{ inputs.page_threads }}" = "true" ] && PAGES+=("threads")
             [ "${{ inputs.page_inspector }}" = "true" ] && PAGES+=("inspector")
-            [ "${{ inputs.page_agent_mode }}" = "true" ] && PAGES+=("agent-mode")
-            [ "${{ inputs.page_security }}" = "true" ] && PAGES+=("security")
+            [ "${{ inputs.page_display_only }}" = "true" ] && PAGES+=("display-only")
+            [ "${{ inputs.page_interactive }}" = "true" ] && PAGES+=("interactive")
+            [ "${{ inputs.page_tool_rendering }}" = "true" ] && PAGES+=("tool-rendering")
+            [ "${{ inputs.page_state_rendering }}" = "true" ] && PAGES+=("state-rendering")
+            [ "${{ inputs.page_frontend_tools }}" = "true" ] && PAGES+=("frontend-tools")
+            [ "${{ inputs.page_in_app_agent_read }}" = "true" ] && PAGES+=("in-app-agent-read")
+            [ "${{ inputs.page_in_app_agent_write }}" = "true" ] && PAGES+=("in-app-agent-write")
+            [ "${{ inputs.page_readables }}" = "true" ] && PAGES+=("readables")
             [ "${{ inputs.page_auth }}" = "true" ] && PAGES+=("auth")
-            [ "${{ inputs.page_custom_ai_provider }}" = "true" ] && PAGES+=("custom-ai-provider")
+            [ "${{ inputs.page_threads_drawer }}" = "true" ] && PAGES+=("threads-drawer")
+            [ "${{ inputs.page_threads_headless }}" = "true" ] && PAGES+=("threads-headless")
+            [ "${{ inputs.page_threads_lifecycle }}" = "true" ] && PAGES+=("threads-lifecycle")
             [ "${{ inputs.page_copilot_runtime }}" = "true" ] && PAGES+=("copilot-runtime")
-            [ "${{ inputs.page_custom_agent_runner }}" = "true" ] && PAGES+=("custom-agent-runner")
-            [ "${{ inputs.page_multi_agent }}" = "true" ] && PAGES+=("multi-agent")
+            [ "${{ inputs.page_ag_ui }}" = "true" ] && PAGES+=("ag-ui")
 
             if [ ${#PAGES[@]} -gt 0 ]; then
               JOINED=$(IFS=,; echo "${PAGES[*]}")
@@ -241,13 +241,18 @@ jobs:
           pattern: demo-recordings-shard-*
           merge-multiple: true
 
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Mux Voiceover Audio onto Readables Demo Video
         run: |
           if [ -f "autorecorder/audio/mspyreadables.m4a" ]; then
             READABLE_VIDEO=$(ls all-recordings/*Readables*.webm 2>/dev/null | head -n 1 || true)
             if [ -n "$READABLE_VIDEO" ]; then
               echo "🎵 Muxing voiceover audio onto $READABLE_VIDEO..."
-              ffmpeg -y -i "$READABLE_VIDEO" -i autorecorder/audio/mspyreadables.m4a -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${READABLE_VIDEO}.temp.webm"
+              ffmpeg -y -i "$READABLE_VIDEO" -i autorecorder/audio/mspyreadables.m4a -c:v copy -c:a libopus -map 0:v:0 -map 1:a:0 -shortest "${READABLE_VIDEO}.temp.webm"
               mv "${READABLE_VIDEO}.temp.webm" "$READABLE_VIDEO"
               echo "✅ Successfully added voiceover audio to $READABLE_VIDEO"
             else

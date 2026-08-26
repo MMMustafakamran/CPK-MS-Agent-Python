@@ -54,4 +54,3 @@ Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host " All installer terminals have been opened!                     " -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
-

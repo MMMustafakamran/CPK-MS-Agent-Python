@@ -249,7 +249,7 @@ function muxAudioFiles() {
     console.log(`\n🎵 [Audio Mux]: Adding voiceover ${path.basename(readablesAudio)} to ${readablesVideo}...`);
     try {
       execSync(
-        `ffmpeg -y -i "${inputPath}" -i "${readablesAudio}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
+        `ffmpeg -y -i "${inputPath}" -i "${readablesAudio}" -c:v copy -c:a libopus -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
         { stdio: 'ignore' },
       );
       fs.copyFileSync(tempPath, inputPath);
