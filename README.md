@@ -49,7 +49,7 @@ Four points worth noting:
 - **No framework-specific adapter.** Agent Framework speaks AG-UI natively, so the runtime binds a plain `HttpAgent` — unlike integrations that ship their own agent class.
 - **Three agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc.
 - **The model key never reaches the browser.** Only the Python process holds it.
-- **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler exactly as the v2 docs write it. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with Enterprise Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
+- **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler as the v2 docs write it, minus the `intelligence`/`identifyUser` options — the documented no-Intelligence fallback. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with CopilotKit Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
 
 ### Request lifecycle
 
@@ -377,7 +377,7 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 **10. Readables: the agent does not always pick up shared context**
 On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
 
-**11. Thread serving requires Enterprise Intelligence and multi-route configuration**
+**11. Thread serving requires CopilotKit Intelligence and multi-route configuration**
 Upstream docs have transitioned runtime examples to `@copilotkit/runtime/v2` with `createCopilotRuntimeHandler` on catch-all `[[...slug]]` routes. For full thread features, `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime is constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. This repo isolates thread configurations in `/api/copilotkit-threads/[[...slug]]`.
 
 Also not implemented: the lifecycle page's "create a thread with your own API on the first message". It needs a backend that mints thread rows, which this harness does not have, so it is left out rather than faked.
