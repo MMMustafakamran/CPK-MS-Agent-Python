@@ -1,9 +1,10 @@
 name: Daily Auto-Update and Demo Recording
 
 on:
-  schedule:
-    # Runs every day at 06:00 UTC (11:00 AM PKT / adjust as desired)
-    - cron: '0 6 * * *'
+  # Temporarily disabled daily schedule
+  # schedule:
+  #   # Runs every day at 06:00 UTC (11:00 AM PKT / adjust as desired)
+  #   - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       run_all_pages:
