@@ -46,6 +46,5 @@ autorecorder/videos/logs/
 # CI/CD lives only in this fork. Untracked with `git rm -r --cached` so the PR
 # diff against upstream shows nothing for these paths. To restore: delete this
 # block and `git add ci .github CICD-GUIDE.md`.
-ci/
-.github/
-CICD-GUIDE.md
+# ci/
+# .github/
