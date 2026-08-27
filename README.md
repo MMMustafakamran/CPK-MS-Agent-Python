@@ -350,8 +350,8 @@ Found while building against `@copilotkit/react-core` 1.66.2 and `agent-framewor
 **1. `useAgent` has no `initialState` prop**
 Both Shared State pages seed the starting value with `useAgent({ agentId, initialState: { language: "english" } })`. `UseAgentProps` has no such field — passing it is a type error. This repo seeds server-side with `default_state` on `add_agent_framework_fastapi_endpoint`, which is a real parameter. The read page also shows a `render` prop on `useAgent`, likewise absent from the shipped type.
 
-**2. `AzureOpenAIChatClient` is not importable**
-Frontend Tools, Tool Rendering, and State Rendering all `from agent_framework.azure import AzureOpenAIChatClient`. That symbol is not exported by `agent-framework-azure-ai` 1.0.0rc6 — `agent_framework.azure` contains durable-agent and AI-Search types only. The Quickstart and Shared State pages instead use `OpenAIChatClient(..., azure_endpoint=...)`, which does exist; this repo follows that form.
+**2. `AzureOpenAIChatClient` is not importable — resolved upstream (doc sync 2026-08-27)**
+Frontend Tools, Tool Rendering, State Rendering and Auth used to `from agent_framework.azure import AzureOpenAIChatClient`, a symbol `agent-framework-azure-ai` 1.0.0rc6 does not export. Those pages have now been rewritten to the `OpenAIChatClient(..., azure_endpoint=...)` form this repo already used, so the discrepancy is gone. The same sync added a `credential=None if azure_api_key else DefaultAzureCredential()` fallback (Azure via `az login` when no key is set), which `backend/chat_client.py` now matches.
 
 **3. `useDefaultRenderTool` sample destructures `args`**
 The wildcard sample on Tool Rendering reads `({ name, args, status, result })`. The shipped `DefaultRenderProps` provides `name`, `toolCallId`, `parameters`, `status`, and `result` — there is no `args`. (The _named_ `useRenderTool` sample on the same page is correct and already uses `parameters`, which is worth noting since the equivalent page for some other frameworks still shows the older form.)
