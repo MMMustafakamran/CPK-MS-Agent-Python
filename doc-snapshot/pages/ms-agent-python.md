@@ -47,7 +47,7 @@
     <OpsPlatformCTA
       variant="card"
       title="Bring your Agent Framework agents to production"
-      body="Add persistent threads and the inspector with the Enterprise Intelligence Platform."
+      body="Add persistent threads and the inspector with CopilotKit Intelligence."
       ctaLabel="Create a free account"
       surface="docs_microsoft_agent_framework_overview"
     />

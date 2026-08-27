@@ -158,6 +158,8 @@ export interface SendPromptOptions {
   timeoutMs?: number;
   /** Override when the page renders messages through a custom slot. */
   messageSelector?: string;
+  /** Whether submitting is expected to clear the input field (defaults to true). */
+  expectInputToEmpty?: boolean;
 }
 
 /**
@@ -183,6 +185,7 @@ export async function sendPrompt(
     clearFirst = false,
     timeoutMs = 15000,
     messageSelector = DEFAULT_ASSISTANT_MESSAGE_SELECTOR,
+    expectInputToEmpty = true,
   } = options;
 
   const inputLocator = page.locator(inputSelector).first();
@@ -246,8 +249,12 @@ export async function sendPrompt(
         await page
           .waitForFunction(
             (sel) => {
-              const b = document.querySelector(sel) as HTMLButtonElement | null;
-              return !!b && !b.disabled;
+              try {
+                const b = document.querySelector(sel) as HTMLButtonElement | null;
+                return !!b && !b.disabled;
+              } catch {
+                return true;
+              }
             },
             submitSelector,
             { timeout: 5000 },
@@ -268,17 +275,26 @@ export async function sendPrompt(
       await page.keyboard.press('Enter');
     }
 
+    if (!expectInputToEmpty) {
+      sent = true;
+      break;
+    }
+
     // Submitting clears the composer. Anything left in it was swallowed.
     const composerEmptied = () =>
       page
         .waitForFunction(
           (sel) => {
-            const el = document.querySelector(sel) as
-              | (HTMLElement & { value?: string })
-              | null;
-            if (!el) return true;
-            const v = el.value ?? el.textContent ?? '';
-            return v.trim().length === 0;
+            try {
+              const el = document.querySelector(sel) as
+                | (HTMLElement & { value?: string })
+                | null;
+              if (!el) return true;
+              const v = el.value ?? el.textContent ?? '';
+              return v.trim().length === 0;
+            } catch {
+              return true;
+            }
           },
           inputSelector,
           { timeout: 3500 },

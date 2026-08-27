@@ -49,7 +49,7 @@ Four points worth noting:
 - **No framework-specific adapter.** Agent Framework speaks AG-UI natively, so the runtime binds a plain `HttpAgent` — unlike integrations that ship their own agent class.
 - **Three agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc.
 - **The model key never reaches the browser.** Only the Python process holds it.
-- **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler exactly as the v2 docs write it. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with Enterprise Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
+- **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler as the v2 docs write it, minus the `intelligence`/`identifyUser` options — the documented no-Intelligence fallback. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with CopilotKit Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
 
 ### Request lifecycle
 
@@ -110,32 +110,19 @@ Four points worth noting:
 git clone <this-repo> ms-agent-framework-pt && cd ms-agent-framework-pt
 ```
 
-**2. Install frontend deps**
-
-```bash
-cd frontend && npm install && cd ..
-```
-
-To upgrade frontend dependencies to their latest releases:
-
-```bash
-cd frontend
-npx npm-check-updates -u
-npm install
-cd ..
-```
-
-**3. Install backend deps**
-
-```bash
-cd backend && uv sync --prerelease=allow && cd ..
-```
-
-To upgrade backend dependencies to their latest releases:
+**2. Install Backend Dependencies**
 
 ```bash
 cd backend
-uv add --prerelease=allow agent-framework-ag-ui@latest agent-framework-azure-ai@latest agent-framework-openai@latest fastapi@latest uvicorn@latest
+uv sync --prerelease=allow
+cd ..
+```
+
+**3. Install Frontend Dependencies**
+
+```bash
+cd frontend
+npm install
 cd ..
 ```
 
@@ -144,6 +131,30 @@ cd ..
 ```bash
 cp .env.example backend/.env
 ```
+
+---
+
+### Upgrading Dependencies
+
+When upgrading frontend packages (especially `@copilotkit/*` and `@ag-ui/*`):
+
+```bash
+cd frontend
+
+# Upgrade all packages while safely respecting peer dependencies
+npx npm-check-updates -u -p
+
+# Or update only CopilotKit and AG-UI packages:
+npx npm-check-updates -u --filter "/copilotkit|ag-ui/"
+
+# Install updated versions and regenerate lockfile
+npm install
+
+# Verify build and type integrity
+npm run build
+```
+
+> **Note on `-p` (`--peer`):** The `-p` flag ensures `npm-check-updates` checks peer dependency compatibility before bumping versions, preventing `ERESOLVE` peer dependency conflicts.
 
 Then edit `backend/.env`:
 
@@ -339,8 +350,8 @@ Found while building against `@copilotkit/react-core` 1.66.2 and `agent-framewor
 **1. `useAgent` has no `initialState` prop**
 Both Shared State pages seed the starting value with `useAgent({ agentId, initialState: { language: "english" } })`. `UseAgentProps` has no such field — passing it is a type error. This repo seeds server-side with `default_state` on `add_agent_framework_fastapi_endpoint`, which is a real parameter. The read page also shows a `render` prop on `useAgent`, likewise absent from the shipped type.
 
-**2. `AzureOpenAIChatClient` is not importable**
-Frontend Tools, Tool Rendering, and State Rendering all `from agent_framework.azure import AzureOpenAIChatClient`. That symbol is not exported by `agent-framework-azure-ai` 1.0.0rc6 — `agent_framework.azure` contains durable-agent and AI-Search types only. The Quickstart and Shared State pages instead use `OpenAIChatClient(..., azure_endpoint=...)`, which does exist; this repo follows that form.
+**2. `AzureOpenAIChatClient` is not importable — resolved upstream (doc sync 2026-08-27)**
+Frontend Tools, Tool Rendering, State Rendering and Auth used to `from agent_framework.azure import AzureOpenAIChatClient`, a symbol `agent-framework-azure-ai` 1.0.0rc6 does not export. Those pages have now been rewritten to the `OpenAIChatClient(..., azure_endpoint=...)` form this repo already used, so the discrepancy is gone. The same sync added a `credential=None if azure_api_key else DefaultAzureCredential()` fallback (Azure via `az login` when no key is set), which `backend/chat_client.py` now matches.
 
 **3. `useDefaultRenderTool` sample destructures `args`**
 The wildcard sample on Tool Rendering reads `({ name, args, status, result })`. The shipped `DefaultRenderProps` provides `name`, `toolCallId`, `parameters`, `status`, and `result` — there is no `args`. (The _named_ `useRenderTool` sample on the same page is correct and already uses `parameters`, which is worth noting since the equivalent page for some other frameworks still shows the older form.)
@@ -366,7 +377,7 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 **10. Readables: the agent does not always pick up shared context**
 On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
 
-**11. Thread serving requires Enterprise Intelligence and multi-route configuration**
+**11. Thread serving requires CopilotKit Intelligence and multi-route configuration**
 Upstream docs have transitioned runtime examples to `@copilotkit/runtime/v2` with `createCopilotRuntimeHandler` on catch-all `[[...slug]]` routes. For full thread features, `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime is constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. This repo isolates thread configurations in `/api/copilotkit-threads/[[...slug]]`.
 
 Also not implemented: the lifecycle page's "create a thread with your own API on the first message". It needs a backend that mints thread rows, which this harness does not have, so it is left out rather than faked.

@@ -75,7 +75,7 @@ export default function Page() {
             served via the catch-all runtime handler. While{" "}
             <code>/api/copilotkit</code> serves the core agents with in-memory
             running, <code>/api/copilotkit-threads</code> is configured with the
-            managed Enterprise Intelligence platform to persist conversations.
+            managed CopilotKit Intelligence platform to persist conversations.
           </li>
           <li>
             <strong>An Intelligence runtime.</strong> Without one, the runtime

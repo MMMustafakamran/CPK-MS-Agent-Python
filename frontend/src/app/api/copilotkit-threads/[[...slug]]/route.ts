@@ -10,7 +10,7 @@ import { HttpAgent } from "@ag-ui/client";
  * A dedicated runtime endpoint for the Rich Threads pages.
  *
  * While `/api/copilotkit` serves the standard agent features with in-memory
- * execution, `/api/copilotkit-threads` is configured with Enterprise Intelligence
+ * execution, `/api/copilotkit-threads` is configured with CopilotKit Intelligence
  * to persist and manage thread histories across sessions.
  *
  * The three credentials below come from `frontend/.env.local`, copied from the

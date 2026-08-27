@@ -64,6 +64,30 @@ export default function Page() {
         />
       </Panel>
 
+      <Callout tone="info" title="The doc's runtime snippet now wires Intelligence">
+        The Quickstart&apos;s runtime sample replaced{" "}
+        <code>runner: new InMemoryAgentRunner()</code> with{" "}
+        <code>intelligence: new CopilotKitIntelligence(&#123; apiKey &#125;)</code>{" "}
+        plus <code>identifyUser</code>, and reads{" "}
+        <code>INTELLIGENCE_API_KEY</code> from <code>.env.local</code>. The same
+        step&apos;s callout documents dropping both options to fall back to SSE
+        mode with an in-memory runner — that is what{" "}
+        <code>/api/copilotkit</code> here does, so Threads and the Inspector stay
+        locked on this route. The Intelligence-wired version lives on{" "}
+        <code>/api/copilotkit-threads</code>, used by the{" "}
+        <a href="/threads" className="underline">
+          Rich Threads
+        </a>{" "}
+        pages.
+      </Callout>
+
+      <Callout tone="info" title="Why runtimeUrl can be relative">
+        <code>/api/copilotkit</code> resolves because Next.js serves both the app
+        and the runtime from one origin, which is the arrangement the doc&apos;s
+        provider callout describes. A client-only frontend would need a
+        standalone runtime server and an absolute URL instead.
+      </Callout>
+
       <Callout tone="warn" title="Model id in the docs">
         The Quickstart&apos;s env block sets{" "}
         <code>OPENAI_CHAT_MODEL_ID=gpt-5.4-mini</code> while the Python code

@@ -7,21 +7,29 @@ import {
 } from '../core/overlays/notepad';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
+import { formatCopilotKitVersionLine } from '../core/versions';
 
 /**
  * The defect this page records: the colleagues list is registered and goes out
  * on run_started, but the agent answers as if it has no context. Written out in
  * Notepad at the end of the take so the video carries the report with it.
+ *
+ * Built per run, not as a module constant, so the version line reflects the
+ * packages this recording actually exercised.
  */
-const ISSUE_NOTE = [
-  'Readables - ms-agent-framework-python',
-  '',
-  'Using the exact useAgentContext example from the docs. The colleagues list',
-  'is registered and gets senton run_started, but the agent still asks which',
-  'colleagues I meanit does not know Jane Smith is one of them.',
-  '',
-  'copilotkit 1.66.2 (react-core, react-ui, runtime,shared',
-].join('\n');
+function buildIssueNote(): string {
+  const versionLine = formatCopilotKitVersionLine();
+
+  return [
+    'Readables - ms-agent-framework-python',
+    '',
+    'Using the exact useAgentContext example from the docs. The colleagues list',
+    'is registered and gets sent on run_started, but the agent still asks which',
+    'colleagues I mean - it does not know Jane Smith is one of them.',
+    // Dropped rather than guessed at when the versions cannot be read.
+    ...(versionLine ? ['', versionLine] : []),
+  ].join('\n');
+}
 
 export const runReadablesAction: PageActionHandler = async (
   page: Page,
@@ -48,6 +56,6 @@ export const runReadablesAction: PageActionHandler = async (
   console.log(`   [Readables] Writing the issue note in Notepad...`);
   await sleep(1200);
   await openNotepad(page, 'readables-issue.txt');
-  await typeInNotepad(page, ISSUE_NOTE);
+  await typeInNotepad(page, buildIssueNote());
   await closeNotepad(page);
 };

@@ -1,5 +1,74 @@
-import { type Page } from 'playwright';
+import { type Locator, type Page } from 'playwright';
 import { getGlobalCursorPos, humanClick, humanGlide, sleep } from './cursor';
+
+/**
+ * Height of the simulated Windows 11 taskbar, in CSS pixels.
+ *
+ * The overlay is `position:fixed; bottom:0`, so in a 1080-tall viewport it owns
+ * y >= 1032 and swallows pointer events there. Anything the recorder needs to
+ * click must sit above that line -- see `ensureClearOfTaskbar`.
+ */
+export const TASKBAR_HEIGHT = 48;
+
+/**
+ * Scroll a control clear of the taskbar overlay before clicking it.
+ *
+ * A page whose input row sits at the bottom of the viewport ends up underneath
+ * the taskbar, and the click lands on the overlay instead of the control. That
+ * is a defect of the recorder's own furniture, not of the page being recorded,
+ * so it is corrected here rather than by moving the element in the app.
+ *
+ * Two steps, because the first is not always enough:
+ *  1. scroll the element up by however much of it is covered
+ *  2. if the document cannot scroll any further, add matching bottom padding so
+ *     that it can, then scroll again
+ *
+ * Padding is applied to `document.body` and left in place for the rest of the
+ * take -- it keeps the page clear of the taskbar rather than shifting mid-shot.
+ *
+ * @param margin extra clearance above the taskbar, in pixels
+ * @returns true if the element ended up fully clear
+ */
+export async function ensureClearOfTaskbar(
+  page: Page,
+  locator: Locator,
+  margin = 16,
+): Promise<boolean> {
+  await locator.scrollIntoViewIfNeeded().catch(() => {});
+
+  const overlapOf = async (): Promise<number> => {
+    const box = await locator.boundingBox();
+    if (!box) return 0;
+    const viewportHeight = page.viewportSize()?.height ?? 1080;
+    const safeBottom = viewportHeight - TASKBAR_HEIGHT - margin;
+    return Math.max(0, box.y + box.height - safeBottom);
+  };
+
+  let overlap = await overlapOf();
+  if (overlap <= 0) return true;
+
+  // 1. Try scrolling the page itself.
+  await page.evaluate((delta) => window.scrollBy(0, delta), overlap);
+  await sleep(250);
+
+  overlap = await overlapOf();
+  if (overlap <= 0) return true;
+
+  // 2. Already at the bottom -- make room, then take up the slack.
+  await page.evaluate(
+    ({ pad }) => {
+      const body = document.body;
+      const current = parseFloat(body.style.paddingBottom || '0') || 0;
+      body.style.paddingBottom = `${current + pad}px`;
+    },
+    { pad: overlap + margin },
+  );
+  await sleep(200);
+  await page.evaluate((delta) => window.scrollBy(0, delta), overlap + margin);
+  await sleep(250);
+
+  return (await overlapOf()) <= 0;
+}
 
 /**
  * Waits until the page's framework has finished hydrating.

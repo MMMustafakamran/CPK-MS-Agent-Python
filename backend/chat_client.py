@@ -5,10 +5,9 @@ helper — Azure OpenAI when `AZURE_OPENAI_ENDPOINT` is set, otherwise OpenAI,
 and a hard failure when neither is configured. It is factored out here so the
 three agents can share one copy instead of three.
 
-The Azure branch uses `OpenAIChatClient(..., azure_endpoint=...)`, the form the
-Quickstart and Shared State pages use. Some other pages import
-`AzureOpenAIChatClient` from `agent_framework.azure`; that symbol is not present
-in the shipped packages, so this repo follows the form that is.
+The Azure branch uses `OpenAIChatClient(..., azure_endpoint=...)`, which every
+page now agrees on, with `DefaultAzureCredential()` as the fallback when no
+`AZURE_OPENAI_API_KEY` is set (i.e. you signed in with `az login`).
 """
 
 from __future__ import annotations
@@ -17,15 +16,18 @@ import os
 
 from agent_framework import SupportsChatGetResponse
 from agent_framework.openai import OpenAIChatClient
+from azure.identity import DefaultAzureCredential
 
 
 def build_chat_client() -> SupportsChatGetResponse:
     # [1] quickstart: chat client
     # [!code highlight]
     if os.getenv("AZURE_OPENAI_ENDPOINT"):
+        azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
         return OpenAIChatClient(
             model=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-4o-mini"),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            api_key=azure_api_key,
+            credential=None if azure_api_key else DefaultAzureCredential(),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
         )
     if os.getenv("OPENAI_API_KEY"):
@@ -34,5 +36,6 @@ def build_chat_client() -> SupportsChatGetResponse:
             api_key=os.getenv("OPENAI_API_KEY"),
         )
     raise RuntimeError(
-        "Set either AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY, or OPENAI_API_KEY."
+        "Set AZURE_OPENAI_ENDPOINT (uses az login unless AZURE_OPENAI_API_KEY is set) "
+        "or OPENAI_API_KEY."
     )

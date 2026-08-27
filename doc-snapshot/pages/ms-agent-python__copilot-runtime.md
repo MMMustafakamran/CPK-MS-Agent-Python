@@ -103,9 +103,9 @@ The [AG-UI protocol](/ag-ui-protocol) supports a middleware layer (`agent.use`) 
 
 When you register multiple agents with the runtime, it handles discovery and routing automatically. Your frontend doesn't need to know the details of where each agent lives or how to reach it.
 
-### Enterprise Intelligence Platform
+### CopilotKit Intelligence
 
-Features like [threads](/ms-agent-python/threads) and the [inspector](/ms-agent-python/inspector) are provided through the runtime and the Enterprise Intelligence Platform. These give you conversation persistence and debugging capabilities out of the box.
+Features like [threads](/ms-agent-python/threads) and the [inspector](/ms-agent-python/inspector) are provided through the runtime and CopilotKit Intelligence. These give you conversation persistence and debugging capabilities out of the box.
 
 ## Built-in Middleware
 

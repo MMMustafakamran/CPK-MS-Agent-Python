@@ -36,3 +36,16 @@ autorecorder/videos/.temp_chunks/
 # `npm run record`; see autorecorder/videos/.gitignore for why.
 autorecorder/videos/*.webm
 autorecorder/videos/.temp_chunks/
+
+# Run artifacts written by ci/automate.mjs — regenerated every run.
+autorecorder/videos/RUN_REPORT.md
+autorecorder/videos/RUN_REPORT.json
+autorecorder/videos/logs/
+
+# --- TEMPORARY: hidden for the upstream PR ---
+# CI/CD lives only in this fork. Untracked with `git rm -r --cached` so the PR
+# diff against upstream shows nothing for these paths. To restore: delete this
+# block and `git add ci .github CICD-GUIDE.md`.
+ci/
+.github/
+CICD-GUIDE.md

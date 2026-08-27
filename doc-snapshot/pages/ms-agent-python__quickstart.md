@@ -6,7 +6,7 @@
 <OpsPlatformCTA
   variant="card"
   title="Ship Microsoft Agent Framework to production"
-  body="Add persistent threads and the inspector with the Enterprise Intelligence Platform."
+  body="Add persistent threads and the inspector with CopilotKit Intelligence."
   ctaLabel="Create a free account"
   surface="docs_microsoft_agent_framework_quickstart"
 />
@@ -26,7 +26,7 @@ Before you begin, you'll need the following:
     <Step>
         ### Create a free account
 
-        <SignupLink surface="docs_microsoft_agent_framework_quickstart_step1">Sign up for a free developer account</SignupLink> on our Enterprise Intelligence Platform to get a license key. You'll use it later to enable persistent threads and the inspector.
+        <SignupLink surface="docs_microsoft_agent_framework_quickstart_step1">Sign up for a free developer account</SignupLink> for CopilotKit Intelligence to get a license key. You'll use it later to enable persistent threads and the inspector.
     </Step>
 
     <Step>
@@ -53,7 +53,7 @@ Before you begin, you'll need the following:
                 The CLI walks you through:
 
                 - **Project name**
-                - **Enterprise Intelligence Platform** — persistent threads and the inspector. Choose **Yes** to scaffold a project pre-wired for the platform (the CLI walks you through sign-up, or you can [create an account](https://dashboard.operations.copilotkit.ai/?utm_source=docs&utm_medium=cta&utm_campaign=intelligence&utm_content=docs_cli_prompt) first), or **No** for a standard Microsoft Agent Framework setup.
+                - **CopilotKit Intelligence** — persistent threads and the inspector. Choose **Yes** to scaffold a project pre-wired for the platform (the CLI walks you through sign-up, or you can [create an account](https://dashboard.operations.copilotkit.ai/?utm_source=docs&utm_medium=cta&utm_campaign=intelligence&utm_content=docs_cli_prompt) first), or **No** for a standard Microsoft Agent Framework setup.
                 - **Framework** — pick **Microsoft Agent Framework (.NET)** or **Microsoft Agent Framework (Python)**.
             </Step>
             <Step>
@@ -124,7 +124,7 @@ Before you begin, you'll need the following:
                         ```bash title="agent/.env (Azure OpenAI)"
                         AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
                         AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-5.4-mini
-                        # If you are not relying on az login:
+                        # Optional when az login is unavailable:
                         # AZURE_OPENAI_API_KEY=...
                         ```
                     </Tab>
@@ -241,6 +241,7 @@ Before you begin, you'll need the following:
                         from agent_framework import Agent
                         from agent_framework.openai import OpenAIChatClient
                         from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
+                        from azure.identity import DefaultAzureCredential
                         from dotenv import load_dotenv
                         from fastapi import FastAPI
 
@@ -248,9 +249,11 @@ Before you begin, you'll need the following:
 
                         def _build_chat_client():
                             if os.getenv("AZURE_OPENAI_ENDPOINT"):
+                                azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
                                 return OpenAIChatClient(
                                     model=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-4o-mini"),
-                                    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                                    api_key=azure_api_key,
+                                    credential=None if azure_api_key else DefaultAzureCredential(),
                                     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
                                 )
                             if os.getenv("OPENAI_API_KEY"):
@@ -259,7 +262,7 @@ Before you begin, you'll need the following:
                                     api_key=os.getenv("OPENAI_API_KEY"),
                                 )
                             raise RuntimeError(
-                                "Set either AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY, or OPENAI_API_KEY."
+                                "Set AZURE_OPENAI_ENDPOINT (uses az login unless AZURE_OPENAI_API_KEY is set) or OPENAI_API_KEY."
                             )
 
                         chat_client = _build_chat_client()
@@ -286,7 +289,8 @@ Before you begin, you'll need the following:
                         # or Azure OpenAI (agent/.env)
                         AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
                         AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-5.4-mini
-                        # (optional) AZURE_OPENAI_API_KEY=...
+                        # Optional when az login is unavailable:
+                        # AZURE_OPENAI_API_KEY=...
 
                         # Run the agent
                         uv run main.py
@@ -323,9 +327,9 @@ Before you begin, you'll need the following:
 
                 ```tsx title="app/api/copilotkit/[[...slug]]/route.ts" doctest="component"
                 import {
+                  CopilotKitIntelligence,
                   CopilotRuntime,
                   createCopilotRuntimeHandler,
-                  InMemoryAgentRunner,
                 } from "@copilotkit/runtime/v2";
                 import { HttpAgent } from "@ag-ui/client";
 
@@ -339,7 +343,15 @@ Before you begin, you'll need the following:
                   agents: {
                     my_agent: new HttpAgent({ url: "http://localhost:8000/" }),
                   },
-                  runner: new InMemoryAgentRunner(),
+                  // [!code highlight:8]
+                  intelligence: new CopilotKitIntelligence({
+                    apiKey: process.env.INTELLIGENCE_API_KEY!,
+                  }),
+                  // Threads are per-user. Without this, every visitor shares one history.
+                  identifyUser: (request) => ({
+                    id: request.headers.get("x-user-id") ?? "anonymous",
+                    name: request.headers.get("x-user-name") ?? "Anonymous",
+                  }),
                 });
 
                 // 3. Build a Next.js API route that handles the CopilotKit runtime requests.
@@ -351,6 +363,21 @@ Before you begin, you'll need the following:
                 export const GET = handler;
                 export const POST = handler;
                 ```
+
+                The runtime reads the license key from step 1. Add it to the app that serves
+                this route:
+
+                ```plaintext title=".env.local"
+                INTELLIGENCE_API_KEY=your_license_key
+                ```
+
+                <Callout type="info" title="Running without the Intelligence Platform?">
+                  Drop the `intelligence` and `identifyUser` options and the runtime falls back
+                  to SSE mode with an in-memory runner. Chat still works, but Threads and the
+                  Inspector stay locked and the key is never read. See
+                  [Connect your runtime to Intelligence](/ms-agent-python/premium/connect-your-runtime) for the
+                  full constructor and how to confirm the key is in use.
+                </Callout>
             </Step>
             <Step>
                 ### Configure CopilotKit Provider
@@ -376,6 +403,14 @@ Before you begin, you'll need the following:
                   );
                 }
                 ```
+
+                <Callout type="info" title="This relative runtimeUrl assumes Next.js serves the runtime">
+                  `/api/copilotkit` resolves only because Next.js serves your app and the runtime from the
+                  same origin. A client-only frontend has no shared origin, so it needs a standalone runtime
+                  server of its own and an absolute `runtimeUrl` such as
+                  `http://localhost:8200/api/copilotkit`. The per-frontend guides at `/react-spa`, `/vue`,
+                  `/angular` and `/react-native` each show that setup.
+                </Callout>
             </Step>
             <Step>
               ### Add the chat interface

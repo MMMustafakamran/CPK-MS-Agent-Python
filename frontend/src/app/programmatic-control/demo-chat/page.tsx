@@ -1,7 +1,7 @@
 "use client";
 
 import { useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { DemoFrame } from "@/components/demo-frame";
 
@@ -24,7 +24,7 @@ import { DemoFrame } from "@/components/demo-frame";
  *   - `agent.state` is read optionally. It is undefined until the first run,
  *     and the doc's `agent.state.user_theme` throws on the initial render.
  */
-function ThemeSelector() {
+function ThemeSelector({ mounted }: { mounted: boolean }) {
   // [1] programmatic control: access agent
   // [!code highlight]
   const { agent } = useAgent({ agentId: "my_agent" });
@@ -49,7 +49,7 @@ function ThemeSelector() {
           type="button"
           onClick={() => updateTheme("dark")}
           className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-            state?.user_theme === "dark"
+            mounted && state?.user_theme === "dark"
               ? "border-[var(--accent)] text-[var(--accent)]"
               : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300"
           }`}
@@ -60,7 +60,7 @@ function ThemeSelector() {
           type="button"
           onClick={() => updateTheme("light")}
           className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-            state?.user_theme === "light"
+            mounted && state?.user_theme === "light"
               ? "border-[var(--accent)] text-[var(--accent)]"
               : "border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300"
           }`}
@@ -68,7 +68,7 @@ function ThemeSelector() {
           Light Mode
         </button>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Current: <strong>{state?.user_theme || "default"}</strong>
+          Current: <strong>{mounted ? (state?.user_theme || "default") : "default"}</strong>
         </p>
       </div>
       <p className="mt-2 text-xs text-slate-500">
@@ -85,6 +85,12 @@ export default function Page() {
   const { agent } = useAgent({ agentId: "my_agent" });
   const { copilotkit } = useCopilotKit();
   const [draft, setDraft] = useState("What's the weather in Tokyo?");
+
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   // [4] programmatic control: run function
   // [!code highlight]
@@ -111,28 +117,28 @@ export default function Page() {
           </h2>
           <dl className="mt-2 grid grid-cols-[minmax(0,8rem)_1fr] gap-x-4 gap-y-1.5 text-sm">
             <dt className="text-slate-500">Agent ID</dt>
-              <dd className="break-all">
-                <code>{agent.agentId ?? "—"}</code>
-              </dd>
-              <dt className="text-slate-500">Thread ID</dt>
-              <dd className="break-all">
-                <code>{agent.threadId ?? "—"}</code>
-              </dd>
-              <dt className="text-slate-500">Status</dt>
-              <dd>
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      agent.isRunning
-                        ? "animate-pulse bg-amber-500"
+            <dd className="break-all">
+              <code>{mounted ? (agent.agentId ?? "—") : "—"}</code>
+            </dd>
+            <dt className="text-slate-500">Thread ID</dt>
+            <dd className="break-all">
+              <code>{mounted ? (agent.threadId ?? "—") : "—"}</code>
+            </dd>
+            <dt className="text-slate-500">Status</dt>
+            <dd>
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    mounted && agent.isRunning
+                      ? "animate-pulse bg-amber-500"
                       : "bg-emerald-500"
                   }`}
                 />
-                {agent.isRunning ? "Running" : "Idle"}
+                {mounted && agent.isRunning ? "Running" : "Idle"}
               </span>
             </dd>
             <dt className="text-slate-500">Messages</dt>
-            <dd>{agent.messages.length}</dd>
+            <dd>{mounted ? agent.messages.length : 0}</dd>
           </dl>
 
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -141,14 +147,15 @@ export default function Page() {
           {/* [6] programmatic control: read state */}
           {/* [!code highlight] */}
           <pre className="mt-1 max-h-32 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">
-            {JSON.stringify(agent.state ?? {}, null, 2)}
+            {mounted ? JSON.stringify(agent.state ?? {}, null, 2) : "{}"}
           </pre>
 
-          <ThemeSelector />
+          <ThemeSelector mounted={mounted} />
         </section>
 
         <div className="flex flex-wrap gap-2">
           <input
+            data-testid="programmatic-input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800"
@@ -156,6 +163,7 @@ export default function Page() {
           />
           <button
             type="button"
+            data-testid="run-agent-btn"
             onClick={() => void run()}
             disabled={agent.isRunning || !draft.trim()}
             className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
@@ -174,30 +182,31 @@ export default function Page() {
 
         <section className="space-y-2">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Conversation ({agent.messages.length})
+            Conversation ({mounted ? agent.messages.length : 0})
           </h2>
-          {agent.messages.length === 0 && (
+          {(!mounted || agent.messages.length === 0) && (
             <p className="text-sm text-slate-500">Nothing yet.</p>
           )}
-          {agent.messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`rounded-lg p-3 text-sm ${
-                msg.role === "user"
-                  ? "ml-8 bg-slate-100 dark:bg-slate-800"
-                  : "mr-8 bg-white ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700"
-              }`}
-            >
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {msg.role}
-              </p>
-              <p className="whitespace-pre-wrap text-slate-800 dark:text-slate-100">
-                {typeof msg.content === "string"
-                  ? msg.content
-                  : JSON.stringify(msg.content)}
-              </p>
-            </div>
-          ))}
+          {mounted &&
+            agent.messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`rounded-lg p-3 text-sm ${
+                  msg.role === "user"
+                    ? "ml-8 bg-slate-100 dark:bg-slate-800"
+                    : "mr-8 bg-white ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700"
+                }`}
+              >
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {msg.role}
+                </p>
+                <p className="whitespace-pre-wrap text-slate-800 dark:text-slate-100">
+                  {typeof msg.content === "string"
+                    ? msg.content
+                    : JSON.stringify(msg.content)}
+                </p>
+              </div>
+            ))}
         </section>
       </div>
     </DemoFrame>

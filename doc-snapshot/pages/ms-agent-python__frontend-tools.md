@@ -113,7 +113,6 @@ as this guide uses it as a starting point.
             from dotenv import load_dotenv
             from agent_framework import Agent
             from agent_framework import SupportsChatGetResponse
-            from agent_framework.azure import AzureOpenAIChatClient
             from agent_framework.openai import OpenAIChatClient
             from agent_framework.ag_ui import add_agent_framework_fastapi_endpoint
             from azure.identity import DefaultAzureCredential
@@ -122,17 +121,19 @@ as this guide uses it as a starting point.
 
             def _build_chat_client() -> SupportsChatGetResponse:
                 if bool(os.getenv("AZURE_OPENAI_ENDPOINT")):
-                    return AzureOpenAIChatClient(
-                        credential=DefaultAzureCredential(),
-                        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-5.4-mini"),
-                        endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+                    return OpenAIChatClient(
+                        model=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-5.4-mini"),
+                        api_key=azure_api_key,
+                        credential=None if azure_api_key else DefaultAzureCredential(),
+                        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
                     )
                 if bool(os.getenv("OPENAI_API_KEY")):
                     return OpenAIChatClient(
                         model=os.getenv("OPENAI_CHAT_MODEL_ID", "gpt-5.4-mini"),
                         api_key=os.getenv("OPENAI_API_KEY"),
                     )
-                raise RuntimeError("Set AZURE_OPENAI_* or OPENAI_API_KEY in agent/.env")
+                raise RuntimeError("Set AZURE_OPENAI_ENDPOINT (uses az login unless AZURE_OPENAI_API_KEY is set) or OPENAI_API_KEY")
 
             chat_client = _build_chat_client()
             agent = Agent(

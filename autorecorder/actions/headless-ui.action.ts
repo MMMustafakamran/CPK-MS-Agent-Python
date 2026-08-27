@@ -1,5 +1,6 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { ensureClearOfTaskbar } from '../core/overlays/taskbar';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
 /**
@@ -12,9 +13,13 @@ import { type PageActionHandler, type PageRecordConfig } from '../core/types';
  * all, while this implementation streams reliably. The difference does not
  * reproduce headlessly, so the exact trigger is not pinned down yet.
  *
- * Worth noting either way: the Send button sits at y=1026..1064 in a 1080-tall
- * viewport while the taskbar overlay covers y>1032, so the real click is
- * swallowed by the overlay and the submit actually lands via the Enter retry.
+ * The input row used to end up under the taskbar: the Send button sat at
+ * y=1026..1064 in a 1080-tall viewport while the overlay covers y>=1032, so the
+ * click was swallowed and the submit only landed via the Enter retry -- with
+ * the prompt field half-hidden on camera. `ensureClearOfTaskbar` now scrolls
+ * the form above the overlay before anything is typed, which fixes both the
+ * shot and the click. The page itself is left alone: it is the documented
+ * implementation, and the taskbar is the recorder's own furniture.
  */
 export const runHeadlessUiAction: PageActionHandler = async (
   page: Page,
@@ -30,7 +35,18 @@ export const runHeadlessUiAction: PageActionHandler = async (
   const inputLocator = page
     .locator('input[placeholder="Type a message..."], input')
     .first();
-  await inputLocator.scrollIntoViewIfNeeded();
+
+  // Lift the whole form clear of the taskbar before the cursor goes anywhere
+  // near it, so the input is fully visible and the Send button is clickable.
+  const formLocator = page.locator('form').filter({ has: inputLocator }).first();
+  const cleared = await ensureClearOfTaskbar(
+    page,
+    (await formLocator.count()) > 0 ? formLocator : inputLocator,
+  );
+  if (!cleared) {
+    console.log('   ⚠️ [Headless UI] Input still overlaps the taskbar; Enter will carry the submit.');
+  }
+  await sleep(300);
 
   const inputBox = await inputLocator.boundingBox();
   if (inputBox) {

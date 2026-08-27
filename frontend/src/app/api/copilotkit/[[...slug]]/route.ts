@@ -14,6 +14,9 @@ const AGENT_URL = process.env.MS_AGENT_URL ?? "http://localhost:8000";
 // the other two exist because Shared State and State Rendering each define
 // their own `state_schema`, which is a property of the agent it is attached
 // to and cannot be shared.
+// The Quickstart's snippet wires `intelligence` + `identifyUser` here; this
+// route deliberately takes the fallback that step documents (no Intelligence,
+// in-memory runner). The wired version is in `api/copilotkit-threads`.
 // [1] quickstart: runtime config
 // [!code highlight]
 const runtime = new CopilotRuntime({
