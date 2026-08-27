@@ -41,3 +41,11 @@ autorecorder/videos/.temp_chunks/
 autorecorder/videos/RUN_REPORT.md
 autorecorder/videos/RUN_REPORT.json
 autorecorder/videos/logs/
+
+# --- TEMPORARY: hidden for the upstream PR ---
+# CI/CD lives only in this fork. Untracked with `git rm -r --cached` so the PR
+# diff against upstream shows nothing for these paths. To restore: delete this
+# block and `git add ci .github CICD-GUIDE.md`.
+ci/
+.github/
+CICD-GUIDE.md
