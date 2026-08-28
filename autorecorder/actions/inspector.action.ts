@@ -60,9 +60,9 @@ export const runInspectorAction: PageActionHandler = async (
     await sleep(2500);
   }
 
-  // After inspector is opened, locate and click on "Agents" tab
-  console.log(`   Clicking on "Agents" tab in Inspector...`);
-  const agentsPos = await page.evaluate(() => {
+  // After inspector is opened, locate and click on "AG-UI Events" tab
+  console.log(`   Clicking on "AG-UI Events" tab in Inspector...`);
+  const eventsPos = await page.evaluate(() => {
     // 1. Search inside shadow roots
     for (const el of Array.from(document.querySelectorAll('*'))) {
       if (el.shadowRoot) {
@@ -71,7 +71,13 @@ export const runInspectorAction: PageActionHandler = async (
         );
         const tab = items.find((e) => {
           const t = (e.textContent || '').trim().toLowerCase();
-          return t === 'agents' || t === 'agent';
+          return (
+            t === 'ag-ui events' ||
+            t === 'ag ui events' ||
+            t.includes('ag-ui events') ||
+            t.includes('ag ui events') ||
+            t === 'events'
+          );
         }) as HTMLElement;
         if (tab) {
           tab.click();
@@ -85,7 +91,13 @@ export const runInspectorAction: PageActionHandler = async (
       document.querySelectorAll('button, a, [role="tab"], span, div'),
     ).find((e) => {
       const t = (e.textContent || '').trim().toLowerCase();
-      return t === 'agents' || t === 'agent';
+      return (
+        t === 'ag-ui events' ||
+        t === 'ag ui events' ||
+        t.includes('ag-ui events') ||
+        t.includes('ag ui events') ||
+        t === 'events'
+      );
     }) as HTMLElement;
     if (docTab) {
       docTab.click();
@@ -95,26 +107,27 @@ export const runInspectorAction: PageActionHandler = async (
     return null;
   });
 
-  if (agentsPos && agentsPos.x > 0 && agentsPos.y > 0) {
+  if (eventsPos && eventsPos.x > 0 && eventsPos.y > 0) {
     console.log(
-      `   🎯 Detected Agents tab at (${Math.round(agentsPos.x)}, ${Math.round(agentsPos.y)})`,
+      `   🎯 Detected AG-UI Events tab at (${Math.round(eventsPos.x)}, ${Math.round(eventsPos.y)})`,
     );
-    await humanGlide(page, agentsPos.x, agentsPos.y, 20);
+    await humanGlide(page, eventsPos.x, eventsPos.y, 20);
     await humanClick(page);
-    console.log(`   ✓ Switched to Agents tab in Inspector!`);
+    console.log(`   ✓ Switched to AG-UI Events tab in Inspector!`);
     await sleep(4000);
   } else {
     // Fallback: search via Playwright locator
-    const agentsTab = page
+    const eventsTab = page
       .locator(
-        'button:has-text("Agents"), [role="tab"]:has-text("Agents"), span:has-text("Agents")',
+        'button:has-text("AG-UI Events"), [role="tab"]:has-text("AG-UI Events"), span:has-text("AG-UI Events"), button:has-text("Events"), [role="tab"]:has-text("Events")',
       )
       .first();
-    if (await agentsTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      const atBox = await agentsTab.boundingBox();
+    if (await eventsTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      const atBox = await eventsTab.boundingBox();
       if (atBox) {
         await humanGlide(page, atBox.x + atBox.width / 2, atBox.y + atBox.height / 2, 20);
         await humanClick(page);
+        console.log(`   ✓ Switched to AG-UI Events tab in Inspector via fallback!`);
         await sleep(3500);
       }
     }
