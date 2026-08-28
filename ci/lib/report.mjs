@@ -37,6 +37,68 @@ function resolveVersion(dir, pkg, name) {
   return declared === installed ? installed : `${installed} (declared ${declared})`;
 }
 
+/**
+ * Backend versions, read from uv.lock rather than the pyproject specifiers.
+ *
+ * The same defect the frontend map had: pyproject declares floors
+ * (`agno>=2.8.7`) while ci/automate.mjs runs `uv sync --upgrade`, which
+ * resolves past them. Reporting the specifier therefore named a version the
+ * run had deliberately moved off -- and named it "Version".
+ *
+ * That same `uv sync --upgrade` rewrites uv.lock, so by the time this report
+ * is written the lock names what actually ran. That makes it the backend's
+ * equivalent of reading node_modules.
+ */
+function lockedVersions(dir) {
+  const locked = new Map();
+  try {
+    const lock = fs.readFileSync(path.join(dir, 'uv.lock'), 'utf8');
+    // uv.lock is generated TOML and every entry is a [[package]] table whose
+    // first two keys are name and version, in that order. A regex reads that
+    // reliably and saves taking on a TOML parser for four lines of work.
+    const entry = /\[\[package\]\]\s*\nname = "([^"]+)"\s*\nversion = "([^"]+)"/g;
+    for (const m of lock.matchAll(entry)) locked.set(m[1], m[2]);
+  } catch {
+    // No lock file: uv sync never ran, or this backend is not Python.
+  }
+  return locked;
+}
+
+/**
+ * Derived from pyproject's own dependency list rather than a hardcoded set of
+ * interesting names, so adding a dependency cannot silently leave it out of
+ * every future report.
+ */
+function backendVersions(dir) {
+  const out = {};
+  let pyproject;
+  try {
+    pyproject = fs.readFileSync(path.join(dir, 'pyproject.toml'), 'utf8');
+  } catch {
+    return out;
+  }
+
+  out['requires-python'] = pyproject.match(/requires-python\s*=\s*"([^"]+)"/)?.[1] || 'n/a';
+
+  const locked = lockedVersions(dir);
+  const block = pyproject.match(/^dependencies\s*=\s*\[([\s\S]*?)^\]/m)?.[1] ?? '';
+
+  // Requiring the leading quote skips the comment lines inside the array. The
+  // optional group after the name drops extras -- "sqlalchemy[asyncio]" is
+  // locked under plain "sqlalchemy".
+  for (const m of block.matchAll(/^\s*"([A-Za-z0-9._-]+)(?:\[[^\]]*\])?\s*([^"]*)"/gm)) {
+    const [, name, spec] = m;
+    const declared = spec.trim();
+    const installed = locked.get(name.toLowerCase());
+    if (installed) {
+      out[name] = declared ? `${installed} (declared ${declared})` : installed;
+    } else {
+      out[name] = declared ? `${declared} (not locked)` : 'n/a';
+    }
+  }
+  return out;
+}
+
 function getPackageVersions() {
   const versions = { frontend: {}, backend: {} };
   try {
@@ -52,10 +114,7 @@ function getPackageVersions() {
     // ignore
   }
   try {
-    const pyproject = fs.readFileSync(path.join(BACKEND_DIR, 'pyproject.toml'), 'utf8');
-    versions.backend = {
-      'requires-python': pyproject.match(/requires-python\s*=\s*"([^"]+)"/)?.[1] || 'n/a',
-    };
+    versions.backend = backendVersions(BACKEND_DIR);
   } catch {
     // ignore
   }
