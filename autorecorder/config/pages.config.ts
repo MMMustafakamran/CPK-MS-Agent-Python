@@ -32,10 +32,21 @@ export const PAGES = definePages([
     videoName: 'Quickstart',
     docPath: 'quickstart?agent=bring-your-own',
     route: 'quickstart',
-    ideFile: 'frontend/package.json',
-    startLine: 12,
-    endLine: 22,
+    // Leads with the versions, not the manifest. package.json declares
+    // RANGES, so this clip used to show a floor while the run it
+    // documented had installed something newer. VERSIONS.md is generated
+    // after install (ci/write-versions.mjs) and names what resolved.
+    // package.json stays as the first tab: the range is still what a
+    // reader would write in their own project.
+    ideFile: 'frontend/VERSIONS.md',
+    startLine: 6,
+    endLine: 24,
     extraTabs: [
+      {
+        filePath: 'frontend/package.json',
+        startLine: 12,
+        endLine: 22,
+      },
       {
         filePath: 'frontend/src/app/quickstart/demo-chat/page.tsx',
         startLine: 28,

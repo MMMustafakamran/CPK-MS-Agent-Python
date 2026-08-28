@@ -99,7 +99,7 @@ function backendVersions(dir) {
   return out;
 }
 
-function getPackageVersions() {
+export function getPackageVersions() {
   const versions = { frontend: {}, backend: {} };
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(FRONTEND_DIR, 'package.json'), 'utf8'));
