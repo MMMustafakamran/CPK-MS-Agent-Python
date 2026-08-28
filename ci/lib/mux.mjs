@@ -19,7 +19,7 @@ import { AUDIO_DIR, VIDEOS_DIR } from './config.mjs';
  * Which audio track belongs to which video. Match is done on the video
  * filename, which carries the demo name (e.g. `MSPY-react-14-Readables.webm`).
  */
-const AUDIO_TRACKS = [{ audioFile: 'mspyreadables.m4a', videoMatch: 'Readables' }];
+const AUDIO_TRACKS = [{ audioFile: 'readables mspy.m4a', videoMatch: 'Readables' }];
 
 function hasFfmpeg() {
   try {
