@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "docsRoot": "https://docs.copilotkit.ai/ms-agent-python",
-  "syncedAt": "2026-08-27T07:04:27.551Z",
+  "syncedAt": "2026-08-30T13:44:44.992Z",
   "pages": {
     "/ms-agent-python": {
       "file": "ms-agent-python.md",
@@ -14,7 +14,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:45 GMT"
     },
     "/ms-agent-python/ag-ui": {
       "file": "ms-agent-python__ag-ui.md",
@@ -26,31 +26,31 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:45 GMT"
     },
     "/ms-agent-python/agent-app-context": {
       "file": "ms-agent-python__agent-app-context.md",
-      "sha256": "ad05c6573505a2225f850295f9281275cd8d8affd4550a366c81f7827324ce34",
-      "bytes": 7644,
-      "lines": 173,
+      "sha256": "829590a90fdae94c63b11d90a2436d59180395fa60744392456e710cf3213ce5",
+      "bytes": 7503,
+      "lines": 176,
       "routes": [
         "/readables"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:45 GMT"
     },
     "/ms-agent-python/auth": {
       "file": "ms-agent-python__auth.md",
-      "sha256": "fea0f02d6dc6895a3d5db27c4113ff43b2ae9ccbca55a8e5cb542039af797731",
-      "bytes": 7180,
-      "lines": 204,
+      "sha256": "3368dadd0e56ec78ef53c1522b20d5c0a89785b7aa316c39159e888d16c7e9c4",
+      "bytes": 7286,
+      "lines": 210,
       "routes": [
         "/auth"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:45 GMT"
     },
     "/ms-agent-python/copilot-runtime": {
       "file": "ms-agent-python__copilot-runtime.md",
@@ -62,7 +62,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:45 GMT"
     },
     "/ms-agent-python/custom-look-and-feel/headless-ui": {
       "file": "ms-agent-python__custom-look-and-feel__headless-ui.md",
@@ -74,7 +74,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:45 GMT"
     },
     "/ms-agent-python/custom-look-and-feel/slots": {
       "file": "ms-agent-python__custom-look-and-feel__slots.md",
@@ -86,43 +86,43 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/frontend-tools": {
       "file": "ms-agent-python__frontend-tools.md",
-      "sha256": "87c8a9d7e5273a437dd568d6b7a26762cc46039766ccc64b801b50533711f159",
-      "bytes": 7090,
+      "sha256": "432f3ec69f281c574a3e64f1866a73db374eff066d4d2d330db0742ae26438d9",
+      "bytes": 7030,
       "lines": 162,
       "routes": [
         "/frontend-tools"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/generative-ui/state-rendering": {
       "file": "ms-agent-python__generative-ui__state-rendering.md",
-      "sha256": "038e43545c9406c586ef1ed9ac942af7b9791902dd1f7b19ff2abf44e62f1641",
-      "bytes": 16223,
-      "lines": 425,
+      "sha256": "4a5c1e294fac7e6fd04215cdafff7fd28c8cc5ce58065c5b2feed9388070dcff",
+      "bytes": 17302,
+      "lines": 451,
       "routes": [
         "/generative-ui/state-rendering"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/generative-ui/tool-rendering": {
       "file": "ms-agent-python__generative-ui__tool-rendering.md",
-      "sha256": "befdb141b6a357e9ce4c95b2e33dfee8fd2c81d9143080e34d99e10e1a445eae",
-      "bytes": 7548,
-      "lines": 235,
+      "sha256": "8636d0200837a95fae10243a169b8f7cd1aa0d22ea8155b9e746673862ddd9a3",
+      "bytes": 7540,
+      "lines": 238,
       "routes": [
         "/generative-ui/tool-rendering"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/generative-ui/your-components/display-only": {
       "file": "ms-agent-python__generative-ui__your-components__display-only.md",
@@ -134,7 +134,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/generative-ui/your-components/interactive": {
       "file": "ms-agent-python__generative-ui__your-components__interactive.md",
@@ -146,19 +146,19 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/headless-threads": {
       "file": "ms-agent-python__headless-threads.md",
-      "sha256": "ff68f9e465492e69b4b2866ffbbba7f50829aa1959530e59ca644428ccdf0e95",
-      "bytes": 10220,
-      "lines": 210,
+      "sha256": "837aaabe834b70ef79518f878f6302e0e03a402ff8419181ad3e4e8c53a4973a",
+      "bytes": 10108,
+      "lines": 208,
       "routes": [
         "/threads/headless"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/inspector": {
       "file": "ms-agent-python__inspector.md",
@@ -170,7 +170,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/prebuilt-components": {
       "file": "ms-agent-python__prebuilt-components.md",
@@ -182,7 +182,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:18 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/prebuilt-components/copilot-threads-drawer": {
       "file": "ms-agent-python__prebuilt-components__copilot-threads-drawer.md",
@@ -194,7 +194,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/programmatic-control": {
       "file": "ms-agent-python__programmatic-control.md",
@@ -206,19 +206,19 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Mon, 24 Aug 2026 07:45:19 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/quickstart": {
       "file": "ms-agent-python__quickstart.md",
-      "sha256": "b4262cec0facc8c239179256d1088cdc0156c9f48d294066de4a77815204c436",
-      "bytes": 23648,
-      "lines": 580,
+      "sha256": "f036b52b97ace445b4a5e9f8372573aa1b521a5e8994ddb9397771075647f89c",
+      "bytes": 22566,
+      "lines": 559,
       "routes": [
         "/quickstart"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/shared-state/in-app-agent-read": {
       "file": "ms-agent-python__shared-state__in-app-agent-read.md",
@@ -230,7 +230,7 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/shared-state/in-app-agent-write": {
       "file": "ms-agent-python__shared-state__in-app-agent-write.md",
@@ -242,19 +242,19 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Thu, 27 Aug 2026 07:04:27 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/threads": {
       "file": "ms-agent-python__threads.md",
-      "sha256": "b5ece824e212e02036fa7fa016f6499c334161fc99133a0dba5c17037ea411ec",
-      "bytes": 12085,
-      "lines": 213,
+      "sha256": "d3b9b2e3942d437b0bf78a0689c3bc8ea93268ff84a50f752d21cb940df69342",
+      "bytes": 11983,
+      "lines": 211,
       "routes": [
         "/threads"
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
     "/ms-agent-python/threads-lifecycle": {
       "file": "ms-agent-python__threads-lifecycle.md",
@@ -266,11 +266,11 @@
       ],
       "status": "ok",
       "age": 0,
-      "date": "Wed, 26 Aug 2026 11:35:40 GMT"
+      "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     }
   },
   "sitemap": {
-    "fetchedAt": "2026-08-24T07:45:17.484Z",
+    "fetchedAt": "2026-08-30T13:44:44.992Z",
     "urlsUnderRoot": 137,
     "knownUnmapped": [
       "https://docs.copilotkit.ai/ms-agent-python/agent-config",

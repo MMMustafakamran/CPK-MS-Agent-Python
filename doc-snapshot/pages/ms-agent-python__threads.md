@@ -4,6 +4,11 @@
 
 
 
+<IntelligenceOnboardingPrompt
+  feature="threads"
+  surface="docs_threads_overview"
+/>
+
 <div
   aria-label="A support workspace using Threads Drawer to move between customer conversations while CopilotChat renders the selected case details."
   className="shell-docs-radius-surface relative mb-4 overflow-hidden border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0px_16px_24px_-8px_rgba(1,5,7,0.12)] ring-1 ring-inset ring-white/70 dark:shadow-[0px_16px_32px_-10px_rgba(0,0,0,0.45)] dark:ring-white/10"
@@ -18,6 +23,7 @@
 <Callout type="info" title="See this in Inspector">
   Open Inspector on localhost. Stay on **Threads** (it is the default).
   Real threads appear when Intelligence is on. Enable Intelligence appears when it is off.
+  Open a real thread and use **Try from here** to copy it into a Playground scratch session. The stored thread does not change.
 
   More detail: [Inspector](/ms-agent-python/inspector).
 </Callout>
@@ -96,14 +102,6 @@ With Rich Threads, users can close the browser, return on another device, reopen
 Built on portable AG-UI event history, Rich Threads restore messages, generative UI, multimodal inputs, tool activity, state, and live-run continuity instead of saving only a chat transcript.
 
 Without CopilotKit Rich Threads, your team has to design the storage model, replay historical events and generative UI, persist multimodal inputs, reconnect live streams, synchronize thread lists, coordinate concurrent runs, and build lifecycle APIs before you can ship the conversation experience itself. CopilotKit Intelligence handles that infrastructure so you can focus on your agent and product UI.
-
-<OpsPlatformCTA
-  variant="inline"
-  title="Ship persistent conversations without building the backend"
-  body="CopilotKit Intelligence handles durable history, replay, realtime sync, and thread lifecycle on the free Developer tier."
-  ctaLabel="Get CopilotKit Intelligence free"
-  surface="docs_threads_overview"
-/>
 
 Rich Threads provide:
 
