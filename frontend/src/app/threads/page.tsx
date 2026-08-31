@@ -178,6 +178,18 @@ export default function Page() {
         platform store. There is nothing to migrate from here, so it is left
         out rather than mocked.
       </Callout>
+
+      <Callout tone="warn" title="Not covered — &ldquo;Try from here&rdquo;">
+        The 2026-08-30 sync added one line to this guide:{" "}
+        &ldquo;Open a real thread and use <strong>Try from here</strong> to copy
+        it into a Playground scratch session. The stored thread does not
+        change.&rdquo; That is an Inspector Playground action, and this repo
+        holds a working free-tier license, so unlike{" "}
+        <code>threads-import</code> above it is genuinely reachable here — it
+        simply is not exercised yet. No route asserts it and no clip shows it,
+        including the claim that the stored thread is left untouched. Flagged
+        rather than dropped: it is a documented step with no coverage.
+      </Callout>
     </>
   );
 }

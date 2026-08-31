@@ -15,11 +15,22 @@ export default function Page() {
           value, and CopilotKit forwards them on every run.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-          The context is delivered in{" "}
-          <code>ChatOptions.AdditionalProperties[&quot;ag_ui_context&quot;]</code>{" "}
-          as description/value pairs. The .NET sample adds middleware to fold
-          that into a system message; the Python sample does not, because the
-          Python AG-UI integration already surfaces it to the agent.
+          The context is delivered in the AG-UI <code>RunAgentInput</code>, as{" "}
+          <code>RunAgentInput.Context</code> entries carrying a description and
+          a value. The .NET sample adds middleware to recover the request with{" "}
+          <code>TryGetRunAgentInput</code> and fold that into a system message;
+          the Python sample does not, because the Python AG-UI integration
+          already surfaces it to the agent.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+          Until 2026-08-30 the guide located this at{" "}
+          <code>ChatOptions.AdditionalProperties[&quot;ag_ui_context&quot;]</code>,
+          and this page repeated it. The drift retracted that: the new wording
+          is that <code>TryGetRunAgentInput</code> &ldquo;recovers the request
+          without depending on hosting-layer keys&rdquo;. Nothing changed for
+          the Python path either way, which is why this route kept passing
+          across the correction — the claim it restated was never one it
+          exercised.
         </p>
         <div className="mt-4">
           <TryIt
