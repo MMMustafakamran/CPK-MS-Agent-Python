@@ -23,7 +23,19 @@ import { HttpAgent } from "@ag-ui/client";
 
 const AGENT_URL = process.env.MS_AGENT_URL ?? "http://localhost:8000";
 
-const LICENSE_TOKEN = process.env.COPILOTKIT_LICENSE_TOKEN;
+// Treat empty/whitespace values as absent. A GitHub Actions `${{ secrets.X }}`
+// reference to a secret that does not exist expands to an empty string, which
+// still *defines* the variable — so a plain `??` or truthiness check on
+// process.env would sail past it and hand Intelligence an empty credential.
+const firstSet = (...values: (string | undefined)[]) =>
+  values.find((v) => typeof v === "string" && v.trim().length > 0)?.trim();
+
+// CLI >= 4.9 writes CPK_INTELLIGENCE_API_KEY; older CLIs wrote INTELLIGENCE_API_KEY.
+const INTELLIGENCE_KEY = firstSet(
+  process.env.INTELLIGENCE_API_KEY,
+  process.env.CPK_INTELLIGENCE_API_KEY,
+);
+const LICENSE_TOKEN = firstSet(process.env.COPILOTKIT_LICENSE_TOKEN);
 
 const mainAgent = () => new HttpAgent({ url: `${AGENT_URL}/` });
 
@@ -43,10 +55,10 @@ const runtime = new CopilotRuntime({
   // routes off the in-memory runner's local-dev fallback (list, messages,
   // events, state). Rename/archive/delete and realtime sync return 422, and
   // `/info` omits `licenseStatus`, which leaves the prebuilt drawer locked.
-  ...(LICENSE_TOKEN
+  ...(INTELLIGENCE_KEY && LICENSE_TOKEN
     ? {
         intelligence: new CopilotKitIntelligence({
-          apiKey: process.env.INTELLIGENCE_API_KEY ?? "",
+          apiKey: INTELLIGENCE_KEY,
           ...(process.env.INTELLIGENCE_API_URL
             ? { apiUrl: process.env.INTELLIGENCE_API_URL }
             : {}),
