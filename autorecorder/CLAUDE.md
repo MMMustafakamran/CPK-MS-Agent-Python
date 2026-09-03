@@ -2,6 +2,10 @@
 
 **Before editing anything here, read [ADAPT.md](ADAPT.md).**
 
+Bringing an older copy of this folder up to the CLI pipeline (recording
+`copilotkit create`, the installs and the scaffolded app)? Read
+[PORT-CLI.md](PORT-CLI.md) as well.
+
 This folder is a portable screen-recording suite shared across every CopilotKit
 framework repo adapted per framework.
 

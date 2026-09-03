@@ -1,0 +1,117 @@
+# PORT-CLI.md — bring an older `autorecorder/` up to the CLI pipeline
+
+Adds: recording `copilotkit create`, the four package-manager installs, and the
+scaffolded app running. Read `ADAPT.md` first.
+
+**This file is a map, not a spec.** The source of truth is the code in this
+repo — open the files named below rather than trusting a summary of them.
+
+---
+
+## 1 · Copy verbatim
+
+```
+core/cli/**                 (12 modules + fixtures/)
+cli-capture.ts  cli-render.ts  cli-selftest-demo.ts
+1-cli-testing/  (CLI-FLOW.md, .gitignore, *.ps1, *.bat)
+```
+
+`package.json` — add deps `node-pty ^1.1.0`, `@xterm/xterm ^6.0.0` and the
+`capture` / `render` / `selftest` scripts. Copy them from this repo's file.
+Root `.gitignore` — add `autorecorder/casts/`.
+
+node-pty ships prebuilds. If npm tries to compile it, report that; do not
+install build tools.
+
+## 2 · Merge — do not overwrite ⚠ this is where ports go wrong
+
+Changed here, but **your copy may have changed too**:
+
+```
+core/engine.ts   core/types.ts   core/doctor.ts
+core/overlays/taskbar.ts   cli.ts
+```
+
+Your repo may also hold files this one lacks (`manifest.ts`, extra overlays,
+extra actions). **Diff both `core/` trees first and list everything you would
+delete.** Keep it — it is work that was never ported back.
+
+**Gate, before any CLI config exists:**
+
+```
+npm run typecheck        → 0
+npm run doctor           → 0
+npm run record -- --<an existing page id>   → [PASS]
+```
+
+Commit this on its own. A regression here must not be tangled with new config.
+
+## 3 · Prove the machinery
+
+```
+npm install
+npm run selftest         # PTY + repainting-TUI parsing, against a fixture
+npm run selftest:demo    # the whole demo path, against a fixture app
+```
+
+Fixtures only — no network, no account. If these fail, everything after them
+fails in a way that looks like the target CLI misbehaving.
+
+## 4 · Rewrite `config/cli.config.ts`
+
+Copy the **structure**, not the values. Run the CLI once by hand in
+`1-cli-testing/`, record what it actually asked in `CLI-FLOW.md`, encode that.
+
+| Setting | How to get it right |
+|---|---|
+| `FRAMEWORK_ROW` | Your repo's row from `npx copilotkit@latest framework list`. Must be a unique substring. **Name the row; never count arrow keys** — the doctor rejects counted arrows, and the list grows. |
+| `INTELLIGENCE_PROJECT` | An existing project on the operator's account. |
+| `APP_NAME`, `SCAFFOLD_DIR` | Leave as `app` / `1-cli-testing` so paths match across repos. |
+| `expectFiles`, `CLI_DISTRIBUTION.envFiles` | `agent/` exists **only in Python-agent starters**. Node starters (Mastra, LangGraph JS, Claude SDK TS) have none — asserting it fails a scaffold that worked. |
+| Chat-platform step | Keep `optional: true` either way — only 18 of 23 starters ask. |
+| `doneWhen`, `abortOn`, `render` pacing | Same CLI everywhere. Unchanged. |
+| `CLI_FINDING_VIDEOS` + `audio/` | **Delete.** That finding is a backslash in a Python starter's `install:agent`. Write your own finding, or none. |
+
+## 5 · `DEMO_PAGES` in `config/pages.config.ts`
+
+- ports **3101–3104**, never 3000 (the repo's own frontend holds 3000)
+- `readyPattern` = what *that* starter's dev server prints when serving
+- `extraTabs` paths = that starter's shape (Next: `src/app/page.tsx`)
+- `prompt` = something its agent can actually answer
+- keep `generated: true`
+
+## 6 · Run it
+
+```
+npm run capture -- --login        # once per machine; opens a browser
+npm run capture -- --scaffold     # the real CLI, driven
+npm run capture -- --distribute   # copy ×4, seed the model key
+npm run capture -- --install-npm  # then pnpm, yarn, bun
+npm run render  -- --all          # videos 1 and 2
+npm run record  -- --demo-npm     # video 3, per manager
+```
+
+Then **watch them**. The doctor cannot see that the IDE highlighted the wrong
+lines.
+
+## Traps
+
+- **Capture and render are separate on purpose.** A re-shoot must never re-run
+  the CLI or a sign-in. Don't merge them.
+- **Scaffold once, copy four times.** Four scaffolds make the scaffold a
+  variable in a test whose only subject is the install.
+- **The picker selects the agent framework, not the frontend.** A `-react` and
+  an `-angular` repo of the same framework get the same starter and therefore
+  the same create/install footage. Decide up front whether to reuse or re-film.
+- **Never edit `core/` for a framework-specific reason.** That is a finding to
+  report — it means something leaked into shared code and every repo has it.
+
+## Done
+
+`typecheck` 0 · `doctor` 0 · `selftest` pass · videos watched · README status
+table updated.
+
+**Report:** what your repo had that this one didn't · which prompts differed or
+turned out conditional · whether the starter has `agent/` · the dev server's
+real ready string · what the four managers did, pass or fail · anything that
+made you want to edit `core/`.
