@@ -291,12 +291,35 @@ errors, and an unfiltered `npm run record` skips them with a note saying how to
 produce them. Naming one explicitly still records it, and still fails — which is
 the right answer to "record this specific thing that is missing".
 
-### What is not automated, deliberately
+### Local only — enforced, not just documented
 
-Sign-in opens a browser and finishes back at the terminal; the CLI refuses to run
-at all in a shell with no terminal rather than opening one it cannot finish with.
-So these flows are **local-only and not CI-able**. Run `--login` once up front and
-everything after it is deterministic.
+`npm run capture` and `npm run render` **refuse to run in CI** and exit 1.
+`npm run record` additionally skips any page that boots its own dev server when
+it detects a runner. The check looks for `GITHUB_ACTIONS`, `CI`, `BUILD_BUILDID`
+or `GITLAB_CI`; `AUTORECORD_ALLOW_CI=1` or `--allow-ci` overrides it.
+
+Four reasons, not one:
+
+- **Sign-in is interactive.** Linking the app to an Intelligence project opens a
+  browser and finishes back at the terminal. A runner cannot complete that, and
+  the CLI refuses to run in a shell with no terminal rather than opening a
+  browser it cannot finish with.
+- **They are side-effecting** — scaffolding writes directories, and the installs
+  fetch four dependency trees.
+- **They spend a real account** — a hosted Intelligence project, and a real model
+  key for the demos.
+- **The failure would be misread.** A job that timed out waiting for a browser
+  sign-in looks exactly like a broken CLI, which is the opposite of what this
+  suite exists to report.
+
+It refuses rather than skipping silently, because a job that quietly does
+nothing is how a suite stays green while testing nothing. CI records doc pages
+with `node ci/automate.mjs`, which calls `npm run record` and never touches the
+CLI pipeline.
+
+Run `--login` once up front and everything after it is deterministic.
+
+### What is not automated, deliberately
 
 The model API key is never typed into the CLI and never appears in a recording —
 the scaffold is created without one and the key is placed into the project

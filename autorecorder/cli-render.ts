@@ -19,6 +19,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLI_FINDING_VIDEOS, CLI_FLOWS, CLI_VIDEOS as CLI_CAST_VIDEOS } from './config/cli.config';
 import { muxAudio } from './core/cli/audio';
+import { refuseInCi } from './core/cli/ci-guard';
 import { compressCast, readCast } from './core/cli/cast';
 import { type CliVideoConfig } from './core/cli/flow';
 import { RecordingEngine, type CliRecordSegment, type RecordResult } from './core/engine';
@@ -81,6 +82,8 @@ function selectVideos(args: string[]): CliVideoConfig[] {
 }
 
 async function main(): Promise<void> {
+  refuseInCi('npm run render');
+
   const args = process.argv.slice(2);
   if (
     args.length === 0 ||

@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PAGES } from './config/pages.config';
 import { PROJECT } from './config/project.config';
+import { isCi } from './core/cli/ci-guard';
 import { checkServicesHealth } from './core/diagnostics';
 import { RecordingEngine } from './core/engine';
 import { runDoctor } from './core/doctor';
@@ -171,9 +172,17 @@ async function main(): Promise<void> {
   // directory that does not exist and report four failures for work that simply
   // has not happened. Naming one explicitly still records it — and still fails,
   // which is the right answer to "record this specific thing that is missing".
-  const missingGenerated = PAGES.filter(
+  // On a runner, also drop any page that boots its own dev server. Those exist
+  // to record the scaffolded apps, which only exist after the local-only CLI
+  // pipeline has run — and booting one in CI would spend minutes waiting for a
+  // server in a directory that was never created.
+  const notYetProduced = PAGES.filter(
     (p) => p.generated && !existsSync(join(ROOT, p.ideFile)),
   );
+  const ciExcluded = isCi()
+    ? PAGES.filter((p) => p.devServer && !notYetProduced.includes(p))
+    : [];
+  const missingGenerated = [...notYetProduced, ...ciExcluded];
   let targetPages: typeof PAGES = PAGES.filter((p) => !missingGenerated.includes(p));
 
   if (multiPagesArg) {
@@ -254,13 +263,21 @@ async function main(): Promise<void> {
   }
 
   if (missingGenerated.length > 0 && !targetPages.some((p) => missingGenerated.includes(p))) {
-    console.log(
-      `\nℹ️ Skipping ${missingGenerated.length} page(s) whose files the CLI pipeline has not produced yet:`,
-    );
-    console.log(`   ${missingGenerated.map((p) => p.id).join(', ')}`);
-    console.log(
-      `   Produce them with: npm run capture -- --scaffold && npm run capture -- --distribute`,
-    );
+    if (notYetProduced.length > 0) {
+      console.log(
+        `\nℹ️ Skipping ${notYetProduced.length} page(s) whose files the CLI pipeline has not produced yet:`,
+      );
+      console.log(`   ${notYetProduced.map((p) => p.id).join(', ')}`);
+      console.log(
+        `   Produce them with: npm run capture -- --scaffold && npm run capture -- --distribute`,
+      );
+    }
+    if (ciExcluded.length > 0) {
+      console.log(
+        `\nℹ️ Skipping ${ciExcluded.length} page(s) that boot their own dev server: CI does not run the CLI pipeline.`,
+      );
+      console.log(`   ${ciExcluded.map((p) => p.id).join(', ')}`);
+    }
   }
 
   // Pages that boot their own dev server do not touch this repo's frontend or
