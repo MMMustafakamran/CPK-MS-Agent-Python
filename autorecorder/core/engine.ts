@@ -102,6 +102,15 @@ export interface CliRecordRequest {
   docUrl?: string;
 
   /**
+   * Folder under `videos/` to write into.
+   *
+   * CLI clips keep to their own: they are a different kind of artifact from the
+   * per-doc-page recordings, and mixing them makes the directory useless for
+   * finding either.
+   */
+  subdir?: string;
+
+  /**
    * Source files shown in the simulated IDE before the terminal.
    *
    * For a finding, this is where "installed versus declared" lives — the
@@ -220,6 +229,7 @@ export class RecordingEngine {
     page: Page,
     baseFilename: string,
     announceSuccess: boolean,
+    subdir?: string,
   ): Promise<string> {
     const video = page.video();
     await page.close().catch(() => {});
@@ -228,7 +238,12 @@ export class RecordingEngine {
     let savedFilename = '';
     if (video) {
       savedFilename = `${baseFilename}.webm`;
-      const finalWebm = join(this.videosDir, savedFilename);
+      // CLI recordings land in their own folder: they are a different kind of
+      // artifact from the per-doc-page clips, and mixing them makes a directory
+      // listing useless for finding either.
+      const targetDir = subdir ? join(this.videosDir, subdir) : this.videosDir;
+      mkdirSync(targetDir, { recursive: true });
+      const finalWebm = join(targetDir, savedFilename);
       try {
         if (existsSync(finalWebm)) unlinkSync(finalWebm);
         await video.saveAs(finalWebm);
@@ -446,6 +461,7 @@ export class RecordingEngine {
         page,
         req.filename,
         !recordError,
+        req.subdir,
       );
     }
 

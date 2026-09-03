@@ -339,24 +339,28 @@ const BUN_FINDING_NOTE = [
   'fix: scripts/setup-agent.bat - forward slash works in both shells.',
 ].join('\n');
 
-export const CLI_VIDEOS = defineCliVideos(
-  PACKAGE_MANAGERS.flatMap(({ id, command }) => [
-    {
-      id: `cli-${id}`,
-      name: `${id} · 1 · CopilotKit CLI — creating the app`,
-      videoName: `${id}-1-CLI-Create`,
-      docPath: 'quickstart?agent=bring-your-own',
-      flows: ['scaffold'],
-    },
-    {
-      id: `install-video-${id}`,
-      name: `${id} · 2 · Installing dependencies`,
-      videoName: `${id}-2-Install`,
-      docPath: 'quickstart?agent=bring-your-own',
-      flows: [`install-${id}`],
-    },
-  ]),
-);
+export const CLI_VIDEOS = defineCliVideos([
+  // One CLI video, not one per manager. The CLI runs once and its result is
+  // copied into the four folders, so four clips of it would be four copies of
+  // the same footage — nothing about them is per-manager.
+  {
+    id: 'cli',
+    name: 'CopilotKit CLI — creating the app',
+    videoName: 'CLI-Create',
+    docPath: 'quickstart?agent=bring-your-own',
+    flows: ['scaffold'],
+  },
+
+  // The install is where the managers actually differ, so this one is per
+  // manager.
+  ...PACKAGE_MANAGERS.map(({ id }) => ({
+    id: `install-video-${id}`,
+    name: `${id} · Installing dependencies`,
+    videoName: `${id}-2-Install`,
+    docPath: 'quickstart?agent=bring-your-own',
+    flows: [`install-${id}`],
+  })),
+]);
 
 /** Video 3 for bun: the finding, in full. */
 export const CLI_FINDING_VIDEOS = defineCliVideos(
@@ -384,6 +388,10 @@ export const CLI_FINDING_VIDEOS = defineCliVideos(
         // minutes typing while the viewer has already read it.
         charDelayMs: 22,
       },
+      // Narration for the bun story. Muxed in after recording — Playwright
+      // captures silent video — and the last frame is held if the voice runs
+      // past the picture, so nothing is cut off mid-sentence.
+      audio: 'audio/mspy bun  cli.m4a',
     },
   ],
 );

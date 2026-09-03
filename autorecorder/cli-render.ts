@@ -18,9 +18,7 @@ import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLI_FINDING_VIDEOS, CLI_FLOWS, CLI_VIDEOS as CLI_CAST_VIDEOS } from './config/cli.config';
-
-/** Every renderable video: the per-manager sets plus the findings. */
-const CLI_VIDEOS = [...CLI_CAST_VIDEOS, ...CLI_FINDING_VIDEOS];
+import { muxAudio } from './core/cli/audio';
 import { compressCast, readCast } from './core/cli/cast';
 import { type CliVideoConfig } from './core/cli/flow';
 import { RecordingEngine, type CliRecordSegment, type RecordResult } from './core/engine';
@@ -28,7 +26,12 @@ import { RecordingEngine, type CliRecordSegment, type RecordResult } from './cor
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(__dirname, '..');
 const CAST_DIR = join(__dirname, 'casts');
-const VIDEO_DIR = join(__dirname, 'videos');
+/** CLI clips live apart from the per-doc-page recordings. */
+const VIDEO_SUBDIR = 'cli';
+const VIDEO_DIR = join(__dirname, 'videos', VIDEO_SUBDIR);
+
+/** Every renderable video: the per-manager sets plus the findings. */
+const CLI_VIDEOS = [...CLI_CAST_VIDEOS, ...CLI_FINDING_VIDEOS];
 
 function flowById(id: string) {
   const flow = CLI_FLOWS.find((f) => f.id === id);
@@ -186,6 +189,10 @@ async function main(): Promise<void> {
       video.flows,
       video.ideTabs ?? null,
       video.notepad?.body ?? null,
+      // Two clips with different narration are not the same clip, even when
+      // every frame matches — so a narrated video is never satisfied by copying
+      // a silent one.
+      video.audio ?? null,
     ]);
     const alreadyRendered = rendered.get(signature);
     if (alreadyRendered) {
@@ -207,12 +214,34 @@ async function main(): Promise<void> {
       filename: video.videoFile,
       segments,
       docUrl: video.docUrl,
+      subdir: VIDEO_SUBDIR,
       ideTabs: video.ideTabs,
       ideDwellMs: video.ideDwellMs,
       notepad: video.notepad,
     });
 
     if (result.success) rendered.set(signature, video.videoFile);
+
+    // Narration goes on after the picture exists. A mux failure is a warning,
+    // not a failed recording: the video is already on disk and watchable, and
+    // reporting it as failed would send someone off to re-record footage that
+    // is fine.
+    if (result.success && video.audio) {
+      try {
+        const mux = muxAudio(join(VIDEO_DIR, result.filename), join(__dirname, video.audio));
+        console.log(
+          `   🔊 Narration added (${mux.audioSeconds}s over ${mux.videoSeconds}s of video` +
+            (mux.paddedSeconds > 0
+              ? `; held the last frame for ${mux.paddedSeconds}s so it was not cut off).`
+              : ').'),
+        );
+      } catch (e) {
+        const note = e instanceof Error ? e.message : String(e);
+        console.warn(`   ⚠️ ${note}`);
+        result.warnings.push(note);
+      }
+    }
+
     results.push({ ...result, id: video.id });
   }
 

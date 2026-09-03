@@ -280,6 +280,15 @@ export interface CliVideoDefinition {
    * depending on a separate document that drifts away from it.
    */
   notepad?: { filename: string; body: string; charDelayMs?: number };
+
+  /**
+   * Narration muxed in after recording, relative to the autorecorder folder.
+   *
+   * Playwright records silent video, so a voiceover is added afterwards. That
+   * also keeps the two independent: re-shooting the picture does not mean
+   * re-recording the voice, and vice versa.
+   */
+  audio?: string;
 }
 
 export interface CliVideoConfig extends CliVideoDefinition {
