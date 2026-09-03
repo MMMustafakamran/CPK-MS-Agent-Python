@@ -46,6 +46,9 @@ npm run record            # all pages, in order
 | `--filter=<query>` | Record every page whose id or name contains the query |
 | `--force` | Record even if the pre-flight health check fails |
 
+For the scaffolding CLI itself — a separate pipeline, no services needed — see
+[Recording the CLI](#recording-the-cli).
+
 Videos land in `videos/` as `<videoPrefix>-<NN>-<name>.webm`, 1920×1080, ~25fps
 (Playwright's capture rate; it is not configurable).
 
@@ -84,11 +87,14 @@ The split between what you edit and what you don't is the point of this folder.
 autorecorder/
 ├── ADAPT.md                    ← how to port this; read before editing
 ├── cli.ts                      ← entrypoint, arg parsing, summary
+├── cli-capture.ts              ← runs terminal flows, writes casts
+├── cli-render.ts               ← films a captured cast
 │
 ├── config/                     ← ★ THE ADAPTATION SURFACE
 │   ├── project.config.ts         framework slug, doc root, URLs, start commands
 │   ├── pages.config.ts           one entry per doc page
-│   └── selectors.config.ts       how to find the chat surface
+│   ├── selectors.config.ts       how to find the chat surface
+│   └── cli.config.ts             this framework's terminal flows
 │
 ├── actions/                    ← ★ what to DO on each page
 │   ├── index.ts                  page id → handler registry
@@ -101,8 +107,16 @@ autorecorder/
 │   ├── diagnostics.ts            pre-flight health check
 │   ├── types.ts                  PageDefinition → PageRecordConfig
 │   ├── ide/generator.ts          VS Code simulator, Shiki-highlighted from disk
+│   ├── cli/                      terminal capture and replay
+│   │   ├── driver.ts               runs a CLI under a real PTY, answers prompts
+│   │   ├── screen.ts               reads a repainting TUI out of a byte stream
+│   │   ├── cast.ts                 asciinema v2 read/write and pacing
+│   │   ├── terminal.ts             the terminal window that replays a cast
+│   │   ├── selftest.ts             proves the driver works on this machine
+│   │   └── flow.ts                 CliFlowDefinition → CliFlowConfig
 │   └── overlays/                 Windows 11 taskbar + virtual cursor
 │
+├── casts/                      ← captured terminal sessions (gitignored)
 └── videos/                     ← output
 ```
 
@@ -143,6 +157,150 @@ Two details worth knowing, because both were bugs once:
 - Playwright starts recording when the page is created, so the first navigation
   is dead footage. The doc URL is warmed in a throwaway page first, which cuts
   it roughly in half; removing the rest would need an ffmpeg trim in post.
+
+---
+
+## Recording the CLI
+
+The scaffolding CLI is interactive — menus, arrow keys, a prompt that acts on a
+single keystroke — so it cannot be driven by piping text at it. It runs under a
+real pseudo-terminal (`node-pty`), and the session is replayed in a terminal
+window for the camera.
+
+### The twelve videos
+
+Three per package manager, so one manager's set tells its whole story without
+cross-referencing another:
+
+| # | File | Shows |
+|---|---|---|
+| 1 | `<prefix>-<pm>-1-CLI-Create.webm` | the doc page, then `npx copilotkit@latest create` answering every prompt |
+| 2 | `<prefix>-<pm>-2-Install.webm` | that manager installing the project |
+| 3 | `<prefix>-<pm>-3-Demo.webm` | the doc page, VS Code with resolved versions + `package.json` + the integration code, that manager's dev server starting, then the app answering a prompt |
+
+The CLI clip is the same footage in all four sets, because the CLI runs once and
+its result is copied. `cli-render.ts` films it once and copies the file rather
+than re-filming identical footage four times — four sets in about the time of
+one.
+
+### The pipeline
+
+```bash
+npm run selftest                    # 1. does the PTY work on this machine?
+npm run selftest:demo               # 2. does the whole demo path work?
+
+npm run capture -- --login          # 3. once — sign-in opens a browser
+npm run capture -- --scaffold       # 4. run the real CLI, once
+npm run capture -- --distribute     # 5. copy it ×4, seed the model key
+
+npm run capture -- --install-npm    # 6. install per manager; each one also
+npm run capture -- --install-pnpm   #    writes that copy's VERSIONS.md
+npm run capture -- --install-yarn
+npm run capture -- --install-bun
+
+npm run render -- --all             # 7. ► videos 1 and 2 of all four sets
+npm run record -- --demo-npm        # 8. ► video 3, per manager
+npm run record -- --demo-pnpm       #    (…yarn, bun)
+```
+
+Steps 1 and 2 come first for a reason: they prove the recorder works *before*
+half an hour is spent on scaffolds and installs. If step 2 passes and step 8
+fails, the fault is in the generated app, not in this folder.
+
+**Capture and render are separate commands, and that split is the point.**
+
+A CLI run scaffolds directories, installs packages, and may block on browser
+sign-in — minutes of real, side-effecting work. Rendering is offline and takes
+seconds. Keeping them apart means fixing a font size, a pace, or a doc page that
+changed never re-runs `npm install` or asks anyone to sign in again. The cast is
+also the QA artifact: it is text, so a CLI that changes its prompts under
+`@latest` shows up as a diff instead of a mysteriously broken driver.
+
+### How a flow answers prompts
+
+`config/cli.config.ts` describes prompts, not keystrokes:
+
+```ts
+{
+  label: 'Agent framework',
+  waitFor: /Select agent framework/i,
+  select: { label: 'Microsoft Agent Framework (Python)', max: 40 },
+  keys: ['Enter'],
+}
+```
+
+`select` walks the list until the highlighted row matches the label. It is never
+"press Down twelve times" — the framework list holds 23 entries today and grows
+with every integration CopilotKit ships, so a hardcoded count silently scaffolds
+the wrong framework the day an entry is inserted above the target, and reports
+success while doing it. `npm run doctor` rejects a step that sends more than one
+arrow key without a `select`.
+
+Three more things the driver gets right, each of which was a real failure mode:
+
+- **Every action waits for its prompt**, never for a timer. An npx cache miss or
+  a sign-in round trip moves a prompt by minutes.
+- **The screen is read from the end of the stream.** A TUI repaints over itself,
+  so the accumulated bytes contain every historical frame; matching the whole
+  buffer answers questions about a screen that is no longer there.
+- **`Enter` is sent only where a prompt wants it.** The dependency prompt acts on
+  a single keypress; an extra `Enter` there leaks into the next prompt and
+  answers it before it has painted.
+
+Conditional prompts are marked `optional: true` and skipped when absent — npx
+only offers to install an uncached package, and only 18 of the 23 frameworks'
+starters offer a chat channel at all.
+
+### One scaffold, four package managers
+
+The CLI runs **once**. `--distribute` copies the result into `1-cli-testing/npm`,
+`pnpm`, `yarn` and `bun`, excluding `node_modules`, and seeds the repo root
+`.env` into each copy's `.env` and `agent/.env`. (The old `install-all.ps1`
+seeded from `1-cli-testing/.env`, which holds no key at all.)
+
+Running the CLI four times instead would make the *scaffold* a variable in a test
+whose only subject is the install, so a difference between managers could not be
+attributed to the manager. Seeding the key once, before the copy, is likewise
+the difference between one placement and four chances to typo it — and it keeps
+the key out of every recording, since the scaffold is created without one.
+
+`--distribute` refuses to overwrite a directory that already exists unless given
+`--force`. Those directories hold installed trees that are not in version
+control, so replacing one is not a recoverable mistake.
+
+### The demo recordings
+
+`demo-npm`, `demo-pnpm`, `demo-yarn` and `demo-bun` are ordinary page recordings
+with one addition: each declares a `devServer`. The engine then boots that
+server before filming, replays its boot in a terminal between the IDE and the
+demo, points the demo at its origin, and kills it afterwards — so the terminal
+segment is genuinely the process serving the app in the next segment.
+
+Each leads with `VERSIONS.md`, not `package.json`. The manifest declares
+*ranges*; the resolved set is both what the recording actually ran against and
+the one place four package managers can visibly differ. It is written after each
+install, so it cannot drift from the tree it describes.
+
+Each runs on its own port (3101–3104), never 3000. The repo's own frontend
+usually holds 3000, and a demo that quietly recorded against *that* would look
+like a pass while proving nothing about the scaffold.
+
+They are marked `generated: true`, meaning their files exist only after the
+pipeline has run. Before that the doctor reports them as warnings rather than
+errors, and an unfiltered `npm run record` skips them with a note saying how to
+produce them. Naming one explicitly still records it, and still fails — which is
+the right answer to "record this specific thing that is missing".
+
+### What is not automated, deliberately
+
+Sign-in opens a browser and finishes back at the terminal; the CLI refuses to run
+at all in a shell with no terminal rather than opening one it cannot finish with.
+So these flows are **local-only and not CI-able**. Run `--login` once up front and
+everything after it is deterministic.
+
+The model API key is never typed into the CLI and never appears in a recording —
+the scaffold is created without one and the key is placed into the project
+afterwards.
 
 ---
 

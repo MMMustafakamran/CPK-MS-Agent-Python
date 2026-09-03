@@ -316,11 +316,34 @@ land on a provider by mistiming a keystroke."
 
 ## Automation notes
 
-- **Playwright cannot drive a terminal directly.** Run the CLI in a PTY
-  (`node-pty` — native ConPTY on Windows) and drive that. Render it with `xterm.js`
-  on a local page only when a recording is wanted; the PTY driver stays the source
-  of truth. See the autorecorder's existing Playwright capture in
-  [engine.ts:119](../autorecorder/core/engine.ts#L119).
+**This flow is implemented.** The steps above are encoded in
+[cli.config.ts](../autorecorder/config/cli.config.ts) and driven by
+[core/cli/](../autorecorder/core/cli/):
+
+```bash
+cd autorecorder
+npm run selftest                  # prove the driver works on this machine
+npm run selftest:demo             # prove the whole demo path works
+
+npm run capture -- --login        # once; sign-in opens a browser
+npm run capture -- --scaffold     # run the CLI, once
+npm run capture -- --distribute   # copy it ×4, seed the model key
+npm run capture -- --install-npm  # install per manager (…pnpm, yarn, bun)
+
+npm run render -- --all           # videos 1 and 2 of all four sets
+npm run record -- --demo-npm      # video 3, per manager
+```
+
+That produces twelve videos — three per package manager: the CLI creating the
+app, that manager installing it, and its copy running and answering.
+
+The notes below are why it is built the way it is — keep them in mind when
+editing the config.
+
+- **Playwright cannot drive a terminal directly.** The CLI runs under a PTY
+  (`node-pty`, native ConPTY on Windows) and the captured session is replayed in
+  an `xterm.js` window for the camera. Capture and render are separate commands
+  so a re-shoot never re-runs the CLI.
 - **Gate every keystroke on its prompt text**, never on a timer. Steps 2 and 6 vary
   in duration by minutes (cache state, sign-in).
 - **Know which prompts consume `Enter` and which don't.** Steps 4 and 10 are text

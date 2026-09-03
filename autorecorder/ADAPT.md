@@ -37,10 +37,11 @@ do not describe the port as complete.
 | `config/project.config.ts` | **Yes** | Framework slug, doc root, URLs, start commands |
 | `config/pages.config.ts` | **Yes** | One entry per doc page |
 | `config/selectors.config.ts` | **Yes** | How to find the chat surface in this frontend |
+| `config/cli.config.ts` | **Yes** | This framework's terminal flows — the scaffolding CLI and the installs |
 | `actions/*.action.ts` | **Yes** | What to do on a page that needs more than "send a prompt" |
 | `actions/index.ts` | **Yes** | Which handler serves which page id |
-| `core/**` | **No** | Engine, IDE simulator, overlays, cursor, doctor |
-| `cli.ts` | **No** | Argument parsing and the run summary |
+| `core/**` | **No** | Engine, IDE simulator, overlays, cursor, doctor, CLI driver |
+| `cli.ts`, `cli-capture.ts`, `cli-render.ts` | **No** | Argument parsing and the run summaries |
 
 **Do not edit `core/`.** It contains no framework-specific knowledge — every
 such value already comes from `config/`. If you believe a change to `core/` is
@@ -125,6 +126,66 @@ mistaken for this one's.
 
 Delete handlers for pages that no longer exist. The doctor warns about orphans.
 
+## Step 5b — The CLI flows
+
+Only if this framework's quickstart tells people to run a command. Most do:
+`npx copilotkit@latest create` is the same entrypoint everywhere, but the
+answers are not.
+
+```bash
+npm run capture -- --selftest    # does the PTY work on this machine at all?
+```
+
+Run that **before** adapting anything. It drives a fixture that imitates the
+four prompt shapes — a conditional confirm, a text field, an arrow-navigated
+list, and a single-keypress y/n — and tells you whether the recorder itself
+works here. If it fails, nothing you write in `config/cli.config.ts` will run,
+and the failure will look like the target CLI misbehaving.
+
+Then edit `config/cli.config.ts`: the constants at the top (app name, the
+framework row to select, the Intelligence project), and the prompts if this
+CLI asks different ones.
+
+**Name rows; never count keypresses.** Write
+`select: { label: 'Mastra' }`, not twelve `Down` keys. The framework list has
+23 entries today and grows with every integration CopilotKit ships, so a count
+that is right this week silently scaffolds the wrong framework next week — and
+reports success while doing it. `npm run doctor` rejects a step that sends more
+than one arrow key without a `select`.
+
+Mark genuinely conditional prompts `optional: true`. Two in the reference are:
+npx only asks to install when the package is uncached, and only 18 of the 23
+frameworks' starters offer a chat channel at all.
+
+```bash
+npm run selftest:demo            # does the whole demo path work here?
+
+npm run capture -- --login       # once; sign-in opens a browser
+npm run capture -- --scaffold    # runs the real CLI, writes a cast
+npm run render  -- --scaffold    # films the cast
+npm run capture -- --distribute  # copies the scaffold, seeds the model key
+npm run capture -- --install-npm # one per package manager
+npm run render  -- --all         # videos 1 and 2 of every set
+npm run record  -- --demo-npm    # video 3: doc → IDE → dev server → agent
+```
+
+The deliverable is three videos per package manager. `config/cli.config.ts`
+generates videos 1 and 2 from `PACKAGE_MANAGERS`; `config/pages.config.ts`
+generates video 3. Change that one list and all twelve follow — which is the
+point of generating them rather than writing twelve entries that can drift.
+
+Capture and render are separate on purpose: the CLI runs once, and re-shooting
+the video never re-scaffolds anything or asks anyone to sign in again.
+
+`selftest:demo` records a full demo against a fixture app — its own dev server,
+its own chat surface — so "the recorder works" is established before any scaffold
+exists. Run it after a port and before blaming a generated app.
+
+If this framework's starter is not a Next app, change `readyPattern` on the
+matrix pages in `pages.config.ts`: it is the text the dev server prints when it
+is actually serving, and waiting for the wrong string means waiting the whole
+timeout and then reporting that a healthy server never started.
+
 ## Step 6 — Prove it
 
 ```bash
@@ -183,6 +244,8 @@ When you finish, state:
 - any doc page that 404s or is missing from the nav for this framework
 - which selectors you had to change
 - any page whose recording fails, and the doctor output for it
+- which CLI prompts differed from the reference, and any that turned out to be
+  conditional on this framework
 - anything that made you want to edit `core/`
 
 A port that silently drops pages to make the doctor pass is worse than one that

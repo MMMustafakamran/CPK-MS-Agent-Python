@@ -23,7 +23,83 @@
  * working.
  */
 
-import { definePages } from '../core/types';
+import { definePages, type PageDefinition } from '../core/types';
+
+/**
+ * The scaffolded app, running.
+ *
+ * The third of this repo's three CLI deliverables — the other two are the CLI
+ * creating the project and the four package managers installing it, both in
+ * `config/cli.config.ts`. This one is the payoff: the versions that actually
+ * resolved, the manifest and the integration code, the dev server starting, and
+ * the agent answering.
+ *
+ * It runs against the npm copy. All four copies are byte-identical apart from
+ * `node_modules`, so a fifth clip of the same app under pnpm would show the
+ * same screens — the differences between managers belong to the install video,
+ * where they can be compared side by side.
+ *
+ * Port 3101, never 3000: the repo's own frontend usually holds 3000, and a
+ * recording that quietly used *that* would look like a pass while proving
+ * nothing about the scaffold.
+ *
+ * `readyPattern` is what the dev server prints when it is serving. If a future
+ * starter changes that wording, the recorder waits out the timeout and reports
+ * that the server never started — the right failure, since it never became
+ * reachable in a way this config recognises.
+ */
+const DEMO_PAGES: PageDefinition[] = [
+  { pm: 'npm', command: 'npm', args: ['run', 'dev'], port: 3101 },
+  { pm: 'pnpm', command: 'pnpm', args: ['run', 'dev'], port: 3102 },
+  { pm: 'yarn', command: 'yarn', args: ['run', 'dev'], port: 3103 },
+  { pm: 'bun', command: 'bun', args: ['run', 'dev'], port: 3104 },
+].map(({ pm, command, args, port }) => {
+  const app = `1-cli-testing/${pm}/app`;
+  return {
+    id: `demo-${pm}`,
+    name: `${pm} · 3 · Scaffolded app - versions, code and a live agent`,
+    videoName: `Demo-${pm}`,
+    // Names the file as the third of this manager's set rather than by doc-nav
+    // position, so one manager's three clips sort together.
+    videoFile: `${pm}-3-Demo`,
+    docPath: 'quickstart?agent=bring-your-own',
+    // Unused for these pages — the demo URL comes from devServer — but kept
+    // meaningful so logs read sensibly.
+    route: 'quickstart',
+    generated: true,
+
+    // Leads with the resolved versions, not the manifest. package.json declares
+    // RANGES, so on its own it cannot answer "which versions is this?", and the
+    // resolved set is exactly where four package managers can differ.
+    // VERSIONS.md is written after each install.
+    ideFile: `${app}/VERSIONS.md`,
+    startLine: 1,
+    endLine: 22,
+    extraTabs: [
+      { filePath: `${app}/package.json`, startLine: 1, endLine: 24 },
+      // The CopilotKit integration itself. Adjust once a real scaffold exists —
+      // the doctor names this file if the path is wrong.
+      { filePath: `${app}/src/app/page.tsx`, startLine: 1, endLine: 30 },
+    ],
+
+    prompt: 'Can you tell me a joke?',
+    waitAfterPromptMs: 5000,
+
+    devServer: {
+      cwd: app,
+      command,
+      args,
+      env: { PORT: String(port), BROWSER: 'none' },
+      readyPattern: /Ready in|ready in|started server on|Local:\s+http/i,
+      // A first `next dev` compiles the whole app; on a cold cache this is slow
+      // and a tighter cap would report a failure for a server that was fine.
+      readyTimeoutMs: 240_000,
+      originUrl: `http://localhost:${port}`,
+      demoPath: '/',
+      title: `${command} run dev`,
+    },
+  };
+});
 
 export const PAGES = definePages([
   {
@@ -307,4 +383,10 @@ export const PAGES = definePages([
     prompt: "What's the weather in Tokyo?",
     waitAfterPromptMs: 4000,
   },
+
+  // The scaffolded app, once per package manager — video 3 of each set.
+  // `generated: true`: these files do not exist until the CLI pipeline has run,
+  // so the doctor reports them rather than failing, and an unfiltered run skips
+  // them with a note.
+  ...DEMO_PAGES,
 ]);

@@ -2,6 +2,7 @@
  * Automated Screen Recording & Demonstration Pipeline
  * Entrypoint & CLI runner
  */
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PAGES } from './config/pages.config';
@@ -164,7 +165,16 @@ async function main(): Promise<void> {
 
   // 4. Determine pages to record
   const multiPagesArg = rawArgs.find((a) => a.startsWith('--pages=') || a.startsWith('--only='));
-  let targetPages = PAGES;
+
+  // Pages whose source files the CLI pipeline has not produced yet are dropped
+  // from an unfiltered run. Recording them would boot a dev server in a
+  // directory that does not exist and report four failures for work that simply
+  // has not happened. Naming one explicitly still records it — and still fails,
+  // which is the right answer to "record this specific thing that is missing".
+  const missingGenerated = PAGES.filter(
+    (p) => p.generated && !existsSync(join(ROOT, p.ideFile)),
+  );
+  let targetPages: typeof PAGES = PAGES.filter((p) => !missingGenerated.includes(p));
 
   if (multiPagesArg) {
     const ids = multiPagesArg
@@ -243,7 +253,27 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  await assertServicesUp(rawArgs.includes('--force'));
+  if (missingGenerated.length > 0 && !targetPages.some((p) => missingGenerated.includes(p))) {
+    console.log(
+      `\nℹ️ Skipping ${missingGenerated.length} page(s) whose files the CLI pipeline has not produced yet:`,
+    );
+    console.log(`   ${missingGenerated.map((p) => p.id).join(', ')}`);
+    console.log(
+      `   Produce them with: npm run capture -- --scaffold && npm run capture -- --distribute`,
+    );
+  }
+
+  // Pages that boot their own dev server do not touch this repo's frontend or
+  // backend, so gating them on those being up would refuse to record a
+  // perfectly recordable page — and, worse, tell the operator to start services
+  // that have nothing to do with what they asked for.
+  if (targetPages.every((p) => p.devServer)) {
+    console.log(
+      `\nℹ️ Every selected page brings its own dev server; skipping the pre-flight check on ${PROJECT.frontendUrl}.`,
+    );
+  } else {
+    await assertServicesUp(rawArgs.includes('--force'));
+  }
 
   console.log(`\n======================================================`);
   console.log(

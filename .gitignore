@@ -42,6 +42,13 @@ autorecorder/videos/RUN_REPORT.md
 autorecorder/videos/RUN_REPORT.json
 autorecorder/videos/logs/
 
+# Captured terminal sessions from `npm run capture`. Regenerable, and they hold
+# whatever the CLI printed on the machine that ran it — the operator's paths and
+# their CopilotKit Intelligence project names among it. Commit one deliberately
+# (`git add -f`) when a specific run is worth keeping as a baseline to diff a
+# future CLI version against; that is the one case where the text is the point.
+autorecorder/casts/
+
 # --- TEMPORARY: hidden for the upstream PR ---
 # CI/CD lives only in this fork. Untracked with `git rm -r --cached` so the PR
 # diff against upstream shows nothing for these paths. To restore: delete this

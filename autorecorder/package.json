@@ -9,9 +9,17 @@
     "record:list": "tsx cli.ts --list",
     "doctor": "node ../ci/write-versions.mjs && tsx cli.ts --doctor",
     "doctor:online": "node ../ci/write-versions.mjs && tsx cli.ts --doctor --online",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "capture": "tsx cli-capture.ts",
+    "capture:list": "tsx cli-capture.ts --list",
+    "render": "tsx cli-render.ts",
+    "render:list": "tsx cli-render.ts --list",
+    "selftest": "tsx cli-capture.ts --selftest",
+    "selftest:demo": "tsx cli-selftest-demo.ts"
   },
   "dependencies": {
+    "@xterm/xterm": "^6.0.0",
+    "node-pty": "^1.1.0",
     "playwright": "^1.51.0",
     "shiki": "^4.4.3"
   },

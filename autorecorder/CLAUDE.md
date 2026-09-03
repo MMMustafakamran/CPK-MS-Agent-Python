@@ -17,7 +17,8 @@ Two rules override any instinct to tidy:
    rather than describing the work as complete.
 
 The adaptation surface is exactly: `config/project.config.ts`,
-`config/pages.config.ts`, `config/selectors.config.ts`, and `actions/`.
+`config/pages.config.ts`, `config/selectors.config.ts`, `config/cli.config.ts`,
+and `actions/`.
 
 When a change here is worth keeping across repos, it belongs in `core/` and
 should be ported to the other copies — say so explicitly so it can be.
