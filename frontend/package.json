@@ -7,10 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "record": "npm --prefix ../autorecording run record"
+    "record": "npm --prefix ../autorecorder run record"
   },
   "dependencies": {
-    "@ag-ui/client": "^0.0.58",
+    "@ag-ui/client": "0.0.57",
     "@copilotkit/react-core": "^1.69.2",
     "@copilotkit/runtime": "^1.69.2",
     "next": "16.3.2",
