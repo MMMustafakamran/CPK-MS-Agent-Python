@@ -168,7 +168,7 @@ export async function startService(
     rows: def.rows ?? 32,
     echo: opts.echo ?? true,
     title: opts.title ?? commandLine,
-    preamble: `${cwd}> ${commandLine}\r\n`,
+    preamble: { prompt: `${cwd}> `, command: commandLine },
   });
 
   const stop = async (): Promise<void> => {

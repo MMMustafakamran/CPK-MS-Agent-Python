@@ -1,6 +1,7 @@
 import { type Page } from 'playwright';
 import { SELECTORS } from '../config/selectors.config';
-import { humanClick, humanGlide, sleep } from './overlays/cursor';
+import { humanClick, humanGlide, idleNudge, sleep } from './overlays/cursor';
+import { chance, humanType, pause } from './overlays/human';
 import { TIMEOUTS } from './timeouts';
 import { type PageActionHandler, type PageRecordConfig } from './types';
 
@@ -128,9 +129,15 @@ export async function waitForAgentResponseCompletion(
     let previousText = '';
     let stableCount = 0;
     let settled = false;
+    let polls = 0;
     const streamStart = Date.now();
 
     while (Date.now() - streamStart < streamTimeoutMs) {
+      // A reader's hand is not still for twenty seconds. Every second or so,
+      // a small drift — biased downward, following the text as it arrives.
+      if (++polls % 3 === 0 && chance(0.7)) {
+        await idleNudge(page, 4);
+      }
       const currentText = await page
         .evaluate((sel) => {
           const msgs = document.querySelectorAll(sel);
@@ -203,7 +210,7 @@ export async function waitForAgentResponseCompletion(
 
   // Step 4: Reading pause after response completes
   console.log(`   📖 Reading completed response (pausing ${postWaitMs / 1000}s)...`);
-  await sleep(postWaitMs);
+  await pause(postWaitMs, 0.2);
   return observed;
 }
 
@@ -295,8 +302,15 @@ export async function sendPrompt(
       await page.keyboard.press('Backspace');
     }
 
-    await page.keyboard.type(prompt, { delay: attempt === 1 ? 35 : 12 });
-    await sleep(300);
+    // A person's rhythm on the first attempt. A retry is the recorder
+    // recovering from a swallowed submit, and is typed quickly rather than
+    // performed a second time.
+    if (attempt === 1) {
+      await humanType(page, prompt, { charDelayMs: 58 });
+    } else {
+      await page.keyboard.type(prompt, { delay: 12 });
+    }
+    await pause(300);
 
     // React owns the value once hydrated; if it wiped what we typed, put it back.
     const typedVal = await inputLocator.inputValue().catch(() => prompt);

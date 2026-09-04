@@ -151,6 +151,7 @@ autorecorder/
 │   │   ├── finding.ts              the written note for a failed install, from its report
 │   │   └── flow.ts                 CliFlowDefinition → CliFlowConfig, onSuccess / onFailure
 │   └── overlays/                 Windows 11 taskbar, cursor, Notepad, alert dialog
+│       └── human.ts                seeded pacing: typing rhythm, jittered pauses, idle drift
 │
 ├── scripts/core-manifest.mjs   ← writes/checks CORE_MANIFEST.json, diffs two copies
 ├── test/                       ← unit tests for the pure modules (`npm test`)
@@ -180,6 +181,24 @@ differ: `node scripts/core-manifest.mjs --diff ../../Other-repo/autorecorder`.
    fully unloaded rather than painted over. Clicks Chrome on the taskbar.
 3. **Demo** — opens the chrome-free demo route, types the prompt, waits for the
    reply to finish streaming, and pauses for reading.
+
+### What makes it read as a person
+
+Every pace in a take comes from `core/overlays/human.ts`, seeded from the
+page id. So the Quickstart clip and the Slots clip do not type, pause and
+scroll in the same rhythm — but tonight's Quickstart clip is identical to
+last night's, which keeps two recordings of the same page comparable.
+
+- **Typing** has a person's rhythm everywhere it happens: the chat prompt, the
+  Notepad note, and the command typed at the terminal prompt before its output
+  starts. Jittered keystrokes, a beat after punctuation, the odd pause.
+- **Scrolling** is in bursts: a few wheel notches, a reading pause, a few more,
+  sometimes a nudge back up.
+- **Pauses** vary by about a quarter around their nominal length.
+- **The cursor** overshoots slightly on long travel and settles, hovers a
+  variable moment before a click, drifts while a reply streams instead of
+  freezing, and starts each take somewhere plausible rather than dead centre.
+- **Windows** fade in over 180ms (IDE, terminal, Notepad) instead of cutting.
 
 Two details worth knowing, because both were bugs once:
 

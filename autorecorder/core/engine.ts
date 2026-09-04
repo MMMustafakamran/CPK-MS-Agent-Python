@@ -15,7 +15,8 @@ import { generateTerminalHtml } from './cli/terminal';
 import { captureConsole, type ConsoleEntry } from './console-capture';
 import { generateIdeHtml, type IdeTabConfig } from './ide/generator';
 import { closeNotepad, openNotepad, typeInNotepad } from './overlays/notepad';
-import { humanClick, humanGlide, humanScrollDown, setGlobalCursorPos, sleep } from './overlays/cursor';
+import { humanClick, humanGlide, humanScrollDown, restCursorSomewhere, sleep } from './overlays/cursor';
+import { pause, seedTake } from './overlays/human';
 import { clickTaskbarApp, ensureOverlays, waitForHydration } from './overlays/taskbar';
 import { timeoutsFor } from './timeouts';
 import { type ActionContext, type PageRecordConfig, type RecorderTimeouts } from './types';
@@ -65,6 +66,20 @@ async function humanScrollCodeViewport(
   }, { targetY: targetScrollTop, idx: viewIdx });
 
   await sleep(350);
+}
+
+/**
+ * A short fade as a simulated window comes up.
+ *
+ * The Notepad already opens with one; the IDE and the terminal appeared in a
+ * single frame, which is how a navigation looks and not how an app switch
+ * does. 180ms is under a real window animation and over one frame.
+ */
+function withWindowFade(html: string): string {
+  const style =
+    '<style>@keyframes __arWinIn{from{opacity:0;transform:scale(.992)}to{opacity:1;transform:none}}' +
+    'body{animation:__arWinIn .18s ease-out both}</style>';
+  return html.includes('</head>') ? html.replace('</head>', `${style}</head>`) : style + html;
 }
 
 /**
@@ -363,7 +378,7 @@ export class RecordingEngine {
       }
 
       // Reading pause on the doc code snippet
-      await sleep(2000);
+      await pause(2000);
 
       console.log(`   🖱️ Switching to ${nextApp} via Windows 11 Taskbar...`);
       await clickTaskbarApp(page, nextApp);
@@ -410,7 +425,7 @@ export class RecordingEngine {
     );
     const ideUrl = new URL(IDE_ROUTE_PATH, origin).toString();
     await page.route(ideUrl, (route) =>
-      route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: ideHtml }),
+      route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: withWindowFade(ideHtml) }),
     );
     await page.goto(ideUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
     await ensureOverlays(page, 'vscode');
@@ -443,7 +458,7 @@ export class RecordingEngine {
       } else {
         await humanGlide(page, 520, 360, 18);
       }
-      await sleep(opts.dwellMs);
+      await pause(opts.dwellMs);
     }
 
     await page.unroute(ideUrl).catch(() => {});
@@ -463,7 +478,7 @@ export class RecordingEngine {
     page: Page,
     opts: { cast: Cast; title?: string; origin?: string },
   ): Promise<void> {
-    const terminalHtml = generateTerminalHtml({ cast: opts.cast, title: opts.title });
+    const terminalHtml = withWindowFade(generateTerminalHtml({ cast: opts.cast, title: opts.title }));
     const terminalUrl = new URL(
       TERMINAL_ROUTE_PATH,
       opts.origin ?? PROJECT.frontendUrl,
@@ -510,7 +525,8 @@ export class RecordingEngine {
     console.log(`🎬 RECORDING CLI: ${req.name} (${req.id})`);
     console.log(`======================================================`);
 
-    setGlobalCursorPos(960, 540);
+    seedTake(req.id);
+    restCursorSomewhere();
 
     const warnings: string[] = [];
     const timeouts = timeoutsFor();
@@ -598,7 +614,8 @@ export class RecordingEngine {
     console.log(`🎬 RECORDING: ${config.name} (${config.id})`);
     console.log(`======================================================`);
 
-    setGlobalCursorPos(960, 540);
+    seedTake(config.id);
+    restCursorSomewhere();
 
     const timeouts = timeoutsFor(config);
     let recordSuccess = false;
@@ -795,7 +812,7 @@ export class RecordingEngine {
         }
 
         console.log(`✅ Demo execution completed for ${config.id}.`);
-        await sleep(1500);
+        await pause(1500);
       } catch (e) {
         const msg = `Demo step failed: ${diagnoseError(e, config.demoUrl)}`;
         fail(msg);
