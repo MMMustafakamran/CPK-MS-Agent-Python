@@ -1,35 +1,31 @@
 import { type Page } from 'playwright';
 import { humanGlide, sleep } from '../core/overlays/cursor';
-import {
-  closeNotepad,
-  openNotepad,
-  typeInNotepad,
-} from '../core/overlays/notepad';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
-import { formatCopilotKitVersionLine } from '../core/versions';
+import { SELECTORS } from '../config/selectors.config';
 
 /**
- * The defect this page records: the colleagues list is registered and goes out
- * on run_started, but the agent answers as if it has no context. Written out in
- * Notepad at the end of the take so the video carries the report with it.
+ * `useAgentContext` — the colleagues list reaching the agent without being sent
+ * as a message.
  *
- * Built per run, not as a module constant, so the version line reflects the
- * packages this recording actually exercised.
+ * This take used to end by typing an issue note into Notepad: the page was
+ * registering the context, the run carried it, and the agent still answered as
+ * if it knew nothing. That was logged in the README as "intermittent, not yet
+ * traced to either side".
+ *
+ * It was neither intermittent nor untraceable. The forwarded context was being
+ * dropped on every single run — `agent_framework_ag_ui` 1.1.0 never reads
+ * `input_data["context"]` — and the intermittency was the model sometimes
+ * inventing a plausible-sounding answer instead of admitting it had nothing.
+ * The docs have since replaced their sample with a `ContextAwareAgent` that
+ * injects the context itself, and this route runs it on `/context_agent`.
+ *
+ * So the note is gone. What replaces it is a check: the answer has to actually
+ * name someone from the panel. It logs rather than throws, because a model
+ * paraphrasing is not the same failure as the context never arriving — but a
+ * run where none of the names appear is worth seeing in the log.
  */
-function buildIssueNote(): string {
-  const versionLine = formatCopilotKitVersionLine();
-
-  return [
-    'Readables - ms-agent-framework-python',
-    '',
-    'Using the exact useAgentContext example from the docs. The colleagues list',
-    'is registered and gets sent on run_started, but the agent still asks which',
-    'colleagues I mean - it does not know Jane Smith is one of them.',
-    // Dropped rather than guessed at when the versions cannot be read.
-    ...(versionLine ? ['', versionLine] : []),
-  ].join('\n');
-}
+const COLLEAGUES = ['John Doe', 'Jane Smith', 'Bob Wilson'];
 
 export const runReadablesAction: PageActionHandler = async (
   page: Page,
@@ -38,7 +34,8 @@ export const runReadablesAction: PageActionHandler = async (
   console.log(`   [Readables] Sending prompt "${config.prompt}"...`);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
 
-  // Glide cursor over the shared context list on the left
+  // Glide the cursor over the shared context list on the left, so the clip
+  // shows the data the answer has to come from before the answer arrives.
   await sleep(1500);
   const contextList = page.locator('ul, li:has-text("John Doe")').first();
   if (await contextList.isVisible({ timeout: 4000 }).catch(() => false)) {
@@ -50,12 +47,23 @@ export const runReadablesAction: PageActionHandler = async (
     }
   }
 
-  // Actively wait for assistant response citing colleagues context
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
 
-  console.log(`   [Readables] Writing the issue note in Notepad...`);
-  await sleep(1200);
-  await openNotepad(page, 'readables-issue.txt');
-  await typeInNotepad(page, buildIssueNote());
-  await closeNotepad(page);
+  // Did the answer come from the panel, or from the model's imagination?
+  const reply = await page
+    .locator(SELECTORS.assistantMessage)
+    .last()
+    .innerText()
+    .catch(() => '');
+  const cited = COLLEAGUES.filter((name) => reply.includes(name));
+
+  if (cited.length === COLLEAGUES.length) {
+    console.log(`   ✅ [Readables] Answer cites all ${COLLEAGUES.length} colleagues — the context reached the agent.`);
+  } else if (cited.length > 0) {
+    console.log(`   ⚠️  [Readables] Answer cites only ${cited.length}/${COLLEAGUES.length} (${cited.join(', ')}).`);
+  } else {
+    console.log(
+      `   ⚠️  [Readables] Answer names none of the shared colleagues. Check that the chat is bound to \`context_agent\` and not a plain agent.`,
+    );
+  }
 };

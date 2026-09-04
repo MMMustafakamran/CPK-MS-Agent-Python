@@ -329,7 +329,7 @@ All three are recorded by the autorecorder (`npm run record -- --threads-drawer`
 | `/ms-agent-python/frontend-tools`                             | `/frontend-tools`                             | ✅ Working   |                                                                            |
 | `/ms-agent-python/shared-state/in-app-agent-read`             | `/shared-state/in-app-agent-read`             | ✅ Working   | Seeded via server `default_state` — see §9.                                |
 | `/ms-agent-python/shared-state/in-app-agent-write`            | `/shared-state/in-app-agent-write`            | ✅ Working   |                                                                            |
-| `/ms-agent-python/agent-app-context`                          | `/readables`                                  | ⚠️ Partial   | Agent intermittently ignores the shared context — see §9 #10.               |
+| `/ms-agent-python/agent-app-context`                          | `/readables`                                  | ✅ Working   | Runs the page's `ContextAwareAgent` on `/context_agent` — see §9 #10.       |
 | `/ms-agent-python/auth`                                       | `/auth`                                       | ✅ Working   | Demo reports live auth state on both sides and sends a request through it. |
 | `/ms-agent-python/copilot-runtime`                            | `/copilot-runtime`                            | ✅ Working   |                                                                            |
 | `/ms-agent-python/ag-ui`                                      | `/ag-ui`                                      | ✅ Working   |                                                                            |
@@ -375,8 +375,12 @@ The Quickstart installs `@copilotkit/react-ui`, which is the v1 package. Every c
 **9. The agent-framework packages are pre-release**
 `uv add` fails without `--prerelease=allow`; the docs' install commands omit it.
 
-**10. Readables: the agent does not always pick up shared context**
-On `/readables`, asking "Who are my colleagues?" sometimes returns a generic answer instead of citing the `useAgentContext` list. Intermittent rather than a hard failure, and not yet traced to either side — recorded here so it is not mistaken for a passing route. Reflected as ⚠️ Partial in §8.
+**10. Readables: the forwarded context was never reaching the agent** — *resolved 2026-09-04*
+This was logged here as "intermittent, not yet traced to either side". It was neither. `agent_framework_ag_ui` 1.1.0 — the version `backend/uv.lock` pins — never reads `input_data["context"]` at all, so the colleagues list was dropped on **every** run. The apparent intermittency was the model sometimes inventing a plausible answer instead of saying it had nothing, which with placeholder names like *John Doe* is hard to tell from a correct one.
+
+The docs reversed themselves on 2026-09-04: the Python sample used to be a plain agent commented "frontend context is forwarded automatically", and is now a `ContextAwareAgent` subclass that folds the context into a system message itself. This repo runs that subclass on its own endpoint, `/context_agent`, and `/readables` binds to it.
+
+Measured, same payload and question against both endpoints: `/sample_agent` (the old sample) names 0 of 3 colleagues; `/context_agent` names 3 of 3. Full write-up in `QA-FINDINGS-2026-09-04.md` §1.
 
 **11. Thread serving requires CopilotKit Intelligence and multi-route configuration**
 Upstream docs have transitioned runtime examples to `@copilotkit/runtime/v2` with `createCopilotRuntimeHandler` on catch-all `[[...slug]]` routes. For full thread features, `<CopilotThreadsDrawer>` requires a license status of `valid` or `expiring`, and `/info` only reports `licenseStatus` when the runtime is constructed with a `CopilotKitIntelligence` instance. An in-memory runtime therefore leaves the drawer locked even though its own thread-list routes answer 200. This repo isolates thread configurations in `/api/copilotkit-threads/[[...slug]]`.
