@@ -100,6 +100,30 @@
       "age": 0,
       "date": "Sun, 30 Aug 2026 13:44:46 GMT"
     },
+    "/ms-agent-python/generative-ui/a2ui/advanced": {
+      "file": "ms-agent-python__generative-ui__a2ui__advanced.md",
+      "sha256": "698383a406beb528f5431364fa18aa8bd3515fbadd059768eb24bd84dbc9522d",
+      "bytes": 7200,
+      "lines": 225,
+      "routes": [
+        "/generative-ui/a2ui/advanced"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Fri, 04 Sep 2026 13:40:35 GMT"
+    },
+    "/ms-agent-python/generative-ui/a2ui/styling": {
+      "file": "ms-agent-python__generative-ui__a2ui__styling.md",
+      "sha256": "379364f34aa1a4829026e2f654448d218c9b7fb283b1830a42bd834c64231c26",
+      "bytes": 3503,
+      "lines": 142,
+      "routes": [
+        "/generative-ui/a2ui/styling"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Fri, 04 Sep 2026 13:40:35 GMT"
+    },
     "/ms-agent-python/generative-ui/state-rendering": {
       "file": "ms-agent-python__generative-ui__state-rendering.md",
       "sha256": "4a5c1e294fac7e6fd04215cdafff7fd28c8cc5ce58065c5b2feed9388070dcff",
@@ -160,6 +184,18 @@
       "age": 0,
       "date": "Fri, 04 Sep 2026 07:58:36 GMT"
     },
+    "/ms-agent-python/human-in-the-loop/governed-actions": {
+      "file": "ms-agent-python__human-in-the-loop__governed-actions.md",
+      "sha256": "c3ffbf2aa5a8b697765c47f5668c9ac1f3608ae778728bb504b77c18a995214b",
+      "bytes": 7168,
+      "lines": 256,
+      "routes": [
+        "/human-in-the-loop/governed-actions"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Fri, 04 Sep 2026 13:40:35 GMT"
+    },
     "/ms-agent-python/inspector": {
       "file": "ms-agent-python__inspector.md",
       "sha256": "c551cc03cf17a6376632c8ffc390d25811143dec931617d10370ae3977b38089",
@@ -171,6 +207,18 @@
       "status": "ok",
       "age": 0,
       "date": "Fri, 04 Sep 2026 07:58:36 GMT"
+    },
+    "/ms-agent-python/intelligence/quickstart": {
+      "file": "ms-agent-python__intelligence__quickstart.md",
+      "sha256": "8eaa092e519b3e17fb9cc3a0cdf077b4390d4725b584277cd748a03e538be588",
+      "bytes": 7260,
+      "lines": 160,
+      "routes": [
+        "/intelligence/quickstart"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Fri, 04 Sep 2026 13:40:36 GMT"
     },
     "/ms-agent-python/prebuilt-components": {
       "file": "ms-agent-python__prebuilt-components.md",
@@ -267,6 +315,18 @@
       "status": "ok",
       "age": 0,
       "date": "Fri, 04 Sep 2026 07:58:36 GMT"
+    },
+    "/ms-agent-python/webmcp": {
+      "file": "ms-agent-python__webmcp.md",
+      "sha256": "9d171223cb3ed04bc7cdf6e3451bee0526f5ad4e2005c24f0e601d9bbe0f181f",
+      "bytes": 7488,
+      "lines": 153,
+      "routes": [
+        "/webmcp"
+      ],
+      "status": "ok",
+      "age": 0,
+      "date": "Fri, 04 Sep 2026 13:40:34 GMT"
     }
   },
   "sitemap": {
@@ -318,10 +378,8 @@
       "https://docs.copilotkit.ai/ms-agent-python/faq",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui",
-      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/advanced",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/dynamic-schema",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/fixed-schema",
-      "https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/styling",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/display",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/hashbrown",
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/interactive",
@@ -333,7 +391,6 @@
       "https://docs.copilotkit.ai/ms-agent-python/generative-ui/tool-based",
       "https://docs.copilotkit.ai/ms-agent-python/headless",
       "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop",
-      "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop/governed-actions",
       "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop/headless",
       "https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop/useInterrupt",
       "https://docs.copilotkit.ai/ms-agent-python/intelligence/connect-your-runtime",
@@ -341,7 +398,6 @@
       "https://docs.copilotkit.ai/ms-agent-python/intelligence/intelligence-platform",
       "https://docs.copilotkit.ai/ms-agent-python/intelligence/managed-intelligence-platform",
       "https://docs.copilotkit.ai/ms-agent-python/intelligence/overview",
-      "https://docs.copilotkit.ai/ms-agent-python/intelligence/quickstart",
       "https://docs.copilotkit.ai/ms-agent-python/intelligence/self-hosting",
       "https://docs.copilotkit.ai/ms-agent-python/intelligence/threads-explained",
       "https://docs.copilotkit.ai/ms-agent-python/migrate/1.10.X",
@@ -386,7 +442,6 @@
       "https://docs.copilotkit.ai/ms-agent-python/tutorials/multi-conversation-chat",
       "https://docs.copilotkit.ai/ms-agent-python/voice",
       "https://docs.copilotkit.ai/ms-agent-python/vs-code-extension",
-      "https://docs.copilotkit.ai/ms-agent-python/webmcp",
       "https://docs.copilotkit.ai/ms-agent-python/whats-new",
       "https://docs.copilotkit.ai/ms-agent-python/whats-new/a2a-mcp-handshake",
       "https://docs.copilotkit.ai/ms-agent-python/whats-new/a2ui-launch",

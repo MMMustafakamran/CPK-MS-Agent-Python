@@ -17,7 +17,7 @@ A navigable, working test harness for the CopilotKit Microsoft Agent Framework P
 
 [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/) is Microsoft's agent SDK. Its Python `agent-framework-ag-ui` package can expose an agent over [AG-UI](https://ag-ui.com), the event protocol CopilotKit speaks, which is what lets a React app drive it with streaming, tool calls, shared state, and generative UI.
 
-This repo is a test harness for that integration, covering a **scoped set of 17 doc pages** (listed in §8). Each route implements what its page teaches and shows the exact source that makes it work.
+This repo is a test harness for that integration, covering a **scoped set of 27 doc pages** (listed in §8). Each route implements what its page teaches and shows the exact source that makes it work.
 
 **Everything here comes from the documentation.** No tool, instruction, or state schema was invented — the backend exposes exactly the three tools the docs define (`get_weather`, `update_language`, `update_searches`) and nothing else.
 
@@ -271,9 +271,17 @@ The code on a page is never a re-typed approximation: each page reads real files
 
 **`/generative-ui/state-rendering`** — `searches` state streamed from `search_agent`. **Try:** `Search for the tallest mountains`, then `Now also search for the deepest oceans`. **Pass:** a checked item appears as the tool call streams; the second prompt adds a second item while keeping the first. **Fail:** the list stays empty.
 
+**`/generative-ui/a2ui/styling`** — 🚧 **Tracked, not implemented.** Theming A2UI surfaces through CSS custom properties scoped to `.a2ui-surface`. This repo maps no A2UI page at all — `/generative-ui/a2ui`, `fixed-schema` and `dynamic-schema` are all still unmapped — so there is no surface for a theme file to affect. DeepAgentspy-react implements this page against a real surface.
+
+**`/generative-ui/a2ui/advanced`** — 🚧 **Tracked, not implemented.** Replacing the built-in progress indicator shown while the `render_a2ui` tool call is in flight. That only happens on the Dynamic Schema A2UI path, which this repo does not map, so a custom renderer would never mount. DeepAgentspy-react implements this page too.
+
 ### App Control
 
 **`/frontend-tools`** — The doc's `sayHello` tool, executing in the browser. **Try:** `Say hello to Malaika`. **Pass:** a browser alert appears, then the agent confirms. **Fail:** a text reply with no alert.
+
+**`/webmcp`** — 🚧 **Tracked, not implemented.** The doc adds a `webmcp` flag to a frontend tool so browser agents can discover it. Its own test procedure needs Chrome 149+ with the WebMCP origin trial (or `chrome://flags/#enable-webmcp-testing`) and Chrome's Model Context Tool Inspector; CopilotKit no-ops where `document.modelContext` is absent, so a demo here would register nothing and still look green.
+
+**`/human-in-the-loop/governed-actions`** — 🚧 **Tracked, not implemented.** An approval card gating a side-effecting action, via `useInterrupt` or `useHumanInTheLoop`. The page is served byte-identically under all five framework prefixes and its snippets are plain React, so it is implemented once — in Agno-react and Mastra-react — rather than five times.
 
 ### Shared State
 
@@ -309,6 +317,10 @@ All three are recorded by the autorecorder (`npm run record -- --threads-drawer`
 
 **`/status`** — Every route and its status in one table.
 
+### Intelligence
+
+**`/intelligence/quickstart`** — 🚧 **Tracked, not implemented.** Connecting an existing app to a hosted CopilotKit Intelligence project so threads persist. Step 1 is `npx copilotkit@latest login` plus `project select`, which writes a `CPK_INTELLIGENCE_API_KEY` — an account-scoped resource this harness does not have, so every later step has nothing to assert against. Tracked because it is a genuinely new page; the rest of `/ms-agent-python/intelligence/*` is the old `/ms-agent-python/premium/*` set renamed, and stays out of scope.
+
 ---
 
 ## 8. Testing checklist / current status
@@ -326,7 +338,11 @@ All three are recorded by the autorecorder (`npm run record -- --threads-drawer`
 | `/ms-agent-python/generative-ui/your-components/interactive`  | `/generative-ui/your-components/interactive`  | ✅ Working   | `useHumanInTheLoop` approval gate. Needs no backend declaration.           |
 | `/ms-agent-python/generative-ui/tool-rendering`               | `/generative-ui/tool-rendering`               | ✅ Working   |                                                                            |
 | `/ms-agent-python/generative-ui/state-rendering`              | `/generative-ui/state-rendering`              | ✅ Working   | Uses `search_agent`.                                                       |
+| `/ms-agent-python/generative-ui/a2ui/styling`                 | `/generative-ui/a2ui/styling`                 | 🚧 Not started | Tracked for drift. No A2UI surface is mapped here to style.              |
+| `/ms-agent-python/generative-ui/a2ui/advanced`                | `/generative-ui/a2ui/advanced`                | 🚧 Not started | Tracked for drift. Builds on Dynamic Schema A2UI, which is unmapped here. |
 | `/ms-agent-python/frontend-tools`                             | `/frontend-tools`                             | ✅ Working   |                                                                            |
+| `/ms-agent-python/webmcp`                                     | `/webmcp`                                     | 🚧 Not started | Tracked for drift. Needs Chrome 149+ and the WebMCP origin trial.        |
+| `/ms-agent-python/human-in-the-loop/governed-actions`         | `/human-in-the-loop/governed-actions`         | 🚧 Not started | Tracked for drift. Same bytes under all five prefixes; built in Agno-react and Mastra-react. |
 | `/ms-agent-python/shared-state/in-app-agent-read`             | `/shared-state/in-app-agent-read`             | ✅ Working   | Seeded via server `default_state` — see §9.                                |
 | `/ms-agent-python/shared-state/in-app-agent-write`            | `/shared-state/in-app-agent-write`            | ✅ Working   |                                                                            |
 | `/ms-agent-python/agent-app-context`                          | `/readables`                                  | ✅ Working   | Runs the page's `ContextAwareAgent` on `/context_agent` — see §9 #10.       |
@@ -337,10 +353,13 @@ All three are recorded by the autorecorder (`npm run record -- --threads-drawer`
 | `/ms-agent-python/prebuilt-components/copilot-threads-drawer` | `/threads/drawer`                             | ⚠️ Partial   | Slots escape hatch unusable in 1.68.2 — see §9 #12. Rename absent by design. |
 | `/ms-agent-python/headless-threads`                           | `/threads/headless`                           | ⚠️ Partial   | All four doc steps. Mutations need the license.                            |
 | `/ms-agent-python/threads-lifecycle`                          | `/threads/lifecycle`                          | ⚠️ Partial   | "Thread via your own API on first message" not implemented — see §9 #11.   |
+| `/ms-agent-python/intelligence/quickstart`                    | `/intelligence/quickstart`                    | 🚧 Not started | Tracked for drift. Needs a hosted Intelligence project and `CPK_INTELLIGENCE_API_KEY`. |
 
 **Legend:** ✅ Working · ⚠️ Partial · 📖 Reference · 🚧 Not started · ❌ Broken
 
-Out of scope by request: CLI, Build with agents, MCP Apps, A2UI, Intelligence Platform, Troubleshooting. Also out of scope: `/ms-agent-python/threads-import` (Import & Synchronize Thread History) — it migrates existing LangGraph/ADK conversations into the platform store, and there is nothing here to migrate from.
+Out of scope by request: CLI, Build with agents, MCP Apps, the rest of A2UI, the rest of Intelligence Platform, Troubleshooting. Also out of scope: `/ms-agent-python/threads-import` (Import & Synchronize Thread History) — it migrates existing LangGraph/ADK conversations into the platform store, and there is nothing here to migrate from.
+
+**Tracked without a demo.** Five pages carry a route, a nav entry and a snapshot so drift is watched, but nothing is implemented behind them and the recorder does not touch them: `/ms-agent-python/webmcp`, `/ms-agent-python/human-in-the-loop/governed-actions`, both `/generative-ui/a2ui/*` pages, and `/ms-agent-python/intelligence/quickstart`. The reason is on each route’s page and in §7. The A2UI parents and the rest of `/ms-agent-python/intelligence/` stay in `doc-snapshot/manifest.json`’s `knownUnmapped` list.
 
 ---
 
@@ -419,7 +438,7 @@ Verified against `@copilotkit/runtime` and `@copilotkit/react-core` 1.68.2.
 
 ## Doc drift detection
 
-`/doc-sync` keeps this repo honest about the docs it mirrors. Press **Sync docs now** (on the landing page or on `/doc-sync`) and it fetches the markdown source behind all 18 tracked doc pages, diffs each against the copy stored in `doc-snapshot/`, replaces that copy, and reports what moved — ranked by whether the change can actually break an implementation.
+`/doc-sync` keeps this repo honest about the docs it mirrors. Press **Sync docs now** (on the landing page or on `/doc-sync`) and it fetches the markdown source behind all 27 tracked doc pages, diffs each against the copy stored in `doc-snapshot/`, replaces that copy, and reports what moved — ranked by whether the change can actually break an implementation.
 
 Doc pages are fetched by appending `.md` to their URL, which returns the authored MDX rather than 250 KB of rendered HTML. Every response is checked for `text/markdown` before it is allowed near the snapshot: a URL that misses the markdown handler still answers `200` with the HTML app shell, and writing that in would destroy the baseline and report the whole corpus as rewritten on the next run. A run commits all pages or none.
 
@@ -515,9 +534,9 @@ The nav, every route header, the demo links, and the status table all derive fro
 
 **Custom Look and Feel** — [Slots](https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/slots) † · [Headless UI](https://docs.copilotkit.ai/ms-agent-python/custom-look-and-feel/headless-ui) † · [Programmatic Control](https://docs.copilotkit.ai/ms-agent-python/programmatic-control) · [Inspector](https://docs.copilotkit.ai/ms-agent-python/inspector)
 
-**Generative UI** — [Your Components · Display-only](https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/display-only) · [Your Components · Interactive](https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/interactive) · [Tool Rendering](https://docs.copilotkit.ai/ms-agent-python/generative-ui/tool-rendering) · [State Rendering](https://docs.copilotkit.ai/ms-agent-python/generative-ui/state-rendering)
+**Generative UI** — [Your Components · Display-only](https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/display-only) · [Your Components · Interactive](https://docs.copilotkit.ai/ms-agent-python/generative-ui/your-components/interactive) · [Tool Rendering](https://docs.copilotkit.ai/ms-agent-python/generative-ui/tool-rendering) · [State Rendering](https://docs.copilotkit.ai/ms-agent-python/generative-ui/state-rendering) · [A2UI · Styling](https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/styling) ‡ · [A2UI · Advanced](https://docs.copilotkit.ai/ms-agent-python/generative-ui/a2ui/advanced) ‡
 
-**App Control** — [Frontend Tools](https://docs.copilotkit.ai/ms-agent-python/frontend-tools)
+**App Control** — [Frontend Tools](https://docs.copilotkit.ai/ms-agent-python/frontend-tools) · [WebMCP](https://docs.copilotkit.ai/ms-agent-python/webmcp) ‡ · [Governed Actions](https://docs.copilotkit.ai/ms-agent-python/human-in-the-loop/governed-actions) ‡
 
 **Shared State** — [Reading agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-read) · [Writing agent state](https://docs.copilotkit.ai/ms-agent-python/shared-state/in-app-agent-write) · [Readables](https://docs.copilotkit.ai/ms-agent-python/agent-app-context)
 
@@ -526,6 +545,8 @@ The nav, every route header, the demo links, and the status table all derive fro
 **Rich Threads** — [Overview](https://docs.copilotkit.ai/ms-agent-python/threads) · [Threads Drawer](https://docs.copilotkit.ai/ms-agent-python/prebuilt-components/copilot-threads-drawer) · [Headless Threads](https://docs.copilotkit.ai/ms-agent-python/headless-threads) · [Thread & History Lifecycle](https://docs.copilotkit.ai/ms-agent-python/threads-lifecycle) · [Import & Synchronize History](https://docs.copilotkit.ai/ms-agent-python/threads-import) ‡
 
 **Backend** — [Copilot Runtime](https://docs.copilotkit.ai/ms-agent-python/copilot-runtime) · [AG-UI](https://docs.copilotkit.ai/ms-agent-python/ag-ui)
+
+**Intelligence** — [Quickstart](https://docs.copilotkit.ai/ms-agent-python/intelligence/quickstart) ‡
 
 **External** — [Microsoft Agent Framework docs](https://learn.microsoft.com/en-us/agent-framework/) · [AG-UI protocol](https://ag-ui.com) · [AG-UI event types](https://docs.ag-ui.com/concepts/events)
 
