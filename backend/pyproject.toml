@@ -1,8 +1,7 @@
 [project]
 name = "ms-agent-framework-backend"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "AG-UI server for the CopilotKit + Microsoft Agent Framework (Python) test harness"
 requires-python = ">=3.12"
 dependencies = [
     "agent-framework-ag-ui>=1.0.1",

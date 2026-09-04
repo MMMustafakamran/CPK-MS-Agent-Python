@@ -49,16 +49,13 @@ autorecorder/videos/logs/
 # future CLI version against; that is the one case where the text is the point.
 autorecorder/casts/
 
-# --- TEMPORARY: hidden for the upstream PR ---
-# CI/CD lives only in this fork. Untracked with `git rm -r --cached` so the PR
-# diff against upstream shows nothing for these paths. To restore: delete this
-# block and `git add ci .github CICD-GUIDE.md`.
-# ci/
-# .github/
-
 # Stray recordings saved outside autorecorder/videos/ -- a clip dropped in the
 # repo root or beside the code it shows matches none of the rules above, which
 # is how a 66MB .mp4 and a 5.9MB .webm reached `git status` untracked. Video
 # only: the voiceover assets in autorecorder/audio/ are .m4a and ARE committed.
 *.webm
 *.mp4
+
+# Untracked scratch scaffolds. The CLI recorder reads 1-cli-testing/ (see
+# autorecorder/config/cli.config.ts); this duplicate is nothing's input.
+cli-testbed/

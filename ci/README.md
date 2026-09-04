@@ -14,6 +14,7 @@ ci/
 ├── validate-pages.mjs    rejects unknown ids before a run starts
 ├── resolve-selection.mjs expands dispatch checkboxes + ids into a page list
 ├── run-name.mjs          names the run's artifacts (MsPy-react-18Aug2026-0612UTC)
+├── write-readme-status.mjs regenerates README §8 from nav-config.ts + pages.config.ts
 └── lib/
     ├── config.mjs        paths, ports, URLs
     ├── env.mjs           loads .env files the way backend/main.py does
@@ -30,9 +31,10 @@ ci/
 | `npm run automate` | Full pipeline: drift → preflight → deps → servers → record |
 | `npm run automate:pull` | Same, after `git pull` |
 | `npm run automate:locked` | Same, but installing the committed lockfiles |
-| `npm run drift` | Doc drift check on its own |
+| `npm run drift` | Doc drift check: hashes tracked pages, and compares the sitemap for new upstream pages (new = drift, exit 2) |
 | `npm run drift:sync` | Update `doc-snapshot/` to match live docs |
 | `npm run ci:pages` | List valid page ids |
+| `npm run readme:status` | Rewrite the README status table; `readme:status:check` exits 1 if it is stale |
 
 Anything not consumed by `automate.mjs` is forwarded to the recorder:
 
