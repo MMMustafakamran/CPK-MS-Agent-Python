@@ -3,6 +3,16 @@ import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 
+/**
+ * Reading `agent.state.language` in the page's own UI.
+ *
+ * The prompt asks for Spanish. The doc's pass condition is that the Language
+ * line — rendered from `agent.state`, not from the chat — updates as the tool
+ * call streams. A reply saying "Switched to Spanish!" beside a panel still on
+ * `english` is the exact failure the README's "Fail" line describes, and it
+ * looks fine on video. So the panel is read after the reply, and the log says
+ * which of the two happened.
+ */
 export const runSharedStateReadAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
@@ -35,6 +45,17 @@ export const runSharedStateReadAction: PageActionHandler = async (
   }
 
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
+
+  // Panel or prose: which one changed?
+  const language = (await page.locator('strong').first().innerText().catch(() => '')).trim().toLowerCase();
+  if (language === 'spanish') {
+    console.log(`   ✅ [Shared State Read] Language panel reads "spanish" — state reached the page.`);
+  } else {
+    console.log(
+      `   ⚠️  [Shared State Read] Language panel reads "${language || '(empty)'}" after the reply. ` +
+        `The agent may have answered in text without calling update_language.`,
+    );
+  }
 };
 
 export const runSharedStateWriteAction: PageActionHandler = async (
@@ -53,6 +74,8 @@ export const runSharedStateWriteAction: PageActionHandler = async (
       await humanClick(page);
       console.log(`   ✓ Clicked "Toggle + re-run agent"!`);
     }
+  } else {
+    console.log(`   ⚠️  [Shared State Write] "Toggle + re-run agent" button not found — nothing was written.`);
   }
 
   // Glide cursor over the raw JSON state on the left

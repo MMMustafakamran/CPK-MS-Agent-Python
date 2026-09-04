@@ -3,6 +3,17 @@ import { humanGlide, sleep } from '../core/overlays/cursor';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 
+/**
+ * `searches` state streamed from `search_agent` into a list outside the chat.
+ *
+ * The page's empty state reads "No searches yet." If that text is still on
+ * screen after the reply finishes, the tool call either never happened or
+ * `predict_state_config` did not map it onto `agent.state.searches` — and the
+ * clip would show a chat answering happily beside an empty panel. Logged, not
+ * thrown: the recording is still the evidence, the log says what it shows.
+ */
+const EMPTY_STATE_TEXT = 'No searches yet';
+
 export const runStateRenderingAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
@@ -36,4 +47,19 @@ export const runStateRenderingAction: PageActionHandler = async (
 
   // Actively wait for search_agent response and state streaming to complete
   await waitForAgentResponseCompletion(page, config.waitAfterPromptMs ?? 4000, msgCount);
+
+  // Did state actually reach the panel?
+  const stillEmpty = await page
+    .locator(`text=${EMPTY_STATE_TEXT}`)
+    .first()
+    .isVisible({ timeout: 1000 })
+    .catch(() => false);
+  if (stillEmpty) {
+    console.log(
+      `   ⚠️  [State Rendering] Panel still reads "${EMPTY_STATE_TEXT}" after the reply. ` +
+        `agent.state.searches never populated — check update_searches and predict_state_config.`,
+    );
+  } else {
+    console.log(`   ✅ [State Rendering] Searches panel populated from agent state.`);
+  }
 };
