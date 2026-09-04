@@ -11,3 +11,4 @@
 *.wav
 *.mp3
 !.gitignore
+RECORD_RESULTS.json
