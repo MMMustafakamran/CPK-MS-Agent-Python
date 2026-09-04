@@ -204,7 +204,7 @@ CopilotKit Threads are separate from native framework session or checkpoint stor
 
 ## Next steps
 
-- **Understand the architecture:** [Threads & Persistence Architecture](/ms-agent-python/premium/threads-explained) — event replay, live reconnection, synchronization, locking, and lifecycle behavior
-- **Use the hosted platform:** [Cloud-hosted CopilotKit Intelligence](/ms-agent-python/premium/managed-intelligence-platform) — create and manage the project where your app stores threads and runtime credentials
-- **Plan production self-hosting:** [Self-host CopilotKit Intelligence](/ms-agent-python/premium/self-hosting) — work with CopilotKit Engineering to run the Threads platform in your Kubernetes environment
+- **Understand the architecture:** [Threads & Persistence Architecture](/ms-agent-python/intelligence/threads-explained) — event replay, live reconnection, synchronization, locking, and lifecycle behavior
+- **Use the hosted platform:** [Cloud-hosted CopilotKit Intelligence](/ms-agent-python/intelligence/managed-intelligence-platform) — create and manage the project where your app stores threads and runtime credentials
+- **Plan production self-hosting:** [Self-host CopilotKit Intelligence](/ms-agent-python/intelligence/self-hosting) — work with CopilotKit Engineering to run the Threads platform in your Kubernetes environment
 - **Look up the API:** [useThreads reference](/reference/hooks/useThreads) — parameters, lifecycle methods, pagination, and return types
