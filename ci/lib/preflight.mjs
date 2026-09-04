@@ -10,7 +10,9 @@
  *    recorder's preflight timeout
  */
 import { execSync } from 'node:child_process';
-import { BACKEND_PORT, FRONTEND_PORT, FRONTEND_URL, WARMUP_ROUTES, isWindows } from './config.mjs';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { BACKEND_PORT, FRONTEND_DIR, FRONTEND_PORT, FRONTEND_URL, WARMUP_ROUTES, isWindows } from './config.mjs';
 
 /** PIDs currently listening on a port. Empty when the port is free. */
 export function listenersOnPort(port) {
@@ -144,4 +146,62 @@ export async function warmFrontendRoutes(timeoutMs = 180000) {
       process.stdout.write('⚠️ timed out; recorder may hit a cold compile.\n');
     }
   }
+}
+
+/**
+ * Refuse to record the Rich Threads pages on an expired Intelligence license.
+ *
+ * `COPILOTKIT_LICENSE_TOKEN` is a signed JWT whose `exp` is what eventually
+ * locks the prebuilt drawer. When that happens nothing errors: the drawer
+ * renders a "requires a license" panel, the headless routes answer read-only,
+ * and a recording of either passes — a green clip of a locked feature. The
+ * expiry is decoded here, offline, so the run fails before that footage exists.
+ *
+ * The token lives in frontend/.env.local (Next.js does not read the files
+ * env.mjs loads), so this reads that file directly. Absent token: the threads
+ * pages degrade by design, so only a warning is printed.
+ */
+export function assertThreadsLicenseFresh({ warnWithinDays = 7 } = {}) {
+  let token = process.env.COPILOTKIT_LICENSE_TOKEN;
+  if (!token) {
+    try {
+      const raw = readFileSync(path.join(FRONTEND_DIR, '.env.local'), 'utf8');
+      const m = raw.match(/^\s*COPILOTKIT_LICENSE_TOKEN\s*=\s*["']?([^"'\r\n]+)/m);
+      token = m?.[1]?.trim();
+    } catch {
+      /* no .env.local */
+    }
+  }
+
+  if (!token) {
+    console.warn('⚠️ [Preflight] COPILOTKIT_LICENSE_TOKEN not set; /threads/* will record locked.');
+    return;
+  }
+
+  let exp;
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+    exp = typeof payload.exp === 'number' ? payload.exp * 1000 : undefined;
+  } catch {
+    throw new Error('COPILOTKIT_LICENSE_TOKEN is not a decodable JWT.');
+  }
+  if (!exp) {
+    console.warn('⚠️ [Preflight] License token carries no exp claim; cannot check expiry.');
+    return;
+  }
+
+  const daysLeft = (exp - Date.now()) / 86_400_000;
+  const when = new Date(exp).toISOString().slice(0, 10);
+  if (daysLeft <= 0) {
+    throw new Error(
+      `COPILOTKIT_LICENSE_TOKEN expired on ${when}. The threads drawer renders locked and the\n` +
+        '   recording would still pass. Re-mint with `npx copilotkit@latest init` or pass\n' +
+        '   --skip-license-check to record the other pages.',
+    );
+  }
+  if (daysLeft <= warnWithinDays) {
+    console.warn(`⚠️ [Preflight] License token expires ${when} (${daysLeft.toFixed(1)} days).`);
+    return;
+  }
+  console.log(`✅ [Preflight] License token valid until ${when}.`);
 }

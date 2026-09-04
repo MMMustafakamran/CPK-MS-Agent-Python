@@ -13,6 +13,7 @@
  *   --ignore-doc-drift   record even if the live docs have moved (alias: --force)
  *   --allow-port-reuse   record against servers that are already running
  *   --skip-credential-check  bypass the model-credential preflight
+ *   --skip-license-check     bypass the threads license-expiry preflight
  *
  * Anything else is forwarded to the recorder (e.g. --shard=1/3, --pages=a,b).
  */
@@ -31,7 +32,12 @@ import {
   isWindows,
 } from './lib/config.mjs';
 import { loadEnvFiles, trimInheritedCredentials } from './lib/env.mjs';
-import { assertModelCredentials, assertPortsFree, warmFrontendRoutes } from './lib/preflight.mjs';
+import {
+  assertModelCredentials,
+  assertPortsFree,
+  assertThreadsLicenseFresh,
+  warmFrontendRoutes,
+} from './lib/preflight.mjs';
 import { muxAudioFiles } from './lib/mux.mjs';
 import { generateReport } from './lib/report.mjs';
 import { writeVersionsFile } from './write-versions.mjs';
@@ -44,6 +50,7 @@ const OWN_FLAGS = [
   '--force',
   '--allow-port-reuse',
   '--skip-credential-check',
+  '--skip-license-check',
 ];
 
 /**
@@ -87,6 +94,7 @@ const skipInstall = args.includes('--skip-install');
 const ignoreDocDrift = args.includes('--ignore-doc-drift') || args.includes('--force');
 const allowPortReuse = args.includes('--allow-port-reuse');
 const skipCredentialCheck = args.includes('--skip-credential-check');
+const skipLicenseCheck = args.includes('--skip-license-check');
 // `--force` also means "record anyway" to the recorder, so it is forwarded.
 const forwardArgs = args.filter((a) => !OWN_FLAGS.includes(a) || a === '--force');
 
@@ -274,6 +282,9 @@ async function main() {
     const busy = assertPortsFree({ allowReuse: allowPortReuse });
     if (!skipCredentialCheck) {
       await assertModelCredentials();
+    }
+    if (!skipLicenseCheck) {
+      assertThreadsLicenseFresh();
     }
 
     // 2. Git pull

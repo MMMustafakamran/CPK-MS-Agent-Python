@@ -336,6 +336,42 @@ jobs:
           npm --prefix frontend install --no-audit --no-fund
           npm --prefix autorecorder install --no-audit --no-fund
 
+      # The runtime route and the slots demo are the two files most likely to
+      # break on a CopilotKit bump, and nothing else in the pipeline compiles
+      # them: `next dev` serves a page with type errors. Reported, not gating --
+      # a doc snippet that no longer typechecks is a finding, not a build break.
+      - name: Typecheck frontend and recorder
+        run: |
+          set +e
+          npx --prefix frontend tsc --noEmit -p frontend/tsconfig.json > typecheck.txt 2>&1
+          FE=$?
+          npx --prefix autorecorder tsc --noEmit -p autorecorder/tsconfig.json >> typecheck.txt 2>&1
+          AR=$?
+          set -e
+          cat typecheck.txt
+          {
+            echo "## 2a. Typecheck"
+            echo
+            if [ "$FE" = "0" ]; then echo "- frontend: **clean**"; else echo "- frontend: **$(grep -c 'error TS' typecheck.txt) error(s)** -- see the job log"; fi
+            if [ "$AR" = "0" ]; then echo "- autorecorder: **clean**"; else echo "- autorecorder: **errors** -- see the job log"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # README §8 is generated from nav-config.ts and the recorder config. A
+      # stale table means a route changed status and nobody re-ran the
+      # generator; reported here, fixed with `npm run readme:status`.
+      - name: Check the README status table is current
+        run: |
+          set +e
+          node ci/write-readme-status.mjs --check > readme-status.txt 2>&1
+          RS=$?
+          set -e
+          cat readme-status.txt
+          if [ "$RS" = "0" ]; then
+            echo "- README status table: **current**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- README status table: **stale** -- run \`npm run readme:status\` and commit" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       # This repo has no ci/check-versions.mjs (the Angular siblings do), so there
       # is no classification here of what is outdated-but-out-of-reach. What the
       # re-resolve above proves is still the thing that matters most before
