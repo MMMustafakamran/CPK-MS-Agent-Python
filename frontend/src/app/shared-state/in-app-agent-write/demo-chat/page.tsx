@@ -48,10 +48,15 @@ export default function Page() {
   };
 
   // [3] shared state: rerun agent
+  //
+  // Published without the spread, and reading `agent.state.language` rather
+  // than the `state` const the same page builds. Both differ from the step
+  // above. Left as published — see the route page.
   // [!code highlight]
   const toggleAndRerun = async () => {
-    const newLanguage = nextLanguage();
-    agent.setState({ ...(agent.state ?? {}), language: newLanguage });
+    const newLanguage =
+      agent.state.language === "english" ? "spanish" : "english";
+    agent.setState({ language: newLanguage });
     agent.addMessage({
       id: crypto.randomUUID(),
       role: "user",
@@ -75,7 +80,7 @@ export default function Page() {
           <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
             Language:{" "}
             <strong className="text-[var(--accent)]">
-              {state.language ?? "—"}
+              {agent.state?.language}
             </strong>
           </p>
 

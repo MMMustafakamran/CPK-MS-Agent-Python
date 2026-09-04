@@ -32,8 +32,28 @@ export default function Page() {
         . That is a correction, not a style change:{" "}
         <code>setState</code> assigns the whole state object, so the old form
         dropped every other key the agent was carrying. A one-key schema never
-        showed it; the State Rendering agent&apos;s would have. Both buttons
-        below spread.
+        showed it; the State Rendering agent&apos;s would have.
+      </Callout>
+
+      <Callout tone="warn" title="The fix landed in one snippet and not its sibling">
+        <p>
+          The correction above only reached the <em>Implementation</em> step.
+          Further down, &ldquo;Re-run the agent with a hint about what&apos;s
+          changed&rdquo; still publishes{" "}
+          <code>agent.setState({"{ language: newLanguage }"})</code> — no
+          spread — and reads <code>agent.state.language</code> rather than the
+          guarded <code>state</code> const the same page builds. One page, two
+          snippets, two different answers to the same question.
+        </p>
+        <p className="mt-2">
+          The un-spread one is the worse place for it: it is the snippet that
+          calls <code>runAgent()</code>, so the wiped keys reach the agent
+          immediately rather than waiting for some later turn.
+        </p>
+        <p className="mt-2">
+          Both buttons in the demo are as published — <strong>Toggle</strong>{" "}
+          spreads, <strong>Toggle + re-run</strong> does not.
+        </p>
       </Callout>
 
       <Callout tone="info" title="Seeding moved into an effect">
