@@ -126,9 +126,10 @@ function splice(readme, table) {
   }
   // First run: claim the hand-written table, header row through last data row.
   const start = readme.indexOf('| Doc page');
-  const legend = readme.indexOf('**Legend:**', start);
-  if (start === -1 || legend === -1) throw new Error('README.md has neither markers nor a "| Doc page" table.');
-  const stop = readme.lastIndexOf('|', legend) + 1;
+  if (start === -1) throw new Error('README.md has neither markers nor a "| Doc page" table.');
+  // The table ends at the first line that is not a table row.
+  const tail = readme.slice(start).match(/\r?\n(?!\|)/);
+  const stop = tail ? start + tail.index : readme.length;
   return readme.slice(0, start) + `${BEGIN}\n${table}\n${END}` + readme.slice(stop);
 }
 
