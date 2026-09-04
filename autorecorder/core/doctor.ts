@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ACTION_MAP } from '../actions';
-import { CLI_FINDING_VIDEOS, CLI_FLOWS, CLI_VIDEOS } from '../config/cli.config';
+import { CLI_FLOWS, CLI_VIDEOS } from '../config/cli.config';
 import { PAGES } from '../config/pages.config';
 import { PROJECT, REPLACE_ME } from '../config/project.config';
 import { SELECTORS } from '../config/selectors.config';
@@ -341,22 +341,52 @@ function checkCliVideos(rootDir: string, problems: Problem[]): void {
   const files = new Set<string>();
   let anyAudio = false;
 
-  for (const video of [...CLI_VIDEOS, ...CLI_FINDING_VIDEOS]) {
+  const pageIds = new Set(PAGES.map((p) => p.id));
+
+  for (const video of CLI_VIDEOS) {
     const scope = `cli-video:${video.id}`;
 
-    if (videoIds.has(video.id)) {
-      problems.push({ scope, severity: 'error', message: 'duplicate video id' });
+    for (const id of [video.id, video.onFailure?.id].filter((x): x is string => Boolean(x))) {
+      if (videoIds.has(id)) {
+        problems.push({ scope, severity: 'error', message: `duplicate video id "${id}"` });
+      }
+      videoIds.add(id);
     }
-    videoIds.add(video.id);
 
-    if (files.has(video.videoFile)) {
+    for (const file of [video.videoFile, video.failureVideoFile].filter((x): x is string => Boolean(x))) {
+      if (files.has(file)) {
+        problems.push({
+          scope,
+          severity: 'error',
+          message: `duplicate output filename "${file}" -- one render would overwrite the other`,
+        });
+      }
+      files.add(file);
+    }
+
+    if (video.onSuccess && !pageIds.has(video.onSuccess.recordPage)) {
       problems.push({
         scope,
         severity: 'error',
-        message: `duplicate output filename "${video.videoFile}" -- one render would overwrite the other`,
+        message: `onSuccess.recordPage "${video.onSuccess.recordPage}" is not a page in pages.config.ts`,
       });
     }
-    files.add(video.videoFile);
+
+    if (video.onFailure) {
+      for (const [i, tab] of (video.onFailure.ideTabs ?? []).entries()) {
+        // Generated files; absent until the pipeline has run, and possibly
+        // absent after a failed install too. The render skips missing ones.
+        if (existsSync(join(rootDir, tab.filePath))) {
+          checkTab(rootDir, `${scope} onFailure`, tab, `ideTabs[${i}]`, problems);
+        }
+      }
+      if (video.onFailure.audio) {
+        anyAudio = true;
+        if (!existsSync(join(rootDir, 'autorecorder', video.onFailure.audio))) {
+          problems.push({ scope, severity: 'error', message: `onFailure audio file ${video.onFailure.audio} does not exist` });
+        }
+      }
+    }
 
     for (const id of video.flows) {
       if (!flowIds.has(id)) {

@@ -816,7 +816,6 @@ export class RecordingEngine {
         page,
         config.filename ?? config.id,
         recordSuccess,
-        config.videoSubdir,
       );
 
       // Always, including on the failure paths above: a dev server left running

@@ -132,19 +132,11 @@ Only if this framework's quickstart tells people to run a command. Most do:
 `npx copilotkit@latest create` is the same entrypoint everywhere, but the
 answers are not.
 
-```bash
-npm run capture -- --selftest    # does the PTY work on this machine at all?
-```
-
-Run that **before** adapting anything. It drives a fixture that imitates the
-four prompt shapes — a conditional confirm, a text field, an arrow-navigated
-list, and a single-keypress y/n — and tells you whether the recorder itself
-works here. If it fails, nothing you write in `config/cli.config.ts` will run,
-and the failure will look like the target CLI misbehaving.
-
-Then edit `config/cli.config.ts`: the constants at the top (app name, the
+Edit `config/cli.config.ts`: the constants at the top (app name, the
 framework row to select, the Intelligence project), and the prompts if this
-CLI asks different ones.
+CLI asks different ones. `npm run capture -- --login` is the first real run
+and doubles as the check that the PTY works on this machine: it opens a
+browser and waits on the terminal, which a pipe cannot do.
 
 **Name rows; never count keypresses.** Write
 `select: { label: 'Mastra' }`, not twelve `Down` keys. The framework list has
@@ -158,28 +150,28 @@ npx only asks to install when the package is uncached, and only 18 of the 23
 frameworks' starters offer a chat channel at all.
 
 ```bash
-npm run selftest:demo            # does the whole demo path work here?
-
 npm run capture -- --login       # once; sign-in opens a browser
 npm run capture -- --scaffold    # runs the real CLI, writes a cast
-npm run render  -- --scaffold    # films the cast
 npm run capture -- --distribute  # copies the scaffold, seeds the model key
-npm run capture -- --install-npm # one per package manager
-npm run render  -- --all         # videos 1 and 2 of every set
-npm run record  -- --demo-npm    # video 3: doc → IDE → dev server → agent
+npm run capture -- --install-npm # one per package manager (pnpm, yarn, bun)
+npm run cli:videos               # films everything, decides video 3 per manager
 ```
 
-The deliverable is three videos per package manager. `config/cli.config.ts`
-generates videos 1 and 2 from `PACKAGE_MANAGERS`; `config/pages.config.ts`
-generates video 3. Change that one list and all twelve follow — which is the
-point of generating them rather than writing twelve entries that can drift.
+The deliverable is one CLI clip plus three per package manager: the install
+(always, pass or fail), then **either** the app running **or** the failure
+explained. `cli:videos` reads each install's `casts/*.report.json` and films
+the finding clip (`onFailure`) for a failed install or records the live demo
+(`onSuccess` → a page in `pages.config.ts`) for one that worked. Nobody picks
+which by hand. `config/cli.config.ts` generates all of it from
+`PACKAGE_MANAGERS`; change that one list and every clip follows.
+
+A failure you have not analysed yet still produces a finding clip: the note is
+built from the report (command, exit code, last lines on screen). Put what you
+learn into `INSTALL_ANALYSIS` afterwards and re-render — it is appended under
+the facts.
 
 Capture and render are separate on purpose: the CLI runs once, and re-shooting
 the video never re-scaffolds anything or asks anyone to sign in again.
-
-`selftest:demo` records a full demo against a fixture app — its own dev server,
-its own chat surface — so "the recorder works" is established before any scaffold
-exists. Run it after a port and before blaming a generated app.
 
 If this framework's starter is not a Next app, change `readyPattern` on the
 matrix pages in `pages.config.ts`: it is the text the dev server prints when it

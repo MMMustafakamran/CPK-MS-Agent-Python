@@ -326,55 +326,59 @@ export const CLI_FLOWS = defineCliFlows([
 ]);
 
 /**
- * The deliverable: three videos per package manager, twelve in all.
+ * The deliverable: one CLI clip, then three clips per package manager.
  *
- * Each manager gets a complete set — the CLI creating the project, that
- * manager installing it, and its copy running and answering — so one folder of
- * clips tells the whole story for one manager without cross-referencing.
+ *   1. `CLI-Create`        the CLI scaffolding the app — once, shared by all
+ *                          four, because the CLI ran once and the result was
+ *                          copied; four clips of it would be the same footage
+ *   2. `<pm>-2-Install`    that manager installing the copy, pass or fail —
+ *                          this is the clip that shows whether the install
+ *                          command works, so it is always filmed
+ *   3. `<pm>-3-Demo`       the app running and answering a prompt, when the
+ *                          install succeeded (a page recording, see
+ *                          `pages.config.ts`)
+ *      `<pm>-3-Finding`    the failure explained, when it did not: the doc
+ *                          page, the versions it resolved, the manifest line,
+ *                          the command failing, and a note written out
  *
- * The CLI clip is deliberately the same footage in all four sets: the CLI runs
- * once and the result is copied, so there is only one real create to show.
- * `cli-render.ts` records it once and copies the file, rather than re-filming
- * identical footage four times.
+ * Which of the two third clips a manager gets is decided by its install
+ * report, not by hand: `npm run cli:videos` reads `casts/*.report.json` and
+ * films the finding for a failed install or records the demo for a working
+ * one. A failure nobody has analysed yet still gets a clip — the note is
+ * generated from the report (command, exit code, last screen) and the
+ * hand-written `analysis` below is appended when there is one.
  *
- * The third video of each set is a page recording, in `pages.config.ts`.
+ * `project-context.md`: a broken thing keeps its broken implementation and
+ * the recording exists to show the defect; every finding pins installed
+ * against declared versions. That is what the finding clip's IDE tabs are.
  */
-/**
- * The finding this QA pass produced, as a clip that explains itself.
- *
- * `project-context.md` is explicit that a broken thing keeps its broken
- * implementation and the recording exists to show the defect, and that every
- * finding pins installed against declared versions. So the order is: the doc
- * page that tells you to run the command, the versions it actually resolved,
- * the manifest line that breaks, the command failing, then the explanation
- * written out — so the clip stands on its own for someone who was not here.
- */
-const BUN_APP = `${SCAFFOLD_DIR}/bun/app`;
 
-const BUN_FINDING_NOTE = [
-  'bun install fails on windows',
-  '',
-  '1373 packages install fine, then postinstall dies:',
-  '  bun: command not found: scriptssetup-agent.bat',
-  '',
-  'package.json line 13:',
-  '  "install:agent": "./scripts/setup-agent.sh || scripts\\setup-agent.bat"',
-  '',
-  "bun's shell eats the backslash, so scripts\\setup-agent.bat becomes",
-  "scriptssetup-agent.bat - you can see the slash missing in bun's own",
-  'error. both scripts are there on disk. npm runs the same line through',
-  'cmd.exe where \\ is just a path separator, so npm never hits this.',
-  '',
-  'so agent/.venv never gets created, the python agent has no deps, and',
-  'bun run dev cant start it. exits 1.',
-  '',
-  'fix: scripts/setup-agent.bat - forward slash works in both shells.',
-].join('\n');
+/**
+ * Hand-written analysis for a failure that has been understood. Keyed by
+ * package manager; a manager with no entry gets the generated note alone.
+ */
+const INSTALL_ANALYSIS: Partial<Record<string, string>> = {
+  bun: [
+    'why: package.json line 13 reads',
+    '  "install:agent": "./scripts/setup-agent.sh || scripts\\setup-agent.bat"',
+    "bun's shell eats the backslash, so scripts\\setup-agent.bat becomes",
+    "scriptssetup-agent.bat - you can see the slash missing in bun's own",
+    'error. both scripts are there on disk. npm runs the same line through',
+    'cmd.exe where \\ is just a path separator, so npm never hits this.',
+    '',
+    'so agent/.venv never gets created, the python agent has no deps, and',
+    'bun run dev cant start it.',
+    '',
+    'fix: scripts/setup-agent.bat - forward slash works in both shells.',
+  ].join('\n'),
+};
+
+/** Narration for a finding that has been recorded, relative to this folder. */
+const FINDING_AUDIO: Partial<Record<string, string>> = {
+  bun: 'audio/mspy bun  cli.m4a',
+};
 
 export const CLI_VIDEOS = defineCliVideos([
-  // One CLI video, not one per manager. The CLI runs once and its result is
-  // copied into the four folders, so four clips of it would be four copies of
-  // the same footage — nothing about them is per-manager.
   {
     id: 'cli',
     name: 'CopilotKit CLI — creating the app',
@@ -383,47 +387,41 @@ export const CLI_VIDEOS = defineCliVideos([
     flows: ['scaffold'],
   },
 
-  // The install is where the managers actually differ, so this one is per
-  // manager.
-  ...PACKAGE_MANAGERS.map(({ id }) => ({
-    id: `install-video-${id}`,
-    name: `${id} · Installing dependencies`,
-    videoName: `${id}-2-Install`,
-    docPath: 'quickstart?agent=bring-your-own',
-    flows: [`install-${id}`],
-  })),
-]);
-
-/** Video 3 for bun: the finding, in full. */
-export const CLI_FINDING_VIDEOS = defineCliVideos(
-  [
-    {
-      id: 'finding-bun',
-      name: 'bun · 3 · Finding — bun install fails on Windows',
-      videoName: 'bun-3-Finding',
+  ...PACKAGE_MANAGERS.map(({ id }) => {
+    const app = `${SCAFFOLD_DIR}/${id}/${APP_NAME}`;
+    return {
+      id: `install-video-${id}`,
+      name: `${id} · 2 · Installing dependencies`,
+      videoName: `${id}-2-Install`,
       docPath: 'quickstart?agent=bring-your-own',
-      flows: ['install-bun'],
-      ideTabs: [
-        // Installed, not declared: what this run actually resolved to.
-        { filePath: `${BUN_APP}/VERSIONS.md`, startLine: 1, endLine: 20 },
-        // What the starter declares — the CopilotKit packages under test.
-        { filePath: `${BUN_APP}/package.json`, startLine: 20, endLine: 30 },
-        // The line that breaks.
-        { filePath: `${BUN_APP}/package.json`, startLine: 13, endLine: 14 },
-      ],
-      ideDwellMs: 4200,
-      notepad: {
-        filename: 'bun-install-finding.txt',
-        body: BUN_FINDING_NOTE,
-        // Faster than the 62ms default: this note is several times longer than
-        // a one-line issue jotting, and at the default it would spend two
-        // minutes typing while the viewer has already read it.
+      flows: [`install-${id}`],
+
+      // Video 3 when the install worked: the app, live. `demo-<pm>` in
+      // pages.config.ts boots that copy's dev server and drives it.
+      onSuccess: { recordPage: `demo-${id}` },
+
+      // Video 3 when it did not: the finding.
+      onFailure: {
+        id: `finding-${id}`,
+        name: `${id} · 3 · Finding — install failed`,
+        videoName: `${id}-3-Finding`,
+        ideTabs: [
+          // Installed, not declared: what this run actually resolved to.
+          // Written by the install flow even when it fails partway, as long
+          // as something landed in node_modules.
+          { filePath: `${app}/VERSIONS.md`, startLine: 1, endLine: 20 },
+          // What the starter declares — the CopilotKit packages under test.
+          { filePath: `${app}/package.json`, startLine: 1, endLine: 30 },
+        ],
+        ideDwellMs: 4200,
+        analysis: INSTALL_ANALYSIS[id],
+        notepadFile: `${id}-install-finding.txt`,
+        // Faster than the 62ms default: a finding note is several times
+        // longer than a one-line jotting, and at the default it would spend
+        // two minutes typing while the viewer has already read it.
         charDelayMs: 22,
+        audio: FINDING_AUDIO[id],
       },
-      // Narration for the bun story. Muxed in after recording — Playwright
-      // captures silent video — and the last frame is held if the voice runs
-      // past the picture, so nothing is cut off mid-sentence.
-      audio: 'audio/mspy bun  cli.m4a',
-    },
-  ],
-);
+    };
+  }),
+]);

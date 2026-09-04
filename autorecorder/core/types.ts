@@ -105,15 +105,6 @@ export interface PageDefinition {
 
   /** Per-page overrides of the recorder's fixed waits. See `RecorderTimeouts`. */
   timeouts?: Partial<RecorderTimeouts>;
-
-  /**
-   * Folder under `videos/` to write into. Unset for deliverables.
-   *
-   * The demo self-test sets this so its clip does not land beside the real
-   * recordings wearing the same `01` index as the Quickstart and turn up in the
-   * CI report as a deliverable.
-   */
-  videoSubdir?: string;
 }
 
 /** A page definition with everything resolved. What the engine consumes. */

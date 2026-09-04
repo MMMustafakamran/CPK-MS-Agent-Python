@@ -148,8 +148,8 @@ autorecorder/
 │   │   ├── versions.ts             VERSIONS.md from an installed tree
 │   │   ├── audio.ts                narration mux via ffmpeg
 │   │   ├── ci-guard.ts             capture/render refuse to run on a runner
-│   │   ├── selftest.ts             proves the driver works on this machine
-│   │   └── flow.ts                 CliFlowDefinition → CliFlowConfig
+│   │   ├── finding.ts              the written note for a failed install, from its report
+│   │   └── flow.ts                 CliFlowDefinition → CliFlowConfig, onSuccess / onFailure
 │   └── overlays/                 Windows 11 taskbar, cursor, Notepad, alert dialog
 │
 ├── scripts/core-manifest.mjs   ← writes/checks CORE_MANIFEST.json, diffs two copies
@@ -211,52 +211,52 @@ single keystroke — so it cannot be driven by piping text at it. It runs under 
 real pseudo-terminal (`node-pty`), and the session is replayed in a terminal
 window for the camera.
 
-### The twelve videos
+### The videos
 
-Three per package manager, so one manager's set tells its whole story without
-cross-referencing another:
+One clip of the CLI, then three per package manager, so one manager's set
+tells its whole story without cross-referencing another:
 
 | # | File | Shows |
 |---|---|---|
-| 1 | `<prefix>-<pm>-1-CLI-Create.webm` | the doc page, then `npx copilotkit@latest create` answering every prompt |
-| 2 | `<prefix>-<pm>-2-Install.webm` | that manager installing the project |
-| 3 | `<prefix>-<pm>-3-Demo.webm` | the doc page, VS Code with `package.json` + that manager's lockfile + the integration code, `<pm> run dev` booting, then the real app answering a prompt |
+| 1 | `<prefix>-CLI-Create.webm` | the doc page, then `npx copilotkit@latest create` answering every prompt. One clip, shared: the CLI ran once and the result was copied into all four folders |
+| 2 | `<prefix>-<pm>-2-Install.webm` | that manager running `install` in its own folder — **always filmed, pass or fail**, so the install command itself can be checked |
+| 3a | `<prefix>-<pm>-3-Demo.webm` | if the install **worked**: the doc page, VS Code with `package.json` + that manager's lockfile + the integration code, `<pm> run dev` booting, then the real app answering a prompt |
+| 3b | `<prefix>-<pm>-3-Finding.webm` | if the install **failed**: the doc page, VS Code with the resolved versions and the manifest, the install failing in the terminal, then a Notepad note explaining it |
 
-Video 3 is a recording of the running app, not a re-enactment: the dev server
+Which third clip a manager gets is decided by its install report, not by
+hand. `npm run cli:videos` reads `casts/<pm>.report.json`: a failed install
+gets the finding clip; a working one gets its demo recorded. The finding note
+is built from the report (command, exit code, the last lines on screen) so a
+failure nobody has looked at yet still produces a clip that names the error;
+the hand-written analysis in `INSTALL_ANALYSIS` (`config/cli.config.ts`) is
+appended underneath when there is one.
+
+Video 3a is a recording of the running app, not a re-enactment: the dev server
 filmed booting in the terminal is the same process that serves the page driven
 in the next segment, and the reply on screen is a live agent round trip.
-
-npm, pnpm and yarn produce one; bun's third video is the finding clip instead.
-See [Video 3, per manager](#video-3-per-manager).
-
-The CLI clip is the same footage in all four sets, because the CLI runs once and
-its result is copied. `cli-render.ts` films it once and copies the file rather
-than re-filming identical footage four times — four sets in about the time of
-one.
 
 ### The pipeline
 
 ```bash
-npm run selftest                    # 1. does the PTY work on this machine?
-npm run selftest:demo               # 2. does the whole demo path work?
+npm run check                       # 1. typecheck, unit tests, core/ manifest
 
-npm run capture -- --login          # 3. once — sign-in opens a browser
-npm run capture -- --scaffold       # 4. run the real CLI, once
-npm run capture -- --distribute     # 5. copy it ×4, seed the model key
+npm run capture -- --login          # 2. once — sign-in opens a browser; also
+                                    #    proves the PTY works on this machine
+npm run capture -- --scaffold       # 3. run the real CLI, once
+npm run capture -- --distribute     # 4. copy it ×4, seed the model key
 
-npm run capture -- --install-npm    # 6. install per manager; each one also
+npm run capture -- --install-npm    # 5. install per manager; each one also
 npm run capture -- --install-pnpm   #    writes that copy's VERSIONS.md
 npm run capture -- --install-yarn
 npm run capture -- --install-bun
 
-npm run render -- --all             # 7. ► videos 1 and 2 of all four sets
-npm run record -- --demo-npm        # 8. ► video 3, per manager
-npm run record -- --demo-pnpm       #    (…yarn, bun)
+npm run cli:videos                  # 6. ► every clip: CLI, four installs, and
+                                    #    per manager the finding or the demo
 ```
 
-Steps 1 and 2 come first for a reason: they prove the recorder works *before*
-half an hour is spent on scaffolds and installs. If step 2 passes and step 8
-fails, the fault is in the generated app, not in this folder.
+`npm run render -- --list` shows, per manager, which third clip it will get.
+`npm run render -- --all` films without recording the demos, and prints the
+`record` command for the ones that succeeded.
 
 **Capture and render are separate commands, and that split is the point.**
 

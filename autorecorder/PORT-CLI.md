@@ -11,9 +11,9 @@ repo — open the files named below rather than trusting a summary of them.
 ## 1 · Copy verbatim
 
 ```
-core/cli/**                 (12 modules + fixtures/)
+core/cli/**                 (13 modules)
 core/CORE_MANIFEST.json     scripts/core-manifest.mjs   test/
-cli-capture.ts  cli-render.ts  cli-selftest-demo.ts
+cli-capture.ts  cli-render.ts
 1-cli-testing/  (CLI-FLOW.md, .gitignore, *.ps1, *.bat)
 ```
 
@@ -22,7 +22,8 @@ byte-for-byte. `npm run core:write` regenerates the manifest if you *had* to
 change core — and that is a finding to report, not a step in a port.
 
 `package.json` — add deps `node-pty ^1.1.0`, `@xterm/xterm ^6.0.0` and the
-`capture` / `render` / `selftest` scripts. Copy them from this repo's file.
+`capture` / `render` / `cli:videos` / `test` / `core:check` scripts. Copy them
+from this repo's file.
 Root `.gitignore` — add `autorecorder/casts/`.
 
 node-pty ships prebuilds. If npm tries to compile it, report that; do not
@@ -55,12 +56,12 @@ Commit this on its own. A regression here must not be tangled with new config.
 
 ```
 npm install
-npm run selftest         # PTY + repainting-TUI parsing, against a fixture
-npm run selftest:demo    # the whole demo path, against a fixture app
+npm run check            # typecheck, unit tests, core/ manifest
+npm run capture -- --login
 ```
 
-Fixtures only — no network, no account. If these fail, everything after them
-fails in a way that looks like the target CLI misbehaving.
+`--login` is the first real PTY run: if the driver cannot hold a terminal on
+this machine, it fails here, before any scaffold or install has been spent.
 
 ## 4 · Rewrite `config/cli.config.ts`
 
@@ -75,7 +76,7 @@ Copy the **structure**, not the values. Run the CLI once by hand in
 | `expectFiles`, `CLI_DISTRIBUTION.envFiles` | `agent/` exists **only in Python-agent starters**. Node starters (Mastra, LangGraph JS, Claude SDK TS) have none — asserting it fails a scaffold that worked. |
 | Chat-platform step | Keep `optional: true` either way — only 18 of 23 starters ask. |
 | `doneWhen`, `abortOn`, `render` pacing | Same CLI everywhere. Unchanged. |
-| `CLI_FINDING_VIDEOS` + `audio/` | **Delete.** That finding is a backslash in a Python starter's `install:agent`. Write your own finding, or none. |
+| `INSTALL_ANALYSIS`, `FINDING_AUDIO`, `audio/` | **Empty them.** The bun analysis is a backslash in a Python starter's `install:agent`; yours will differ. A failed install still gets a finding clip with a generated note; add analysis once you have it. |
 
 ## 5 · `DEMO_PAGES` in `config/pages.config.ts`
 
@@ -97,8 +98,8 @@ npm run capture -- --login        # once per machine; opens a browser
 npm run capture -- --scaffold     # the real CLI, driven
 npm run capture -- --distribute   # copy ×4, seed the model key
 npm run capture -- --install-npm  # then pnpm, yarn, bun
-npm run render  -- --all          # videos 1 and 2
-npm run record  -- --demo-npm     # video 3, per manager
+npm run cli:videos                # CLI clip, install clips, then per manager
+                                  # the finding (failed) or the demo (worked)
 ```
 
 Then **watch them**. The doctor cannot see that the IDE highlighted the wrong
@@ -119,7 +120,7 @@ lines.
 ## Done
 
 `npm run check` 0 (typecheck, unit tests, core manifest) · `doctor` 0 ·
-`selftest` pass · videos watched · README status table updated.
+videos watched · README status table updated.
 
 **Report:** what your repo had that this one didn't · which prompts differed or
 turned out conditional · whether the starter has `agent/` · the dev server's
