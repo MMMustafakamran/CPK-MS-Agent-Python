@@ -68,13 +68,16 @@ export default function Page() {
         <BackendHealth />
       </Panel>
 
-      <Panel title="The three agents">
+      <Panel title="The four agents">
         <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-          The backend serves three AG-UI endpoints rather than one.{" "}
+          The backend serves four AG-UI endpoints rather than one.{" "}
           <code>state_schema</code> is a property of the agent it is attached to,
           and the docs define two different schemas — <code>language</code> on
           the Shared State pages and <code>searches</code> on State Rendering.
-          One agent cannot carry both without departing from the samples.
+          One agent cannot carry both without departing from the samples. The
+          fourth arrived with the 2026-09-04 drift: Agent App Context now
+          publishes its own <code>AgentFrameworkAgent</code> subclass, which
+          carries no schema and cannot share the Shared State agent.
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[36rem] text-left text-sm">
@@ -98,7 +101,7 @@ export default function Page() {
                 <td className="py-2 pr-4 font-mono text-xs">sample_agent</td>
                 <td className="py-2 pr-4 font-mono text-xs">:8000/sample_agent</td>
                 <td className="py-2 text-slate-600 dark:text-slate-400">
-                  <code>update_language</code> · Shared State read/write, Readables
+                  <code>update_language</code> · Shared State read/write
                 </td>
               </tr>
               <tr>
@@ -106,6 +109,13 @@ export default function Page() {
                 <td className="py-2 pr-4 font-mono text-xs">:8000/search_agent</td>
                 <td className="py-2 text-slate-600 dark:text-slate-400">
                   <code>update_searches</code> · State Rendering
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-4 font-mono text-xs">context_agent</td>
+                <td className="py-2 pr-4 font-mono text-xs">:8000/context_agent</td>
+                <td className="py-2 text-slate-600 dark:text-slate-400">
+                  no tools · Agent App Context (<code>ContextAwareAgent</code>)
                 </td>
               </tr>
             </tbody>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { CopilotChat, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
 
 import { DemoFrame } from "@/components/demo-frame";
@@ -21,32 +23,41 @@ type AgentState = {
 };
 
 export default function Page() {
-  // No `initialState` here — that prop does not exist on `useAgent` in 1.66.2.
-  // The starting value is seeded by `default_state` on the server endpoint.
-  const { agent } = useAgent({ agentId: "sample_agent" });
+  // The seed is the page's own snippet now: `isReady` plus an effect, instead
+  // of the `initialState` prop the page used to pass and the hook has never
+  // accepted. `default_state` on the server endpoint stays — the client seed
+  // only covers the first paint.
+  const { agent, isReady } = useAgent({ agentId: "sample_agent" });
   const { copilotkit } = useCopilotKit();
-  const state = agent.state as AgentState | undefined;
+  const state = (agent.state ?? {}) as Partial<AgentState>;
+
+  // [1] shared state: seed state once the agent is ready
+  // [!code highlight]
+  useEffect(() => {
+    if (!isReady || state.language !== undefined) return;
+    agent.setState({ ...(agent.state ?? {}), language: "english" });
+  }, [agent, isReady, state.language]);
 
   const nextLanguage = () =>
-    state?.language === "english" ? "spanish" : "english";
+    state.language === "english" ? "spanish" : "english";
 
-  // [1] shared state: update state
+  // [2] shared state: update state
   // [!code highlight]
   const toggleLanguage = () => {
-    agent.setState({ language: nextLanguage() });
+    agent.setState({ ...(agent.state ?? {}), language: nextLanguage() });
   };
 
-  // [2] shared state: rerun agent
+  // [3] shared state: rerun agent
   // [!code highlight]
   const toggleAndRerun = async () => {
     const newLanguage = nextLanguage();
-    agent.setState({ language: newLanguage });
+    agent.setState({ ...(agent.state ?? {}), language: newLanguage });
     agent.addMessage({
       id: crypto.randomUUID(),
       role: "user",
       content: `the language has been updated to ${newLanguage}`,
     });
-    // [3] shared state: run agent
+    // [4] shared state: run agent
     // [!code highlight]
     await copilotkit.runAgent({ agent });
   };
@@ -64,7 +75,7 @@ export default function Page() {
           <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
             Language:{" "}
             <strong className="text-[var(--accent)]">
-              {state?.language ?? "—"}
+              {state.language ?? "—"}
             </strong>
           </p>
 

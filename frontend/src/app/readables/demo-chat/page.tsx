@@ -8,10 +8,12 @@ import { DemoFrame } from "@/components/demo-frame";
 /**
  * Sharing app state with the agent as context rather than as a message.
  *
- * `useAgentContext` forwards its value on every run in
- * `ChatOptions.AdditionalProperties["ag_ui_context"]`. The agent needs no tool
- * and no special code to use it — which is why the doc's Python sample for this
- * page is just a plain agent with no additions.
+ * `useAgentContext` forwards its value on every run as `RunAgentInput.Context`.
+ * The page used to say the Python integration surfaced that to the agent on its
+ * own; it now publishes a `ContextAwareAgent` that folds the entries into a
+ * system message per request, and the shipped adapter confirms that is what is
+ * actually required. This chat therefore binds `context_agent`, the endpoint
+ * running that subclass, not the plain `sample_agent` it used before.
  *
  * The colleagues list is the doc's sample data.
  */
@@ -34,7 +36,7 @@ export default function Page() {
   return (
     <DemoFrame
       parentPath="/readables"
-      subtitle="useAgentContext — forwarded as ag_ui_context"
+      subtitle="useAgentContext — injected by ContextAwareAgent"
     >
       <div className="grid h-full grid-cols-1 lg:grid-cols-2">
         <div className="min-h-0 overflow-y-auto border-b border-slate-200 p-4 lg:border-b-0 lg:border-r dark:border-slate-800">
@@ -64,7 +66,7 @@ export default function Page() {
 
         <div className="min-h-0">
           <CopilotChat
-            agentId="sample_agent"
+            agentId="context_agent"
             labels={{
               welcomeMessageText:
                 'Try "Who are my colleagues?" — I was never told in a message.',

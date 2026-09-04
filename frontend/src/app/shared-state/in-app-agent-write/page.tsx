@@ -25,6 +25,25 @@ export default function Page() {
         </div>
       </Panel>
 
+      <Callout tone="info" title="`setState` replaces — the doc now spreads">
+        The page used to publish{" "}
+        <code>agent.setState({"{ language: … }"})</code>. It now publishes{" "}
+        <code>agent.setState({"{ ...(agent.state ?? {}), language: … }"})</code>
+        . That is a correction, not a style change:{" "}
+        <code>setState</code> assigns the whole state object, so the old form
+        dropped every other key the agent was carrying. A one-key schema never
+        showed it; the State Rendering agent&apos;s would have. Both buttons
+        below spread.
+      </Callout>
+
+      <Callout tone="info" title="Seeding moved into an effect">
+        The starting value used to come from an <code>initialState</code> prop
+        the hook does not accept. The page now seeds after connect —{" "}
+        <code>isReady</code>, then <code>setState</code> if the key is still
+        missing. <code>default_state</code> on the endpoint stays, because the
+        client seed only covers the first paint and does not survive a re-run.
+      </Callout>
+
       <Callout tone="info" title="Set state, then decide when the agent reacts">
         <code>setState</code> alone is passive — the new value waits for the next
         run. When a UI change should provoke the agent immediately, the doc&apos;s

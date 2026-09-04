@@ -47,7 +47,7 @@ OpenAI or Azure OpenAI  (gpt-4o-mini by default)
 Four points worth noting:
 
 - **No framework-specific adapter.** Agent Framework speaks AG-UI natively, so the runtime binds a plain `HttpAgent` — unlike integrations that ship their own agent class.
-- **Three agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc.
+- **Four agents, not one.** `state_schema` belongs to the agent it is attached to, and the docs define two different schemas (`language` and `searches`). Merging them would mean inventing a schema that appears in neither doc. The fourth is the `ContextAwareAgent` the Agent App Context page started publishing on 2026-09-04.
 - **The model key never reaches the browser.** Only the Python process holds it.
 - **Two runtime endpoints, on purpose.** `/api/copilotkit/[[...slug]]` is the runtime handler as the v2 docs write it, minus the `intelligence`/`identifyUser` options — the documented no-Intelligence fallback. `/api/copilotkit-threads/[[...slug]]` is a second endpoint configured with CopilotKit Intelligence and license tokens for `/threads` persistence, allowing the standard runtime to remain focused on pure agent execution.
 
@@ -80,13 +80,14 @@ Four points worth noting:
 6. Browser renders streaming response word-by-word
 ```
 
-### The three agents
+### The four agents
 
 | Runtime id     | Endpoint             | Tool              | Serves                                                           |
 | -------------- | -------------------- | ----------------- | ---------------------------------------------------------------- |
 | `my_agent`     | `:8000/`             | `get_weather`     | Quickstart, Tool Rendering, and every route with no state schema |
-| `sample_agent` | `:8000/sample_agent` | `update_language` | Shared State read/write, Readables                               |
+| `sample_agent` | `:8000/sample_agent` | `update_language` | Shared State read/write                                          |
 | `search_agent` | `:8000/search_agent` | `update_searches` | State Rendering                                                  |
+| `context_agent`| `:8000/context_agent`| —                 | Agent App Context (`ContextAwareAgent`)                          |
 
 ---
 
@@ -169,7 +170,7 @@ Then edit `backend/.env`:
 | `MS_AGENT_URL`                      | `frontend/.env.local` | Where the runtime finds the agent. Defaults to `http://localhost:8000`.                    |
 | `NEXT_PUBLIC_AUTH_BEARER_TOKEN`     | `frontend/.env.local` | The token the provider forwards. Must match the backend's.                                 |
 | `COPILOTKIT_LICENSE_TOKEN`          | `frontend/.env.local` | `/threads` only. Signed license, verified offline — no login, no network call.              |
-| `INTELLIGENCE_API_KEY`              | `frontend/.env.local` | `/threads` only. Project key for the managed thread store.                                  |
+| `CPK_INTELLIGENCE_API_KEY`          | `frontend/.env.local` | `/threads` only. Project key for the managed thread store. `INTELLIGENCE_API_KEY` still read. |
 | `INTELLIGENCE_API_URL`              | `frontend/.env.local` | `/threads` only. Managed Intelligence REST endpoint.                                        |
 | `INTELLIGENCE_GATEWAY_WS_URL`       | `frontend/.env.local` | `/threads` only. Managed realtime endpoint — a different host from the REST one.             |
 

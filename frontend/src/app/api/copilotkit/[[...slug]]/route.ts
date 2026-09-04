@@ -10,10 +10,12 @@ import { HttpAgent } from "@ag-ui/client";
 // framework-specific adapter package to install.
 const AGENT_URL = process.env.MS_AGENT_URL ?? "http://localhost:8000";
 
-// Three agents, one per AG-UI endpoint. `my_agent` is the Quickstart agent;
-// the other two exist because Shared State and State Rendering each define
-// their own `state_schema`, which is a property of the agent it is attached
-// to and cannot be shared.
+// Four agents, one per AG-UI endpoint. `my_agent` is the Quickstart agent;
+// `sample_agent` and `search_agent` exist because Shared State and State
+// Rendering each define their own `state_schema`, which is a property of the
+// agent it is attached to and cannot be shared. `context_agent` was added when
+// the Agent App Context page started publishing its own `ContextAwareAgent`
+// subclass instead of reusing a plain one.
 // The Quickstart's snippet wires `intelligence` + `identifyUser` here; this
 // route deliberately takes the fallback that step documents (no Intelligence,
 // in-memory runner). The wired version is in `api/copilotkit-threads`.
@@ -24,6 +26,7 @@ const runtime = new CopilotRuntime({
     my_agent: new HttpAgent({ url: `${AGENT_URL}/` }),
     sample_agent: new HttpAgent({ url: `${AGENT_URL}/sample_agent` }),
     search_agent: new HttpAgent({ url: `${AGENT_URL}/search_agent` }),
+    context_agent: new HttpAgent({ url: `${AGENT_URL}/context_agent` }),
   },
   runner: new InMemoryAgentRunner(),
 });

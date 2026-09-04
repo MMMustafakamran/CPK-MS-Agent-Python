@@ -6,7 +6,7 @@ import { useState } from "react";
 import { DemoFrame } from "@/components/demo-frame";
 
 /**
- * Agent routing: three registered ids, three AG-UI endpoints, one runtime.
+ * Agent routing: four registered ids, four AG-UI endpoints, one runtime.
  *
  * The frontend only ever names an id — it never learns where the agent lives.
  * Each id carries its own message list, so switching starts a fresh
@@ -17,6 +17,7 @@ const AGENTS = [
   { id: "my_agent", blurb: "Quickstart agent · get_weather" },
   { id: "sample_agent", blurb: "language state · update_language" },
   { id: "search_agent", blurb: "searches state · update_searches" },
+  { id: "context_agent", blurb: "app context · ContextAwareAgent" },
 ] as const;
 
 type AgentId = (typeof AGENTS)[number]["id"];

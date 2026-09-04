@@ -38,7 +38,7 @@ export default function Page() {
         </p>
         <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
           <code>agentId</code> is passed explicitly on every route in this repo.
-          The backend serves three agents, so there is no single implicit
+          The backend serves four agents, so there is no single implicit
           default to fall back on.
         </p>
       </Panel>

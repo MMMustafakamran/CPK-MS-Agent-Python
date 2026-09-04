@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { CopilotChat, useAgent } from "@copilotkit/react-core/v2";
 
 import { DemoFrame } from "@/components/demo-frame";
@@ -12,9 +14,11 @@ import { DemoFrame } from "@/components/demo-frame";
  * language updates `agent.state.language` — and this panel — without any
  * message parsing on the frontend.
  *
- * The doc seeds the starting value with `useAgent({ initialState })`. That prop
- * does not exist on `useAgent` in 1.66.2, so the seed lives on the server
- * instead — `default_state` on the endpoint in `backend/main.py`.
+ * The page used to seed with `useAgent({ initialState })`, a prop the hook has
+ * never had. It now seeds in an effect gated on `isReady`, which the hook does
+ * return, so the published snippet compiles and is reproduced verbatim below.
+ * `default_state` on the endpoint in `backend/main.py` stays: the client seed
+ * only covers the first paint, the server one survives a re-run.
  */
 
 type AgentState = {
@@ -24,8 +28,15 @@ type AgentState = {
 export default function Page() {
   // [1] shared state: read agent state
   // [!code highlight]
-  const { agent } = useAgent({ agentId: "sample_agent" });
-  const state = agent.state as AgentState | undefined;
+  const { agent, isReady } = useAgent({ agentId: "sample_agent" });
+  const state = (agent.state ?? {}) as Partial<AgentState>;
+
+  // [2] shared state: seed state once the agent is ready
+  // [!code highlight]
+  useEffect(() => {
+    if (!isReady || state.language !== undefined) return;
+    agent.setState({ ...(agent.state ?? {}), language: "english" });
+  }, [agent, isReady, state.language]);
 
   return (
     <DemoFrame
@@ -40,7 +51,7 @@ export default function Page() {
           <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
             Language:{" "}
             <strong className="text-[var(--accent)]">
-              {state?.language ?? "—"}
+              {state.language ?? "—"}
             </strong>
           </p>
 

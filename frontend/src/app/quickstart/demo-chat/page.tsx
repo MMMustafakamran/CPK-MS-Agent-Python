@@ -9,7 +9,7 @@ import { DemoFrame } from "@/components/demo-frame";
  *
  * `agentId="my_agent"` matches the id the runtime registers for the AG-UI
  * endpoint at `/`. The doc sets that id once on the provider via
- * `<CopilotKit agent="my_agent">`; this harness serves three agents, so each
+ * `<CopilotKit agent="my_agent">`; this harness serves four agents, so each
  * route names the one it wants instead.
  */
 export default function Page() {

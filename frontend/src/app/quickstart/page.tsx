@@ -69,7 +69,11 @@ export default function Page() {
         <code>runner: new InMemoryAgentRunner()</code> with{" "}
         <code>intelligence: new CopilotKitIntelligence(&#123; apiKey &#125;)</code>{" "}
         plus <code>identifyUser</code>, and reads{" "}
-        <code>INTELLIGENCE_API_KEY</code> from <code>.env.local</code>. The same
+        <code>CPK_INTELLIGENCE_API_KEY</code> from <code>.env.local</code> —
+        renamed this sync from <code>INTELLIGENCE_API_KEY</code>, with the
+        placeholder going from <code>your_license_key</code> to{" "}
+        <code>cpk-...</code>, which is the first time the page separates the
+        project key from a license. The same
         step&apos;s callout documents dropping both options to fall back to SSE
         mode with an in-memory runner — that is what{" "}
         <code>/api/copilotkit</code> here does, so Threads and the Inspector stay

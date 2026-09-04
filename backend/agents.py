@@ -10,18 +10,37 @@ schemas — `language` on the Shared State pages and `searches` on State
 Rendering. One agent cannot carry both without departing from what the docs
 show, so each keeps its own endpoint.
 
-  main_agent    →  Quickstart + Tool Rendering  (get_weather)
-  sample_agent  →  Shared State read/write, Readables  (update_language)
-  search_agent  →  State Rendering  (update_searches)
+  main_agent     →  Quickstart + Tool Rendering  (get_weather)
+  sample_agent   →  Shared State read/write  (update_language)
+  search_agent   →  State Rendering  (update_searches)
+  context_agent  →  Agent App Context  (ContextAwareAgent, no tools)
+
+The fourth one is new as of the 2026-09-04 drift. That page used to publish a
+plain agent with the comment "frontend context is forwarded automatically"; it
+now publishes a `ContextAwareAgent` subclass that folds the forwarded context
+into a system message by hand. Both cannot be true, and the shipped source
+settles it — see `create_context_agent` below.
 """
 
 from __future__ import annotations
 
-from typing import Annotated
+import json
+from collections.abc import AsyncGenerator
+from typing import Annotated, Any
+from uuid import uuid4
 
-from agent_framework import Agent, SupportsChatGetResponse, tool
+from ag_ui.core import BaseEvent
+from agent_framework import Agent, BaseChatClient, SupportsChatGetResponse, tool
 from agent_framework.ag_ui import AgentFrameworkAgent
+from agent_framework_ag_ui import AgentFrameworkAgent as _AgentFrameworkAgentNewPath
 from pydantic import BaseModel, Field
+
+# Seven doc pages import `AgentFrameworkAgent` from `agent_framework.ag_ui`.
+# The Agent App Context page, alone, imports it from `agent_framework_ag_ui`.
+# `agent_framework.ag_ui` is a lazy shim over that package, so both spellings
+# reach the same class today. Asserted rather than assumed: if a release ever
+# splits them, this fails at import instead of silently running two classes.
+assert _AgentFrameworkAgentNewPath is AgentFrameworkAgent
 
 # --------------------------------------------------------------------------
 # Tool Rendering — docs.copilotkit.ai/ms-agent-python/generative-ui/tool-rendering
@@ -47,6 +66,111 @@ def create_main_agent(chat_client: SupportsChatGetResponse) -> Agent:
         client=chat_client,
         tools=[get_weather],
     )
+
+
+# --------------------------------------------------------------------------
+# Agent App Context — .../agent-app-context
+# --------------------------------------------------------------------------
+#
+# The page's Python sample, verbatim, apart from the factory name: the harness
+# names one factory per doc page (`create_main_agent`, `create_sample_agent`,
+# `create_search_agent`), and the page calls this one `create_agent`.
+#
+# What changed on 2026-09-04: the sample used to be a plain `AgentFrameworkAgent`
+# whose docstring read "frontend context is forwarded automatically". It is now
+# the subclass below, which builds a system message out of `input_data["context"]`
+# by hand, and the page's lead-in now says "Use middleware to read it and inject
+# it into the agent's conversation."
+#
+# The shipped source says the new version is the correct one. In
+# `agent_framework_ag_ui._agent_run.run_agent_stream`, `input_data["context"]` is
+# read in exactly one place — `build_ag_ui_context_slice(...)`, inside the branch
+# guarded by the A2UI injection flag. A run without `injectA2UITool` never turns
+# the forwarded context into anything the model sees. So the old sample could not
+# have worked as described, and the old claim was the defect.
+
+
+# region context-agent
+# [1] agent app context: build the system message
+# [!code highlight]
+def build_context_system_message(context: Any) -> str | None:
+    if not isinstance(context, list) or not context:
+        return None
+
+    lines = ["## Context from the application"]
+    for entry in context:
+        if not isinstance(entry, dict):
+            continue
+
+        description = entry.get("description")
+        value = entry.get("value")
+        if not isinstance(description, str) or not description or value is None:
+            continue
+
+        if not isinstance(value, str):
+            try:
+                value = json.dumps(value, ensure_ascii=False, indent=2)
+            except (TypeError, ValueError):
+                value = str(value)
+        lines.extend(["", description, value])
+
+    return "\n".join(lines) if len(lines) > 1 else None
+
+
+# [2] agent app context: inject it per request
+# [!code highlight]
+class ContextAwareAgent(AgentFrameworkAgent):
+    """Add app context to this request without mutating the shared agent."""
+
+    async def run(
+        self,
+        input_data: dict[str, Any],
+    ) -> AsyncGenerator[BaseEvent, None]:
+        context_prompt = build_context_system_message(input_data.get("context"))
+        messages = input_data.get("messages")
+
+        # The adapter skips the model when messages are empty. Context
+        # alone must not create an unsolicited model call.
+        if context_prompt and isinstance(messages, list) and messages:
+            run_id = input_data.get("runId") or str(uuid4())
+            request_input = dict(input_data)
+            request_input["runId"] = run_id
+            request_input["messages"] = [
+                {
+                    "id": f"{run_id}-app-context",
+                    "role": "system",
+                    "content": context_prompt,
+                },
+                *[
+                    message
+                    for message in messages
+                    if not (
+                        isinstance(message, dict)
+                        and isinstance(message.get("id"), str)
+                        and message["id"].endswith("-app-context")
+                    )
+                ],
+            ]
+            input_data = request_input
+
+        async for event in super().run(input_data):
+            yield event
+
+
+def create_context_agent(chat_client: BaseChatClient) -> AgentFrameworkAgent:
+    base_agent = Agent(
+        name="sample_agent",
+        instructions="You are a helpful assistant.",
+        client=chat_client,
+    )
+
+    return ContextAwareAgent(
+        agent=base_agent,
+        name="CopilotKitMicrosoftAgentFrameworkAgent",
+        description="Assistant using request-local app context.",
+        require_confirmation=False,
+    )
+# endregion
 
 
 # --------------------------------------------------------------------------

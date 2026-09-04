@@ -30,17 +30,44 @@ export default function Page() {
         </div>
       </Panel>
 
-      <Callout tone="warn" title="`initialState` does not exist on useAgent">
-        Both Shared State pages seed the starting value with{" "}
-        <code>useAgent({"{ agentId, initialState }"})</code>. In{" "}
-        <code>@copilotkit/react-core</code> 1.66.2 there is no{" "}
-        <code>initialState</code> prop on <code>useAgent</code> — passing it is a
-        type error. This repo seeds the value on the server instead, with{" "}
-        <code>default_state</code> on{" "}
-        <code>add_agent_framework_fastapi_endpoint</code>, which is a real
-        parameter of that function. The read page also shows a{" "}
-        <code>render</code> prop on <code>useAgent</code>, which likewise is not
-        in the shipped type.
+      <Callout tone="info" title="Fixed upstream: `initialState` and `render` are gone">
+        Both Shared State pages used to seed with{" "}
+        <code>useAgent({"{ agentId, initialState }"})</code>, and this one also
+        showed a <code>render</code> prop. Neither has ever been on{" "}
+        <code>useAgent</code> in <code>@copilotkit/react-core</code> 1.66.2, so
+        both were type errors. The pages now seed in a <code>useEffect</code>{" "}
+        gated on <code>isReady</code>, which the hook does return, and the demo
+        runs that snippet as published. <code>default_state</code> on{" "}
+        <code>add_agent_framework_fastapi_endpoint</code> stays: the client seed
+        covers the first paint, the server one survives a re-run.
+      </Callout>
+
+      <Callout tone="warn" title="`isReady` does not mean the state has loaded">
+        The published seed writes <code>english</code> whenever{" "}
+        <code>state.language</code> is still undefined at the moment{" "}
+        <code>isReady</code> flips true. But <code>isReady</code> only reports
+        that the runtime <code>/info</code> sync resolved — it says nothing
+        about whether a state snapshot has arrived. On these routes the endpoint
+        supplies <code>default_state</code>, so the two agree and the seed is
+        harmless; on a persisted thread holding <code>spanish</code>, the same
+        snippet races the replay and the docs offer no guard.
+      </Callout>
+
+      <Callout tone="warn" title="The new render sample blanks the whole page">
+        &ldquo;Rendering agent state in your app&rdquo; reuses the component
+        name <code>YourMainContent</code> from the step above — the component
+        that draws the entire left pane — but its body is now{" "}
+        <code>if (!state.language) return null;</code>. Copied in literally, the
+        main content disappears until state arrives, rather than one line being
+        hidden. The old <code>render</code> prop failed to compile; this one
+        compiles and deletes your UI.
+      </Callout>
+
+      <Callout tone="warn" title="Rendering state inside the chat is no longer documented">
+        The section was retitled from &ldquo;Rendering agent state in the
+        chat&rdquo; to &ldquo;in your app&rdquo;, and the in-chat option went
+        with the title. Nothing on the page now says how to put state into the
+        conversation, and no replacement page is linked.
       </Callout>
 
       <Panel title="Source">

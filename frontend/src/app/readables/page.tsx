@@ -17,40 +17,69 @@ export default function Page() {
         <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
           The context is delivered in the AG-UI <code>RunAgentInput</code>, as{" "}
           <code>RunAgentInput.Context</code> entries carrying a description and
-          a value. The .NET sample adds middleware to recover the request with{" "}
-          <code>TryGetRunAgentInput</code> and fold that into a system message;
-          the Python sample does not, because the Python AG-UI integration
-          already surfaces it to the agent.
-        </p>
-        <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-          Until 2026-08-30 the guide located this at{" "}
-          <code>ChatOptions.AdditionalProperties[&quot;ag_ui_context&quot;]</code>,
-          and this page repeated it. The drift retracted that: the new wording
-          is that <code>TryGetRunAgentInput</code> &ldquo;recovers the request
-          without depending on hosting-layer keys&rdquo;. Nothing changed for
-          the Python path either way, which is why this route kept passing
-          across the correction — the claim it restated was never one it
-          exercised.
+          a value. Both samples now fold that into a system message themselves —
+          .NET with <code>TryGetRunAgentInput</code> middleware, Python with the{" "}
+          <code>ContextAwareAgent</code> subclass this route runs.
         </p>
         <div className="mt-4">
           <TryIt
             prompts={["Who are my colleagues?", "What is Jane Smith's role?"]}
             expect="The agent answers from the list on the left, which it was never told in a message."
-            fail="The agent says it has no information about your colleagues — the context is not reaching the run."
+            fail="The agent says it has no information about your colleagues — the context is not reaching the run. That is what the pre-2026-09-04 sample did on every run."
           />
         </div>
       </Panel>
 
-      <Callout tone="info" title="Nothing to add on the backend">
-        The doc&apos;s Python sample for this page is a plain agent with no
-        tools and no extra configuration — the comment in it literally reads
-        &ldquo;frontend context is forwarded automatically&rdquo;. This route
-        therefore adds nothing to <code>backend/agents.py</code>; it reuses{" "}
-        <code>sample_agent</code> as-is.
+      <Callout tone="warn" title="The page reversed itself, and the old version could not have worked">
+        <p>
+          Until this sync the Python sample was a plain agent whose only comment
+          read &ldquo;frontend context is forwarded automatically&rdquo;, and
+          this route reused <code>sample_agent</code> unchanged on that basis.
+          The page now publishes a <code>ContextAwareAgent</code> that builds a
+          system message out of <code>input_data[&quot;context&quot;]</code> by
+          hand, and the lead-in changed to &ldquo;Use middleware to read it and
+          inject it into the agent&apos;s conversation.&rdquo;
+        </p>
+        <p className="mt-2">
+          The shipped source settles which version is right. In{" "}
+          <code>agent_framework_ag_ui._agent_run.run_agent_stream</code>,{" "}
+          <code>input_data[&quot;context&quot;]</code> is read in exactly one
+          place — <code>build_ag_ui_context_slice(...)</code>, inside the branch
+          guarded by the A2UI injection flag. A run without{" "}
+          <code>injectA2UITool</code> never turns the forwarded context into
+          anything the model sees. The old sample was the defect, and it was the
+          silent kind: no error, no warning, just an agent answering from
+          general knowledge instead of from your data.
+        </p>
+        <p className="mt-2">
+          This route now runs the published subclass on its own endpoint,{" "}
+          <code>/context_agent</code>.
+        </p>
+      </Callout>
+
+      <Callout tone="warn" title="One page migrated to the new import path; seven did not">
+        This is the only Python sample in the set that imports from{" "}
+        <code>agent_framework_ag_ui</code> and annotates the client as{" "}
+        <code>BaseChatClient</code>. Quickstart, Auth, Frontend Tools, Tool
+        Rendering, State Rendering and both Shared State pages still publish{" "}
+        <code>agent_framework.ag_ui</code> and{" "}
+        <code>SupportsChatGetResponse</code>. Both resolve to the same class
+        today — <code>agent_framework.ag_ui</code> is a lazy shim over the
+        package — so the split is cosmetic until it is not. Nothing in the docs
+        says which is preferred, or that they are the same thing.{" "}
+        <code>backend/agents.py</code> asserts the two are identical at import,
+        so a release that splits them fails loudly here.
       </Callout>
 
       <Panel title="Source">
         <SourceCode file="frontend/src/app/readables/demo-chat/page.tsx" />
+      </Panel>
+
+      <Panel
+        title="The agent the page now publishes"
+        description="ContextAwareAgent and its helper, verbatim apart from the factory name."
+      >
+        <SourceCode file="backend/agents.py" region="context-agent" />
       </Panel>
     </>
   );
