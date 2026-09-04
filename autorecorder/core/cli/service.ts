@@ -40,6 +40,27 @@ export interface ServiceDefinition {
    */
   settleMs?: number;
 
+  /**
+   * URL to request once the server says it is ready, before this function
+   * returns.
+   *
+   * "Ready" and "able to answer" are not the same thing for a dev server. A
+   * bundler compiles a route when the first request for it arrives, so the whole
+   * cold compile of a fresh scaffold lands on whoever asks first — and that is
+   * the recorder's demo navigation, which has a fixed budget measured in
+   * seconds. Warming here moves that compile into the boot window instead, which
+   * is minutes long and is footage anyway: the terminal segment then shows the
+   * compile actually happening, and the browser afterwards opens a page that is
+   * already built.
+   *
+   * Failures are ignored on purpose. This is an optimisation, not a health
+   * check; the demo step is what decides whether the app works.
+   */
+  warmUrl?: string;
+
+  /** How long to allow the warm request. */
+  warmTimeoutMs?: number;
+
   cols?: number;
   rows?: number;
 }
@@ -117,6 +138,24 @@ export async function startService(
         : `Dev server never printed ${String(def.readyPattern)} within ${((def.readyTimeoutMs ?? 180_000) / 1000).toFixed(0)}s.`,
       tail,
     );
+  }
+
+  if (def.warmUrl) {
+    const warmTimeout = def.warmTimeoutMs ?? 180_000;
+    const warmStarted = Date.now();
+    console.log(`   🔥 Warming ${def.warmUrl} so the first compile is not the demo's...`);
+    try {
+      const res = await fetch(def.warmUrl, {
+        signal: AbortSignal.timeout(warmTimeout),
+        redirect: 'follow',
+      });
+      const warmSeconds = ((Date.now() - warmStarted) / 1000).toFixed(1);
+      console.log(`   🔥 ${res.status} in ${warmSeconds}s`);
+    } catch (e) {
+      // Not fatal: an app that cannot answer here will fail the demo step a few
+      // seconds later, with a diagnostic aimed at the page rather than at this.
+      console.warn(`   ⚠️ Warm request failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   await sleep(def.settleMs ?? 1200);

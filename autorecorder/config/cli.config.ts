@@ -70,7 +70,7 @@ const AUTH_TIMEOUT_MS = 6 * 60_000;
 const LOGIN_TIMEOUT_MS = 15 * 60_000;
 
 /** Package managers the scaffold is installed with, one flow each. */
-const PACKAGE_MANAGERS = [
+const PACKAGE_MANAGERS: readonly { id: string; command: string }[] = [
   { id: 'npm', command: 'npm' },
   { id: 'pnpm', command: 'pnpm' },
   { id: 'yarn', command: 'yarn' },
@@ -291,6 +291,38 @@ export const CLI_FLOWS = defineCliFlows([
     // roughly how long it took. Cap the dead air, then play what is left fast.
     render: { maxGapSec: 0.4, speed: 3, title: `${command} install` },
   })),
+
+  // Last on purpose, even though it runs between two pnpm installs: cast files
+  // are numbered by position in this list, so putting it anywhere earlier
+  // renames every install cast after it and orphans the ones already captured.
+  //
+  // pnpm needs this extra command before its install can succeed, and that is a
+  // finding rather than a workaround. pnpm 10+ refuses to run dependency build
+  // scripts it has not been told to trust, then exits 1 for having skipped them
+  // — so `pnpm install` "fails" on a scaffold that is otherwise fine. One of the
+  // skipped scripts is esbuild's, which is how esbuild fetches its platform
+  // binary, so this is not cosmetic.
+  //
+  // `--all` because the interactive form is a checkbox list, and the decision
+  // being recorded is "this starter's dependencies may build", not a per-package
+  // judgement. Approving writes `pnpm-workspace.yaml` into the app; the manifest
+  // is untouched, so the four copies stay comparable.
+  //
+  // Run order for pnpm:
+  //   --install-pnpm   exits 1, having skipped the builds
+  //   --approve-pnpm   runs them, records the approval
+  //   --install-pnpm   clean
+  {
+    id: 'approve-pnpm',
+    name: 'pnpm — approve dependency build scripts',
+    castName: 'Approve-pnpm',
+    cwd: `${SCAFFOLD_DIR}/pnpm/${APP_NAME}`,
+    command: 'pnpm',
+    args: ['approve-builds', '--all'],
+    timeoutMs: 5 * 60_000,
+    expectFiles: [`${SCAFFOLD_DIR}/pnpm/${APP_NAME}/pnpm-workspace.yaml`],
+    render: { maxGapSec: 0.4, speed: 2, title: 'pnpm approve-builds' },
+  },
 ]);
 
 /**

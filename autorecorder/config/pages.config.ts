@@ -26,22 +26,50 @@
 import { definePages, type PageDefinition } from '../core/types';
 
 /**
- * The scaffolded app, running.
+ * The scaffolded app, running — video 3 of each package manager's set.
  *
- * The third of this repo's three CLI deliverables — the other two are the CLI
- * creating the project and the four package managers installing it, both in
- * `config/cli.config.ts`. This one is the payoff: the versions that actually
- * resolved, the manifest and the integration code, the dev server starting, and
- * the agent answering.
+ * The other two are the CLI creating the project and that manager installing
+ * it, both in `config/cli.config.ts`. This one is the payoff, and it is a
+ * recording of the real app rather than a re-enactment: the dev server filmed
+ * booting in the terminal is the same process that serves the page driven
+ * immediately afterwards.
  *
- * It runs against the npm copy. All four copies are byte-identical apart from
- * `node_modules`, so a fifth clip of the same app under pnpm would show the
- * same screens — the differences between managers belong to the install video,
- * where they can be compared side by side.
+ * The order on screen is how someone would actually check a fresh scaffold:
  *
- * Port 3101, never 3000: the repo's own frontend usually holds 3000, and a
- * recording that quietly used *that* would look like a pass while proving
+ *   1. the doc page that told them to run the CLI
+ *   2. `package.json` — what the starter declares
+ *   3. the lockfile — what this manager actually resolved, pinned
+ *   4. the app's own CopilotKit code, so the chat below has a source
+ *   5. `<pm> run dev` booting, in a terminal
+ *   6. the app open in a browser, asked a question, answering
+ *
+ * Steps 2 and 3 are the pair that matters. `package.json` carries RANGES, so on
+ * its own it cannot answer "which versions is this?" — and the resolved set is
+ * exactly where four package managers can differ. The lockfile is where that
+ * difference is written down, which is why this tab is a different file in each
+ * set. VERSIONS.md, the generated summary of the same thing, stays on the
+ * install and finding clips: showing both here would say it twice before the
+ * app has appeared.
+ *
+ * All four managers are listed, bun included, even though its install dies in
+ * the postinstall script on Windows. That is deliberate: this is a test harness,
+ * and the entry is what re-checks the finding on every run. When bun still
+ * fails, `bun run dev` never prints its ready line, the recorder reports a dev
+ * server that never started and writes no video — and bun's third deliverable
+ * stays the finding clip in `cli.config.ts`. When a future bun stops failing,
+ * this entry starts producing a demo without anyone having to remember to add
+ * it back.
+ *
+ * Port 3121 and up, never 3000: the repo's own frontend usually holds 3000, and
+ * a recording that quietly used *that* would look like a pass while proving
  * nothing about the scaffold.
+ *
+ * Not 3101–3104 either, and that is not superstition. This CLAUDE.md ships to
+ * every framework repo, so every repo's copy of this file picked the same
+ * ports — and a sibling repo's scaffold left running on 3101 is enough for the
+ * dev server here to fail with EADDRINUSE while the browser happily records
+ * *that other framework's app* answering nothing. It happened. Each framework
+ * repo should move this block to its own port range rather than share one.
  *
  * `readyPattern` is what the dev server prints when it is serving. If a future
  * starter changes that wording, the recorder waits out the timeout and reports
@@ -49,15 +77,18 @@ import { definePages, type PageDefinition } from '../core/types';
  * reachable in a way this config recognises.
  */
 const DEMO_PAGES: PageDefinition[] = [
-  { pm: 'npm', command: 'npm', args: ['run', 'dev'], port: 3101 },
-  { pm: 'pnpm', command: 'pnpm', args: ['run', 'dev'], port: 3102 },
-  { pm: 'yarn', command: 'yarn', args: ['run', 'dev'], port: 3103 },
-  { pm: 'bun', command: 'bun', args: ['run', 'dev'], port: 3104 },
-].map(({ pm, command, args, port }) => {
+  { pm: 'npm', command: 'npm', args: ['run', 'dev'], lockfile: 'package-lock.json', port: 3121 },
+  { pm: 'pnpm', command: 'pnpm', args: ['run', 'dev'], lockfile: 'pnpm-lock.yaml', port: 3122 },
+  { pm: 'yarn', command: 'yarn', args: ['run', 'dev'], lockfile: 'yarn.lock', port: 3123 },
+  // bun 1.2 writes a text `bun.lock`; older bun wrote the binary `bun.lockb`,
+  // which has nothing readable to put on screen. The doctor names this file if
+  // the installed bun produced the other one.
+  { pm: 'bun', command: 'bun', args: ['run', 'dev'], lockfile: 'bun.lock', port: 3124 },
+].map(({ pm, command, args, lockfile, port }) => {
   const app = `1-cli-testing/${pm}/app`;
   return {
     id: `demo-${pm}`,
-    name: `${pm} · 3 · Scaffolded app - versions, code and a live agent`,
+    name: `${pm} · 3 · Scaffolded app - manifest, lockfile, dev server and a live agent`,
     videoName: `Demo-${pm}`,
     // Names the file as the third of this manager's set rather than by doc-nav
     // position, so one manager's three clips sort together.
@@ -68,17 +99,19 @@ const DEMO_PAGES: PageDefinition[] = [
     route: 'quickstart',
     generated: true,
 
-    // Leads with the resolved versions, not the manifest. package.json declares
-    // RANGES, so on its own it cannot answer "which versions is this?", and the
-    // resolved set is exactly where four package managers can differ.
-    // VERSIONS.md is written after each install.
-    ideFile: `${app}/VERSIONS.md`,
+    // What the starter declares. Also the file whose absence tells the runner
+    // this manager's app has not been scaffolded and installed yet.
+    ideFile: `${app}/package.json`,
     startLine: 1,
-    endLine: 22,
+    endLine: 24,
     extraTabs: [
-      { filePath: `${app}/package.json`, startLine: 1, endLine: 24 },
-      // The CopilotKit integration itself. Adjust once a real scaffold exists —
-      // the doctor names this file if the path is wrong.
+      // What it resolved to. A lockfile is long and mostly uninteresting; its
+      // head is the part that identifies the tree — format version, then the
+      // first resolved entries.
+      { filePath: `${app}/${lockfile}`, startLine: 1, endLine: 26 },
+      // The CopilotKit integration itself — the code behind the chat that
+      // answers a few seconds later. Adjust once a real scaffold exists; the
+      // doctor names this file if the path is wrong.
       { filePath: `${app}/src/app/page.tsx`, startLine: 1, endLine: 30 },
     ],
 

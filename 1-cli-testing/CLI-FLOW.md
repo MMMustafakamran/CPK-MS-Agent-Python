@@ -337,6 +337,13 @@ npm run record -- --demo-npm      # video 3, per manager
 That produces twelve videos — three per package manager: the CLI creating the
 app, that manager installing it, and its copy running and answering.
 
+Video 3 films the real thing: `<pm> run dev` booting in a terminal, then the
+browser opening that server and getting a live answer out of the agent. As of
+the 2026-09-03 run only npm gets one — yarn's cold turbopack compile overruns
+the recorder's demo navigation budget, and pnpm and bun never finish installing.
+The reasons are in
+[autorecorder/README.md](../autorecorder/README.md#video-3-what-only-npm-survives).
+
 The notes below are why it is built the way it is — keep them in mind when
 editing the config.
 

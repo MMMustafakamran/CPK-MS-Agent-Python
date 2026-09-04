@@ -176,7 +176,14 @@ cross-referencing another:
 |---|---|---|
 | 1 | `<prefix>-<pm>-1-CLI-Create.webm` | the doc page, then `npx copilotkit@latest create` answering every prompt |
 | 2 | `<prefix>-<pm>-2-Install.webm` | that manager installing the project |
-| 3 | `<prefix>-<pm>-3-Demo.webm` | the doc page, VS Code with resolved versions + `package.json` + the integration code, that manager's dev server starting, then the app answering a prompt |
+| 3 | `<prefix>-<pm>-3-Demo.webm` | the doc page, VS Code with `package.json` + that manager's lockfile + the integration code, `<pm> run dev` booting, then the real app answering a prompt |
+
+Video 3 is a recording of the running app, not a re-enactment: the dev server
+filmed booting in the terminal is the same process that serves the page driven
+in the next segment, and the reply on screen is a live agent round trip.
+
+Only npm currently produces one. The others fail for reasons worth knowing —
+see [Video 3: what only npm survives](#video-3-what-only-npm-survives).
 
 The CLI clip is the same footage in all four sets, because the CLI runs once and
 its result is copied. `cli-render.ts` films it once and copies the file rather
@@ -276,14 +283,54 @@ server before filming, replays its boot in a terminal between the IDE and the
 demo, points the demo at its origin, and kills it afterwards — so the terminal
 segment is genuinely the process serving the app in the next segment.
 
-Each leads with `VERSIONS.md`, not `package.json`. The manifest declares
-*ranges*; the resolved set is both what the recording actually ran against and
-the one place four package managers can visibly differ. It is written after each
-install, so it cannot drift from the tree it describes.
+The IDE segment shows `package.json` and then that manager's own lockfile. The
+manifest declares *ranges*, so on its own it cannot answer "which versions is
+this?" — and the lockfile is where the answer is written down, per manager,
+which is the one place four package managers can visibly differ. (`VERSIONS.md`,
+the generated summary of the same thing, stays on the install and finding clips;
+showing both here would say it twice before the app has appeared.)
 
-Each runs on its own port (3101–3104), never 3000. The repo's own frontend
+Each runs on its own port (3121–3124), never 3000. The repo's own frontend
 usually holds 3000, and a demo that quietly recorded against *that* would look
 like a pass while proving nothing about the scaffold.
+
+Not 3101–3104 either, and that is not superstition. This suite is copied into
+every framework repo, so every copy of `pages.config.ts` started from the same
+port range — and a sibling repo's scaffold left running on 3101 was enough for
+`npm run dev` here to die with `EADDRINUSE` while the browser cheerfully filmed
+*that other framework's app*, which of course never answered. Give each
+framework repo its own range.
+
+### Video 3: what only npm survives
+
+| Manager | Install | Video 3 | Why |
+|---|---|---|---|
+| npm | ✅ | ✅ recorded | full round trip: dev server boots, agent replies |
+| yarn | ✅ | ❌ | cold turbopack compile overruns the demo navigation budget |
+| pnpm | ❌ | ❌ | `ERR_PNPM_IGNORED_BUILDS` — build scripts blocked, so the agent venv is never created |
+| bun | ❌ | ❌ | the Windows postinstall finding; its video 3 is the finding clip instead |
+
+The yarn one is a recorder limitation rather than anything wrong with the app.
+`next dev --turbopack` compiles `/` only when the first request arrives, so the
+whole cold compile lands inside the demo step's fixed 45s navigation timeout in
+`core/engine.ts`. npm cleared it at 39.3s; yarn did not. Pre-warming the tree
+does not help, because the recorder boots its own server and turbopack compiles
+again from scratch.
+
+The fix belongs in `core/`, which is why it is written here rather than applied:
+once `readyPattern` matches, `startService` should issue one warm request to
+`originUrl + demoPath`, moving the cold compile into the boot window — which has
+a 240s budget and is footage anyway — so the navigation afterwards hits a page
+that is already compiled. That change is framework-agnostic and would need
+porting to every copy of this folder.
+
+Two smaller gaps in the same area, also unfixed on purpose:
+
+- `startService` does not check the port is free before spawning, so a foreign
+  process on that port silently becomes the subject of the recording.
+- `readyPattern` is matched against the whole stream, including failure output.
+  A `next dev` that died on `EADDRINUSE` still printed enough for the recorder
+  to report `Ready in 3.6s` and carry on filming.
 
 They are marked `generated: true`, meaning their files exist only after the
 pipeline has run. Before that the doctor reports them as warnings rather than

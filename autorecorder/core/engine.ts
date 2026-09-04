@@ -497,10 +497,15 @@ export class RecordingEngine {
     let service: RunningService | undefined;
     if (config.devServer) {
       try {
-        service = await startService(config.devServer, {
-          rootDir: this.rootDir,
-          title: config.devServer.title,
-        });
+        service = await startService(
+          // The page the demo step opens is the page worth warming — see
+          // `warmUrl` in service.ts. Config may still override it.
+          { warmUrl: config.demoUrl, ...config.devServer },
+          {
+            rootDir: this.rootDir,
+            title: config.devServer.title,
+          },
+        );
       } catch (e) {
         const detail = e instanceof ServiceStartError ? `\n${e.tail}` : '';
         return {
