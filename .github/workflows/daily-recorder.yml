@@ -347,13 +347,22 @@ jobs:
           FE=$?
           npx --prefix autorecorder tsc --noEmit -p autorecorder/tsconfig.json >> typecheck.txt 2>&1
           AR=$?
+          # Unit tests for the recorder's pure modules (screen parsing, cast
+          # pacing, page selection) and the core/ drift check. Neither needs a
+          # browser or a service.
+          npm --prefix autorecorder test > recorder-tests.txt 2>&1
+          UT=$?
+          npm --prefix autorecorder run core:check > core-check.txt 2>&1
+          CC=$?
           set -e
-          cat typecheck.txt
+          cat typecheck.txt recorder-tests.txt core-check.txt
           {
-            echo "## 2a. Typecheck"
+            echo "## 2a. Typecheck, unit tests, core drift"
             echo
-            if [ "$FE" = "0" ]; then echo "- frontend: **clean**"; else echo "- frontend: **$(grep -c 'error TS' typecheck.txt) error(s)** -- see the job log"; fi
-            if [ "$AR" = "0" ]; then echo "- autorecorder: **clean**"; else echo "- autorecorder: **errors** -- see the job log"; fi
+            if [ "$FE" = "0" ]; then echo "- frontend typecheck: **clean**"; else echo "- frontend typecheck: **$(grep -c 'error TS' typecheck.txt) error(s)** -- see the job log"; fi
+            if [ "$AR" = "0" ]; then echo "- autorecorder typecheck: **clean**"; else echo "- autorecorder typecheck: **errors** -- see the job log"; fi
+            if [ "$UT" = "0" ]; then echo "- autorecorder unit tests: **pass** ($(grep -o 'pass [0-9]*' recorder-tests.txt | tail -1))"; else echo "- autorecorder unit tests: **failing** -- see the job log"; fi
+            if [ "$CC" = "0" ]; then echo "- autorecorder core/: **matches CORE_MANIFEST.json**"; else echo "- autorecorder core/: **drifted from CORE_MANIFEST.json** -- run \`npm run core:write\` if deliberate"; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       # README §8 is generated from nav-config.ts and the recorder config. A

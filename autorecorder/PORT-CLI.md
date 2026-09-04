@@ -12,9 +12,14 @@ repo — open the files named below rather than trusting a summary of them.
 
 ```
 core/cli/**                 (12 modules + fixtures/)
+core/CORE_MANIFEST.json     scripts/core-manifest.mjs   test/
 cli-capture.ts  cli-render.ts  cli-selftest-demo.ts
 1-cli-testing/  (CLI-FLOW.md, .gitignore, *.ps1, *.bat)
 ```
+
+After copying, `npm run core:check` must pass: it proves `core/` arrived
+byte-for-byte. `npm run core:write` regenerates the manifest if you *had* to
+change core — and that is a finding to report, not a step in a port.
 
 `package.json` — add deps `node-pty ^1.1.0`, `@xterm/xterm ^6.0.0` and the
 `capture` / `render` / `selftest` scripts. Copy them from this repo's file.
@@ -74,7 +79,12 @@ Copy the **structure**, not the values. Run the CLI once by hand in
 
 ## 5 · `DEMO_PAGES` in `config/pages.config.ts`
 
-- ports **3101–3104**, never 3000 (the repo's own frontend holds 3000)
+- ports: **pick a range no other repo uses**, never 3000 (the repo's own
+  frontend holds 3000) and not 3101–3104 or 3121–3124, which earlier ports
+  already took. Every copy of this folder that shared a range has collided
+  with a sibling repo's dev server at least once; `startService` now refuses a
+  port that is already answering, so the collision fails loudly instead of
+  filming the other repo's app — but it still fails.
 - `readyPattern` = what *that* starter's dev server prints when serving
 - `extraTabs` paths = that starter's shape (Next: `src/app/page.tsx`)
 - `prompt` = something its agent can actually answer
@@ -108,8 +118,8 @@ lines.
 
 ## Done
 
-`typecheck` 0 · `doctor` 0 · `selftest` pass · videos watched · README status
-table updated.
+`npm run check` 0 (typecheck, unit tests, core manifest) · `doctor` 0 ·
+`selftest` pass · videos watched · README status table updated.
 
 **Report:** what your repo had that this one didn't · which prompts differed or
 turned out conditional · whether the starter has `agent/` · the dev server's

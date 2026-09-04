@@ -16,6 +16,8 @@ import { sendPrompt, waitForAgentResponseCompletion } from '../core/actions';
 export const runSharedStateReadAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   console.log(`   [Shared State Read] Sending prompt to switch language in agent.state...`);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
@@ -51,8 +53,8 @@ export const runSharedStateReadAction: PageActionHandler = async (
   if (language === 'spanish') {
     console.log(`   ✅ [Shared State Read] Language panel reads "spanish" — state reached the page.`);
   } else {
-    console.log(
-      `   ⚠️  [Shared State Read] Language panel reads "${language || '(empty)'}" after the reply. ` +
+    ctx.warn(
+      `[Shared State Read] Language panel reads "${language || '(empty)'}" after the reply. ` +
         `The agent may have answered in text without calling update_language.`,
     );
   }
@@ -61,6 +63,8 @@ export const runSharedStateReadAction: PageActionHandler = async (
 export const runSharedStateWriteAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   console.log(`   [Shared State Write] Clicking "Toggle + re-run agent" button on the left...`);
   await sleep(1500);
@@ -75,7 +79,7 @@ export const runSharedStateWriteAction: PageActionHandler = async (
       console.log(`   ✓ Clicked "Toggle + re-run agent"!`);
     }
   } else {
-    console.log(`   ⚠️  [Shared State Write] "Toggle + re-run agent" button not found — nothing was written.`);
+    ctx.fail(`[Shared State Write] "Toggle + re-run agent" button not found — nothing was written, so there was nothing to demonstrate.`);
   }
 
   // Glide cursor over the raw JSON state on the left

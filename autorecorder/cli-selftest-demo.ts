@@ -38,6 +38,10 @@ const [page] = definePages([
     prompt: 'Can you tell me a joke?',
     waitAfterPromptMs: 2500,
 
+    // Not a deliverable. Kept out of the folder the CI report lists, where it
+    // wore the same `01` index as the Quickstart clip.
+    videoSubdir: 'selftest',
+
     devServer: {
       cwd: 'autorecorder',
       command: 'node',
@@ -62,7 +66,7 @@ console.log(`   ${result.success ? '✅ [PASS]' : '❌ [FAIL]'} ${page.name}`);
 if (result.error) console.log(`        · ${result.error}`);
 for (const w of result.warnings) console.log(`        · note: ${w}`);
 
-const video = join(ROOT, 'autorecorder', 'videos', result.filename);
+const video = join(ROOT, 'autorecorder', 'videos', 'selftest', result.filename);
 if (result.filename && existsSync(video)) {
   console.log(`   🎥 ${result.filename} (${(statSync(video).size / 1024 / 1024).toFixed(1)} MB)`);
 } else {

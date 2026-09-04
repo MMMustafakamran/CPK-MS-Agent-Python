@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  ADAPT THIS FILE — 2 of 3
+ *  ADAPT THIS FILE — 2 of 4
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * The DOM contract: how the recorder finds the chat surface it has to drive.

@@ -18,6 +18,8 @@ const RENDERED_TEXT = 'Called the weather API for';
 export const runToolRenderingAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   console.log(`   [Tool Rendering] Prompting for weather to trigger custom renderer...`);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
@@ -50,8 +52,8 @@ export const runToolRenderingAction: PageActionHandler = async (
   if (rendered) {
     console.log(`   ✅ [Tool Rendering] Custom renderer mounted ("${RENDERED_TEXT} …").`);
   } else {
-    console.log(
-      `   ⚠️  [Tool Rendering] "${RENDERED_TEXT}" never appeared. The reply streamed, but the ` +
+    ctx.warn(
+      `[Tool Rendering] "${RENDERED_TEXT}" never appeared. The reply streamed, but the ` +
         `useRenderTool component did not mount — check that the tool name matches get_weather.`,
     );
   }

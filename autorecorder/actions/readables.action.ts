@@ -21,15 +21,17 @@ import { SELECTORS } from '../config/selectors.config';
  * injects the context itself, and this route runs it on `/context_agent`.
  *
  * So the note is gone. What replaces it is a check: the answer has to actually
- * name someone from the panel. It logs rather than throws, because a model
+ * name someone from the panel. It warns rather than fails, because a model
  * paraphrasing is not the same failure as the context never arriving — but a
- * run where none of the names appear is worth seeing in the log.
+ * run where none of the names appear shows up as PASS* in the summary.
  */
 const COLLEAGUES = ['John Doe', 'Jane Smith', 'Bob Wilson'];
 
 export const runReadablesAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   console.log(`   [Readables] Sending prompt "${config.prompt}"...`);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
@@ -60,10 +62,10 @@ export const runReadablesAction: PageActionHandler = async (
   if (cited.length === COLLEAGUES.length) {
     console.log(`   ✅ [Readables] Answer cites all ${COLLEAGUES.length} colleagues — the context reached the agent.`);
   } else if (cited.length > 0) {
-    console.log(`   ⚠️  [Readables] Answer cites only ${cited.length}/${COLLEAGUES.length} (${cited.join(', ')}).`);
+    ctx.warn(`[Readables] Answer cites only ${cited.length}/${COLLEAGUES.length} (${cited.join(', ')}).`);
   } else {
-    console.log(
-      `   ⚠️  [Readables] Answer names none of the shared colleagues. Check that the chat is bound to \`context_agent\` and not a plain agent.`,
+    ctx.warn(
+      `[Readables] Answer names none of the shared colleagues. Check that the chat is bound to \`context_agent\` and not a plain agent.`,
     );
   }
 };

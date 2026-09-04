@@ -1,7 +1,53 @@
 import { type Page } from 'playwright';
 import { SELECTORS } from '../config/selectors.config';
 import { humanClick, humanGlide, sleep } from './overlays/cursor';
+import { TIMEOUTS } from './timeouts';
 import { type PageActionHandler, type PageRecordConfig } from './types';
+
+/**
+ * The agent never answered.
+ *
+ * Its own error type so a caller can tell silence apart from every other
+ * demo-step failure (a 404, a chat surface that never renders). One page's
+ * silence is a break; on a page whose documented defect *is* the silence it is
+ * the whole finding, and a handler may want to catch exactly this and nothing
+ * else.
+ */
+export class AgentSilentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AgentSilentError';
+  }
+}
+
+/** What `waitForAgentResponseCompletion` observed, for handlers that check. */
+export interface ReplyObservation {
+  /** Milliseconds from the call until the first reply text appeared. */
+  startedAfterMs: number;
+  /** Length of the reply text when it was last read. */
+  chars: number;
+  /**
+   * The stream cap expired while text was still changing.
+   *
+   * The reply on screen may be incomplete, and the "stable for 1.6s" rule was
+   * never satisfied. A handler should surface this rather than treat the
+   * reply as finished.
+   */
+  streamTimedOut: boolean;
+}
+
+export interface ReplyWaitOptions {
+  /**
+   * How long to wait for a reply to *start*. The default suits a plain chat
+   * turn and is deliberately tight, because a page that never answers is the
+   * failure this suite exists to catch. Raise it for an agent that is
+   * legitimately slow rather than broken.
+   */
+  startTimeoutMs?: number;
+  /** How long to allow the reply to stream once it has started. */
+  streamTimeoutMs?: number;
+}
+
 /**
  * Assistant messages as CopilotKit's own prebuilt components render them.
  *
@@ -33,15 +79,19 @@ export async function waitForAgentResponseCompletion(
   postWaitMs = 4000,
   initialMessageCount?: number,
   messageSelector: string = DEFAULT_ASSISTANT_MESSAGE_SELECTOR,
-): Promise<void> {
+  opts: ReplyWaitOptions = {},
+): Promise<ReplyObservation> {
+  const startTimeoutMs = opts.startTimeoutMs ?? TIMEOUTS.replyStartMs;
+  const streamTimeoutMs = opts.streamTimeoutMs ?? TIMEOUTS.replyStreamMs;
   console.log(`   ⏳ Actively detecting AI agent response start & streaming progress...`);
 
-  // Step 1: Wait until a new assistant message starts receiving content (up to 30s)
+  // Step 1: Wait until a new assistant message starts receiving content
   let hasStarted = false;
   const startTime = Date.now();
   const baseCount = initialMessageCount ?? 0;
+  const observed: ReplyObservation = { startedAfterMs: 0, chars: 0, streamTimedOut: false };
 
-  while (Date.now() - startTime < 30000) {
+  while (Date.now() - startTime < startTimeoutMs) {
     const status = await page
       .evaluate(({ bCount, sel }) => {
         const msgs = document.querySelectorAll(sel);
@@ -65,6 +115,8 @@ export async function waitForAgentResponseCompletion(
 
     if (status.started) {
       hasStarted = true;
+      observed.startedAfterMs = Date.now() - startTime;
+      observed.chars = status.len;
       break;
     }
     await sleep(300);
@@ -75,9 +127,10 @@ export async function waitForAgentResponseCompletion(
     console.log(`   🌊 AI agent is streaming response tokens...`);
     let previousText = '';
     let stableCount = 0;
+    let settled = false;
     const streamStart = Date.now();
 
-    while (Date.now() - streamStart < 45000) {
+    while (Date.now() - streamStart < streamTimeoutMs) {
       const currentText = await page
         .evaluate((sel) => {
           const msgs = document.querySelectorAll(sel);
@@ -96,6 +149,8 @@ export async function waitForAgentResponseCompletion(
         stableCount++;
         // If text is stable for 4 consecutive checks (1.6s), streaming has finished
         if (stableCount >= 4) {
+          observed.chars = currentText.length;
+          settled = true;
           console.log(
             `   ✅ AI agent response completed (${currentText.length} characters).`,
           );
@@ -107,11 +162,21 @@ export async function waitForAgentResponseCompletion(
       }
       await sleep(400);
     }
+
+    // The cap ran out with text still changing. That used to fall through
+    // silently and count as complete; now the caller is told.
+    if (!settled) {
+      observed.streamTimedOut = true;
+      observed.chars = previousText.length;
+      console.warn(
+        `   ⚠️ Reply was still streaming after ${Math.round(streamTimeoutMs / 1000)}s; the take continues with it possibly unfinished.`,
+      );
+    }
   } else {
     // An agent that never answers is the failure this suite exists to catch.
     // Warning here and continuing is what let broken pages report [PASS].
-    throw new Error(
-      'Agent never produced a response within 30s -- no assistant message ever ' +
+    throw new AgentSilentError(
+      `Agent never produced a response within ${Math.round(startTimeoutMs / 1000)}s -- no assistant message ever ` +
         'received content. Check the backend and the browser console output above.',
     );
   }
@@ -139,6 +204,7 @@ export async function waitForAgentResponseCompletion(
   // Step 4: Reading pause after response completes
   console.log(`   📖 Reading completed response (pausing ${postWaitMs / 1000}s)...`);
   await sleep(postWaitMs);
+  return observed;
 }
 
 /** Default chat input across the CopilotKit prebuilt surfaces. */
@@ -333,12 +399,19 @@ export function promptsFor(config: PageRecordConfig): string[] {
 export const runStandardAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   console.log(`   🔍 Detecting demo page & chat component rendering...`);
   const initialMsgCount = await sendPrompt(page, config.prompt);
-  await waitForAgentResponseCompletion(
+  const reply = await waitForAgentResponseCompletion(
     page,
     config.waitAfterPromptMs ?? 4000,
     initialMsgCount,
+    DEFAULT_ASSISTANT_MESSAGE_SELECTOR,
+    { startTimeoutMs: ctx.timeouts.replyStartMs, streamTimeoutMs: ctx.timeouts.replyStreamMs },
   );
+  if (reply.streamTimedOut) {
+    ctx.warn(`Reply still streaming after ${Math.round(ctx.timeouts.replyStreamMs / 1000)}s; the clip may end mid-answer.`);
+  }
 };

@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "record": "tsx cli.ts",
-    "record:all": "tsx cli.ts",
     "record:list": "tsx cli.ts --list",
     "doctor": "node ../ci/write-versions.mjs && tsx cli.ts --doctor",
     "doctor:online": "node ../ci/write-versions.mjs && tsx cli.ts --doctor --online",
@@ -15,7 +14,11 @@
     "render": "tsx cli-render.ts",
     "render:list": "tsx cli-render.ts --list",
     "selftest": "tsx cli-capture.ts --selftest",
-    "selftest:demo": "tsx cli-selftest-demo.ts"
+    "selftest:demo": "tsx cli-selftest-demo.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "core:check": "node scripts/core-manifest.mjs --check",
+    "core:write": "node scripts/core-manifest.mjs --write",
+    "check": "npm run typecheck && npm test && npm run core:check"
   },
   "dependencies": {
     "@xterm/xterm": "^6.0.0",
@@ -24,7 +27,7 @@
     "shiki": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^26",
     "tsx": "^4.19.3",
     "typescript": "^5"
   }

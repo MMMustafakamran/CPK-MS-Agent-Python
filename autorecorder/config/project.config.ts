@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- *  ADAPT THIS FILE — 1 of 3
+ *  ADAPT THIS FILE — 1 of 4
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Who this project is: which CopilotKit integration it tests, where its docs
@@ -56,6 +56,13 @@ export interface ProjectConfig {
    * Set to '' if this project's demos live directly on the route.
    */
   demoSuffix: string;
+
+  /**
+   * Project-wide overrides of the recorder's fixed waits. Optional; the
+   * defaults in `core/timeouts.ts` suit a warm Next.js dev server. Raise
+   * `demoNavMs` for a stack whose first request compiles the route.
+   */
+  timeouts?: Partial<import('../core/types').RecorderTimeouts>;
 }
 
 export const PROJECT: ProjectConfig = {

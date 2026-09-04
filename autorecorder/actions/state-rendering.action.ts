@@ -17,6 +17,8 @@ const EMPTY_STATE_TEXT = 'No searches yet';
 export const runStateRenderingAction: PageActionHandler = async (
   page: Page,
   config: PageRecordConfig,
+  _rootPath,
+  ctx,
 ) => {
   console.log(`   [State Rendering] Sending prompt to stream searches state...`);
   const msgCount = await sendPrompt(page, config.prompt, { timeoutMs: 12000 });
@@ -55,8 +57,8 @@ export const runStateRenderingAction: PageActionHandler = async (
     .isVisible({ timeout: 1000 })
     .catch(() => false);
   if (stillEmpty) {
-    console.log(
-      `   ⚠️  [State Rendering] Panel still reads "${EMPTY_STATE_TEXT}" after the reply. ` +
+    ctx.warn(
+      `[State Rendering] Panel still reads "${EMPTY_STATE_TEXT}" after the reply. ` +
         `agent.state.searches never populated — check update_searches and predict_state_config.`,
     );
   } else {

@@ -38,13 +38,29 @@ npm run record            # all pages, in order
 
 | Flag | Effect |
 |---|---|
-| `--list`, `--help` | Print every registered route and exit |
+| `--list`, `-l` | Print every registered route and exit |
+| `--help`, `-h` | Print the flags and exit |
 | `--doctor` | Validate the configuration; exits 1 on error |
 | `--doctor --online` | Also probe every doc/demo URL and the selectors |
 | `--<page-id>` | Record one page — `--quickstart`, `--slots` |
 | `--page=<id>` | Same thing, explicit form |
+| `--pages=<id,id>` | Exactly these pages (`--only=` is an alias) |
 | `--filter=<query>` | Record every page whose id or name contains the query |
+| `--limit=<n>` | First *n* of the selection (`--first=`, `--count=`) |
+| `--shard=<k>/<n>` | Slice *k* of *n*, for matrix workers |
 | `--force` | Record even if the pre-flight health check fails |
+| `--allow-ci` | On a runner, still record pages that boot their own dev server |
+
+Every run also writes `videos/RECORD_RESULTS.json` — one entry per page with
+pass/fail, the notes, the browser console errors and the file it wrote. The CI
+report is built from that file, not from whatever `.webm` files happen to be
+in the folder.
+
+```bash
+npm run check             # typecheck + unit tests + core/ drift check
+npm test                  # just the unit tests (screen parsing, cast pacing, page selection)
+npm run core:check        # core/ still matches core/CORE_MANIFEST.json
+```
 
 For the scaffolding CLI itself — a separate pipeline, no services needed — see
 [Recording the CLI](#recording-the-cli).
@@ -66,16 +82,26 @@ this policy when you copy the folder into another repo.
    ✅ [PASS]  (24.1s) Quickstart -> MSPY-react-01-Quickstart.webm
    ⚠️  [PASS*] (31.7s) Inspector -> MSPY-react-06-Inspector.webm
         · Doc page (…/inspector): Timeout 25000ms exceeded
+   ⚠️  [PASS*] (28.0s) Generative UI - Tool Rendering -> MSPY-react-09-ToolRendering.webm
+        · [Tool Rendering] "Called the weather API for" never appeared. The reply streamed, but the useRenderTool component did not mount
    ❌ [FAIL]  (19.4s) AG-UI -> MSPY-react-17-AgUi.webm
         · Demo step failed: Agent never produced a response within 30s
 ```
 
-- **PASS** — every step completed.
-- **PASS\*** — recorded, but the external doc page misbehaved. The intro footage
-  is degraded; the feature under test is not implicated.
+- **PASS** — every step completed and everything the handler checked for was
+  on screen.
+- **PASS\*** — recorded, with a note. Either the external doc page misbehaved
+  (intro footage degraded, feature not implicated) or the handler did not see
+  something the doc promises — a renderer that never mounted, a state panel
+  that stayed empty, a browser console error. The video is still the evidence;
+  the note says what to look for in it.
 - **FAIL** — the demo route 404'd, never rendered a chat surface, the agent never
-  answered, or the IDE view could not be built. The process exits 1, so this is
-  safe to gate CI on.
+  answered, the IDE view could not be built, or the handler called `ctx.fail`
+  (an approval card that never appeared, a button that was not there to click).
+  The clip is still saved. The process exits 1, so this is safe to gate CI on.
+
+Handlers report through `ctx.warn` / `ctx.fail` (see `actions/index.ts`). A
+`console.log` in a handler reaches the terminal and nothing else.
 
 ---
 
@@ -101,27 +127,45 @@ autorecorder/
 │   └── *.action.ts               per-page interaction scripts
 │
 ├── core/                       ← ✖ DO NOT EDIT — no framework knowledge here
+│   ├── CORE_MANIFEST.json        hash of every core file; `npm run core:check`
 │   ├── engine.ts                 browser lifecycle, the 3-step sequence, pass/fail
 │   ├── actions.ts                sendPrompt, response detection, standard action
+│   ├── select.ts                 which pages a `record` invocation means
+│   ├── timeouts.ts               every fixed wait, with project/page overrides
+│   ├── console-capture.ts        browser console errors, kept for the result
 │   ├── doctor.ts                 the adaptation contract, as a command
 │   ├── diagnostics.ts            pre-flight health check
-│   ├── types.ts                  PageDefinition → PageRecordConfig
+│   ├── types.ts                  PageDefinition → PageRecordConfig, ActionContext
 │   ├── ide/generator.ts          VS Code simulator, Shiki-highlighted from disk
 │   ├── cli/                      terminal capture and replay
 │   │   ├── driver.ts               runs a CLI under a real PTY, answers prompts
+│   │   ├── session.ts              the PTY itself, recording to a cast
+│   │   ├── service.ts              starts a dev server, waits for ready, port check
 │   │   ├── screen.ts               reads a repainting TUI out of a byte stream
 │   │   ├── cast.ts                 asciinema v2 read/write and pacing
 │   │   ├── terminal.ts             the terminal window that replays a cast
+│   │   ├── distribute.ts           one scaffold → four package-manager copies
+│   │   ├── versions.ts             VERSIONS.md from an installed tree
+│   │   ├── audio.ts                narration mux via ffmpeg
+│   │   ├── ci-guard.ts             capture/render refuse to run on a runner
 │   │   ├── selftest.ts             proves the driver works on this machine
 │   │   └── flow.ts                 CliFlowDefinition → CliFlowConfig
-│   └── overlays/                 Windows 11 taskbar + virtual cursor
+│   └── overlays/                 Windows 11 taskbar, cursor, Notepad, alert dialog
 │
+├── scripts/core-manifest.mjs   ← writes/checks CORE_MANIFEST.json, diffs two copies
+├── test/                       ← unit tests for the pure modules (`npm test`)
 ├── casts/                      ← captured terminal sessions (gitignored)
-└── videos/                     ← output
+└── videos/                     ← output, plus RECORD_RESULTS.json per run
 ```
 
 Every framework-specific value lives in `config/`. If something in `core/` needs
 to change for a port, that is a bug in this folder — see ADAPT.md.
+
+That rule is checked, not just stated: `core/CORE_MANIFEST.json` holds a hash
+of every core file and `npm run core:check` fails when they differ. A
+deliberate core change is followed by `npm run core:write`, and the manifest
+diff is the list of what to port to the other repos. To see how two copies
+differ: `node scripts/core-manifest.mjs --diff ../../Other-repo/autorecorder`.
 
 ---
 
@@ -182,8 +226,8 @@ Video 3 is a recording of the running app, not a re-enactment: the dev server
 filmed booting in the terminal is the same process that serves the page driven
 in the next segment, and the reply on screen is a live agent round trip.
 
-Only npm currently produces one. The others fail for reasons worth knowing —
-see [Video 3: what only npm survives](#video-3-what-only-npm-survives).
+npm, pnpm and yarn produce one; bun's third video is the finding clip instead.
+See [Video 3, per manager](#video-3-per-manager).
 
 The CLI clip is the same footage in all four sets, because the CLI runs once and
 its result is copied. `cli-render.ts` films it once and copies the file rather
@@ -301,49 +345,47 @@ port range — and a sibling repo's scaffold left running on 3101 was enough for
 *that other framework's app*, which of course never answered. Give each
 framework repo its own range.
 
-### Video 3: what only npm survives
+### Video 3, per manager
 
-| Manager | Install | Video 3 | Why |
+| Manager | Install | Video 3 | Notes |
 |---|---|---|---|
 | npm | ✅ | ✅ recorded | full round trip: dev server boots, agent replies |
-| yarn | ✅ | ❌ | cold turbopack compile overruns the demo navigation budget |
-| pnpm | ❌ | ❌ | `ERR_PNPM_IGNORED_BUILDS` — build scripts blocked, so the agent venv is never created |
-| bun | ❌ | ❌ | the Windows postinstall finding; its video 3 is the finding clip instead |
+| pnpm | ✅ after `--approve-pnpm` | ✅ recorded | pnpm 10 refuses untrusted build scripts and exits 1; `pnpm approve-builds --all` is captured as its own flow, then the install is re-run |
+| yarn | ✅ | ✅ recorded | the cold turbopack compile used to overrun the demo navigation; `startService` now warms `originUrl + demoPath` inside the boot window, so the browser opens a page that is already compiled |
+| bun | ❌ | finding clip | the Windows postinstall finding (`CLI_FINDING_VIDEOS`) |
 
-The yarn one is a recorder limitation rather than anything wrong with the app.
-`next dev --turbopack` compiles `/` only when the first request arrives, so the
-whole cold compile lands inside the demo step's fixed 45s navigation timeout in
-`core/engine.ts`. npm cleared it at 39.3s; yarn did not. Pre-warming the tree
-does not help, because the recorder boots its own server and turbopack compiles
-again from scratch.
+Three things `startService` now does that it once did not, each of which had
+produced a wrong-looking pass:
 
-The fix belongs in `core/`, which is why it is written here rather than applied:
-once `readyPattern` matches, `startService` should issue one warm request to
-`originUrl + demoPath`, moving the cold compile into the boot window — which has
-a 240s budget and is footage anyway — so the navigation afterwards hits a page
-that is already compiled. That change is framework-agnostic and would need
-porting to every copy of this folder.
+- **Warms the demo route** once `readyPattern` matches, so a route that
+  compiles on first request compiles during the boot footage (240s budget)
+  rather than inside the demo navigation (`demoNavMs`, 45s by default).
+- **Checks the port is free** before spawning. A sibling repo's dev server on
+  the same port used to become the subject of the recording while the real
+  server died quietly.
+- **Aborts on failure text** — `EADDRINUSE`, `address already in use`,
+  `Cannot find module` — instead of matching `readyPattern` against a stream
+  that contains both the error and enough noise to look ready. Override per
+  page with `devServer.abortOn`.
 
-Two smaller gaps in the same area, also unfixed on purpose:
+The waits themselves are configuration now: `PROJECT.timeouts` in
+`project.config.ts` for the project, `timeouts` on a page entry to override,
+defaults in `core/timeouts.ts`.
 
-- `startService` does not check the port is free before spawning, so a foreign
-  process on that port silently becomes the subject of the recording.
-- `readyPattern` is matched against the whole stream, including failure output.
-  A `next dev` that died on `EADDRINUSE` still printed enough for the recorder
-  to report `Ready in 3.6s` and carry on filming.
-
-They are marked `generated: true`, meaning their files exist only after the
-pipeline has run. Before that the doctor reports them as warnings rather than
-errors, and an unfiltered `npm run record` skips them with a note saying how to
-produce them. Naming one explicitly still records it, and still fails — which is
-the right answer to "record this specific thing that is missing".
+The demo pages are marked `generated: true`, meaning their files exist only
+after the pipeline has run. Before that the doctor reports them as warnings
+rather than errors, and an unfiltered `npm run record` skips them with a note
+saying how to produce them. Naming one explicitly still records it, and still
+fails — which is the right answer to "record this specific thing that is
+missing".
 
 ### Local only — enforced, not just documented
 
 `npm run capture` and `npm run render` **refuse to run in CI** and exit 1.
 `npm run record` additionally skips any page that boots its own dev server when
 it detects a runner. The check looks for `GITHUB_ACTIONS`, `CI`, `BUILD_BUILDID`
-or `GITLAB_CI`; `AUTORECORD_ALLOW_CI=1` or `--allow-ci` overrides it.
+or `GITLAB_CI`; `AUTORECORD_ALLOW_CI=1` or `--allow-ci` overrides it for
+capture and render, and `--allow-ci` lifts the dev-server skip for record.
 
 Four reasons, not one:
 
@@ -381,7 +423,19 @@ which one and the command to start it. `--force` overrides.
 
 **A page fails with "Agent never produced a response within 30s"** — either the
 demo is genuinely broken, or `selectors.config.ts → assistantMessage` does not
-match this app's messages. Run `npm run doctor --online` to tell the two apart.
+match this app's messages. Run `npm run doctor --online` to tell the two apart:
+it now prints which alternative of each selector actually matched, and warns
+when `assistantMessage` matches something before any reply exists. For an
+agent that is slow rather than broken, raise `replyStartMs` on that page.
+
+**A page passes with `PASS*` and a note from the handler** — the reply came,
+but the thing the doc promises did not: read the note, then watch the clip at
+that moment. Those notes are also in `videos/RECORD_RESULTS.json` and the CI
+report.
+
+**"Port 3121 is already in use"** — another dev server holds the port, usually
+a sibling repo's scaffold left running. Stop it; the recorder refuses rather
+than filming the wrong app.
 
 **The IDE highlights the wrong lines** — the line range drifted. `npm run doctor`
 names the file and where its markers actually are now.
