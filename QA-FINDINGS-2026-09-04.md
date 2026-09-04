@@ -43,9 +43,26 @@ a working chat doing the wrong thing.
 (bar the factory name — this file names one factory per page), mounted at
 `/context_agent`, and `/readables` now binds it.
 
-**To verify:** ask "Who are my colleagues?" and check the answer against the
-panel. Exact match means the context arrived. Anything plausible-but-different
-means it did not.
+### Verified empirically, not just by reading the source
+
+Same AG-UI payload — same question, same forwarded `context` — posted to both
+endpoints on the running backend:
+
+| Endpoint | Answer | Names matched |
+| --- | --- | --- |
+| `/sample_agent` (the old published sample) | *"I don't have specific information about your colleagues. If you can provide their names or any details about them, I'd be happy to help you with that!"* | **0 / 3** |
+| `/context_agent` (the new published sample) | *"Here are your colleagues: 1. **John Doe** — Developer, 2. **Jane Smith** — Designer, 3. **Bob Wilson** — Product Manager"* | **3 / 3** |
+
+The plain agent received the context and discarded it. That is the defect,
+measured rather than inferred, and it is the same shape the old page's own
+"Give it a try!" step tells you to expect success from.
+
+Reproduce with `scripts`-free curl against a running backend, or re-run the
+probe used here: POST a `RunAgentInput` carrying `context` to each path and
+reassemble the `TEXT_MESSAGE_CONTENT` deltas.
+
+**Recorded:** `MSPY-react-14-Readables.webm`, re-recorded 2026-09-04 against
+this change. The take passes and the agent answers from the panel.
 
 ---
 
@@ -212,7 +229,17 @@ manifest's `sitemap` block is rebuilt from what the sitemap actually lists.
 | `webmcp` | **not covered** — new top-level page, no route |
 | `human-in-the-loop/governed-actions` | **not covered** — this repo tracks no HITL page |
 | `generative-ui/a2ui/*` | **not covered** — subsection never covered here |
-| Recordings | **not re-run.** Every clip predates these changes. |
+| `/readables` recording | **re-recorded and passing** |
+| Other recordings | **not re-run.** Every other clip predates these changes. |
 
-`/readables` is the recording to make first: it is the only place where the
-claim in finding 1 gets tested rather than reasoned about.
+`/readables` has been re-recorded and passes; finding 1 is confirmed by direct
+measurement (above), not only by the clip. Every other route still carries a
+clip that predates these changes — in particular both Shared State routes, whose
+on-screen behaviour changed.
+
+**Recording note:** three port variables must be set together or the recorder
+silently targets whatever else is on port 3000. `PORT` (what `next dev` binds),
+`FRONTEND_PORT` (what `ci/lib/config.mjs` preflights) and `FRONTEND_URL` (what
+`autorecorder/config/project.config.ts` actually navigates to) are read by three
+different layers and none derives from the others. Setting only the first two
+produced a take against a sibling repo's app on this machine.
