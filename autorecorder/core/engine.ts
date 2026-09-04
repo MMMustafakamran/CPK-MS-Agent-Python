@@ -796,6 +796,23 @@ export class RecordingEngine {
         // Wait for page body and chat element readiness
         console.log(`   ⏳ Waiting for Next.js compilation & React hydration to settle...`);
         await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
+
+        // Next.js dev refuses its own chunks when the page is opened on a host
+        // it does not list -- 127.0.0.1 instead of localhost, typically. The
+        // page paints from the server render, React never hydrates, and the
+        // take then spends two minutes retyping into a composer that cannot
+        // submit. The 403s are on the console the moment the page loads, so
+        // say what happened now rather than "agent never responded" later.
+        const blocked = console_?.entries.find(
+          (e) => /\/_next\/static\/.*(403|ERR_ABORTED)/.test(e.text) || /Blocked cross-origin/i.test(e.text),
+        );
+        if (blocked) {
+          throw new Error(
+            `Next.js dev server refused its own chunks (${blocked.text.slice(0, 120)}). ` +
+              `The page will never hydrate. Open the frontend on the host Next lists as Local -- ` +
+              `usually http://localhost:<port>, not 127.0.0.1 -- or add the host to allowedDevOrigins in next.config.`,
+          );
+        }
         // No .catch() here: if the demo never renders an interactive surface there
         // is nothing to record, and that must fail rather than warn.
         await page.waitForSelector(SELECTORS.chatReady, {

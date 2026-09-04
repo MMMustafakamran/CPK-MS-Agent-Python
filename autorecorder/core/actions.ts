@@ -277,8 +277,10 @@ export async function sendPrompt(
   await sleep(200);
 
   if (clearFirst) {
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
+    await inputLocator.fill('').catch(async () => {
+      await page.keyboard.press('Control+A');
+      await page.keyboard.press('Backspace');
+    });
   }
 
   const submitBtn = page.locator(submitSelector).first();
@@ -297,9 +299,12 @@ export async function sendPrompt(
   for (let attempt = 1; attempt <= 3 && !sent; attempt++) {
     if (attempt > 1) {
       console.log(`   ↻ Prompt did not submit -- retyping (attempt ${attempt}/3)...`);
+      // fill('') clears the control itself. Ctrl+A / Backspace used to do
+      // this, and on a page whose composer had lost focus Ctrl+A selected
+      // the whole document -- a white highlight sweeping the sidebar, on
+      // camera, in the middle of a take.
       await inputLocator.click();
-      await page.keyboard.press('Control+A');
-      await page.keyboard.press('Backspace');
+      await inputLocator.fill('').catch(() => {});
     }
 
     // A person's rhythm on the first attempt. A retry is the recorder
