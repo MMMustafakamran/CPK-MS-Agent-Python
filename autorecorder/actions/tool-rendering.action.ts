@@ -27,7 +27,7 @@ export const runToolRenderingAction: PageActionHandler = async (
   console.log(`   ⏳ Actively detecting AI agent response & custom tool rendering...`);
   // Look for custom weather tool rendered element and glide cursor over it
   const weatherElement = page
-    .locator('p:has-text("weather API"), div:has-text("Tokyo"), .copilotKitAssistantMessage')
+    .locator('p:has-text("weather API"), .copilotKitAssistantMessage')
     .first();
   await weatherElement.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
   await sleep(1500);

@@ -1,5 +1,6 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { humanType } from '../core/overlays/human';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 import { waitForAgentResponseCompletion } from '../core/actions';
 
@@ -32,9 +33,7 @@ export const runProgrammaticAction: PageActionHandler = async (
   await sleep(200);
 
   // Clear and type prompt
-  await page.keyboard.press('Control+A');
-  await page.keyboard.press('Backspace');
-  await page.keyboard.type(config.prompt, { delay: 25 });
+  await humanType(page, config.prompt);
   await sleep(300);
 
   // Click "Run agent" button explicitly

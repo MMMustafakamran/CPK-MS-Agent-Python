@@ -1,5 +1,6 @@
 import { type Page } from 'playwright';
 import { humanClick, humanGlide, sleep } from '../core/overlays/cursor';
+import { humanType } from '../core/overlays/human';
 import { ensureClearOfTaskbar } from '../core/overlays/taskbar';
 import { type PageActionHandler, type PageRecordConfig } from '../core/types';
 
@@ -59,7 +60,7 @@ export const runHeadlessUiAction: PageActionHandler = async (
 
   // Type the prompt visibly
   console.log(`   [Headless UI] Typing prompt: "${config.prompt}"...`);
-  await page.keyboard.type(config.prompt, { delay: 35 });
+  await humanType(page, config.prompt);
   await sleep(350);
 
   // Ensure input state is populated
