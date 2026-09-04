@@ -59,7 +59,12 @@ export function muxAudioFiles() {
 
     try {
       execSync(
-        `ffmpeg -y -i "${inputPath}" -i "${audioPath}" -c:v copy -c:a libopus -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
+                // `-af apad` before `-shortest` is load-bearing: voiceovers are
+        // shorter than the clips they narrate (30.5s of audio over a ~100s
+        // Readables demo), and without padding `-shortest` truncates the
+        // VIDEO down to the audio's length. Padding makes the audio
+        // effectively endless so `-shortest` cuts on the video instead.
+        `ffmpeg -y -i "${inputPath}" -i "${audioPath}" -c:v copy -c:a libopus -af apad -map 0:v:0 -map 1:a:0 -shortest "${tempPath}"`,
         { stdio: 'ignore' },
       );
       fs.copyFileSync(tempPath, inputPath);

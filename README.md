@@ -346,7 +346,7 @@ Out of scope by request: CLI, Build with agents, MCP Apps, A2UI, Intelligence Pl
 
 ## 9. Known issues / doc-vs-implementation discrepancies
 
-Found while building against `@copilotkit/react-core` 1.66.2 and `agent-framework` 1.13.0.
+Found while building against `@copilotkit/react-core` 1.69.2 and `agent-framework-ag-ui` 1.1.0 (`agent-framework-openai` 1.13.0).
 
 **1. `useAgent` has no `initialState` prop**
 Both Shared State pages seed the starting value with `useAgent({ agentId, initialState: { language: "english" } })`. `UseAgentProps` has no such field — passing it is a type error. This repo seeds server-side with `default_state` on `add_agent_framework_fastapi_endpoint`, which is a real parameter. The read page also shows a `render` prop on `useAgent`, likewise absent from the shipped type.

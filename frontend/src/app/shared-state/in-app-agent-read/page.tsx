@@ -34,7 +34,7 @@ export default function Page() {
         Both Shared State pages used to seed with{" "}
         <code>useAgent({"{ agentId, initialState }"})</code>, and this one also
         showed a <code>render</code> prop. Neither has ever been on{" "}
-        <code>useAgent</code> in <code>@copilotkit/react-core</code> 1.66.2, so
+        <code>useAgent</code> in <code>@copilotkit/react-core</code> 1.69.2, so
         both were type errors. The pages now seed in a <code>useEffect</code>{" "}
         gated on <code>isReady</code>, which the hook does return, and the demo
         runs that snippet as published. <code>default_state</code> on{" "}

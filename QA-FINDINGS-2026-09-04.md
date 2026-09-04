@@ -6,10 +6,24 @@
 
 | Package | Declared | Installed |
 | --- | --- | --- |
-| `@copilotkit/react-core` | `^1.66.2` | 1.66.2 |
-| `agent-framework-ag-ui` | `>=1.0.1` | 1.2.1 |
-| `agent-framework-core` | (transitive) | 1.16.0 |
-| `zod` | — | 3.x |
+| `@copilotkit/react-core` | `^1.69.2` | **1.69.2** |
+| `@copilotkit/runtime` | `^1.69.2` | 1.69.2 |
+| `@ag-ui/client` | `^0.0.58` | 0.0.58 |
+| `agent-framework-ag-ui` | `>=1.0.1` | **1.1.0** (pinned by `backend/uv.lock`) |
+| `agent-framework-core` | (transitive) | 1.14.0 |
+| `agent-framework-openai` | `>=1.12.0` | 1.13.0 |
+
+> Read from `node_modules` and `.venv` after the recording run, not from the
+> declared ranges. An earlier draft of this report said `1.66.2` — copied from a
+> page callout rather than measured. `autorecorder/core/versions.ts` exists in
+> this repo precisely because "the Readables note claimed 1.66.2 and listed
+> packages this repo does not even install"; the same mistake was made again
+> here and is corrected.
+>
+> Note that `uv run` — how `ci/automate.mjs` launches the backend — re-syncs
+> `.venv` to `uv.lock` on every run. A manually `pip install`ed newer version
+> does not survive a recording, so the lockfile is the only version that
+> matters.
 
 8 pages drifted. One of them reversed a claim this harness had been built on.
 
@@ -28,10 +42,17 @@ The page now publishes a `ContextAwareAgent` subclass that folds
 to *"Use middleware to read it and inject it into the agent's conversation."*
 
 **The shipped source says the new version is the correct one.** In
-`agent_framework_ag_ui._agent_run.run_agent_stream`, `input_data["context"]` is
-read in exactly one place — `build_ag_ui_context_slice(...)` — inside the branch
-guarded by the A2UI injection flag. A run without `injectA2UITool` never turns
-the forwarded context into anything the model sees.
+`agent_framework_ag_ui` **1.1.0**, the version `backend/uv.lock` pins and every
+recording actually runs, `_agent_run.py` never reads `input_data["context"]` at
+all. The only context it injects is *state* context (`_inject_state_context`),
+which is a different thing entirely. The forwarded AG-UI context is accepted by
+the endpoint and dropped.
+
+(For completeness: in 1.2.1 — briefly present in this venv as a stray manual
+install, and wiped by the next `uv run` — the key is read in exactly one place,
+`build_ag_ui_context_slice(...)`, inside the branch guarded by the A2UI
+injection flag. A run without `injectA2UITool` still sees nothing. The
+conclusion holds on both versions; only 1.1.0 is the one that ships here.)
 
 **Why this matters more than a normal doc bug:** the failure was silent. No
 error, no console warning. The agent answered questions about "your colleagues"
