@@ -52,6 +52,7 @@ node ci/automate.mjs --limit=3 --ignore-doc-drift
 | `--use-lockfile` | Install the committed lockfiles instead of re-resolving (see below) |
 | `--skip-install` | Skip dependency installation |
 | `--ignore-doc-drift` / `--force` | Record even if the live docs moved |
+| `--skip-doc-drift` | Do not contact the docs site at all (the workflow passes this to each shard; the prepare job already ran the check) |
 | `--allow-port-reuse` | Record against servers that are already running |
 | `--skip-credential-check` | Skip the model-credential preflight |
 
