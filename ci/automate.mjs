@@ -11,6 +11,9 @@
  *   --use-lockfile       install the committed lockfiles instead of re-resolving
  *   --skip-install       skip dependency installation entirely
  *   --ignore-doc-drift   record even if the live docs have moved (alias: --force)
+ *   --skip-doc-drift     do not contact the docs site at all (the workflow's
+ *                        prepare job already decided; a docs blip must not
+ *                        fail a shard)
  *   --allow-port-reuse   record against servers that are already running
  *   --skip-credential-check  bypass the model-credential preflight
  *   --skip-license-check     bypass the threads license-expiry preflight
@@ -29,6 +32,7 @@ import {
   LOGS_DIR,
   RECORDER_DIR,
   ROOT_DIR,
+  VIDEOS_DIR,
   isWindows,
 } from './lib/config.mjs';
 import { loadEnvFiles, trimInheritedCredentials } from './lib/env.mjs';
@@ -47,6 +51,7 @@ const OWN_FLAGS = [
   '--use-lockfile',
   '--skip-install',
   '--ignore-doc-drift',
+  '--skip-doc-drift',
   '--force',
   '--allow-port-reuse',
   '--skip-credential-check',
@@ -92,6 +97,7 @@ const shouldPull = args.includes('--pull');
 const shouldRefresh = !args.includes('--use-lockfile');
 const skipInstall = args.includes('--skip-install');
 const ignoreDocDrift = args.includes('--ignore-doc-drift') || args.includes('--force');
+const skipDocDrift = args.includes('--skip-doc-drift');
 const allowPortReuse = args.includes('--allow-port-reuse');
 const skipCredentialCheck = args.includes('--skip-credential-check');
 const skipLicenseCheck = args.includes('--skip-license-check');
@@ -237,11 +243,15 @@ async function main() {
 
   try {
     // 0. Live doc drift
-    console.log('▶ [Step 0] Checking for live documentation drift against doc-snapshot...');
-    const driftResult = await checkAllDocDrift();
-    reportData.driftResult = driftResult;
+    if (skipDocDrift) {
+      console.log('▶ [Step 0] Doc drift check skipped (--skip-doc-drift); the workflow gate already ran it.\n');
+    } else {
+      console.log('▶ [Step 0] Checking for live documentation drift against doc-snapshot...');
+      reportData.driftResult = await checkAllDocDrift();
+    }
+    const driftResult = reportData.driftResult;
 
-    if (driftResult.drifted) {
+    if (driftResult?.drifted) {
       console.log('\n🚨 [DOC DRIFT DETECTED] Upstream documentation has changed on these pages:');
       console.log('───────────────────────────────────────────────────────────────────────────');
       for (const p of driftResult.driftedPages) {
@@ -260,7 +270,7 @@ async function main() {
         process.exit(2);
       }
       console.log('⚠️ --ignore-doc-drift provided. Proceeding anyway...\n');
-    } else {
+    } else if (driftResult) {
       console.log(`✅ [Doc Drift Check]: All ${driftResult.total} doc pages match the local snapshot.\n`);
     }
 
@@ -268,13 +278,15 @@ async function main() {
     const envFiles = loadEnvFiles();
     if (envFiles.length > 0) {
       console.log(`🔑 [Preflight] Loaded environment from: ${envFiles.join(', ')}`);
+    }
+    // Outside the block above on purpose: in CI no .env file loads, and CI is
+    // exactly where a secret pasted with a trailing newline comes from.
     const trimmedVars = trimInheritedCredentials();
     if (trimmedVars.length > 0) {
       console.log(
         `🔑 [Preflight] Trimmed surrounding whitespace from: ${trimmedVars.join(', ')}` +
           ' — worth fixing at the source, a stored secret is keeping a stray newline.',
       );
-    }
     }
     // `busy` records which ports were already served. With --allow-port-reuse
     // those servers are reused as-is; starting a second one on the same port is
